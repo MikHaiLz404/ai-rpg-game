@@ -309,9 +309,9 @@ export class MainScene extends Phaser.Scene {
             this.player.setPosition(120, 240);
             this.player.anims.play('player-down', true);
             
-            // Adjusted positions and half-scales
-            this.kaneFighter = this.add.sprite(130, 120, 'kane_idle').setScale(0.6).setDepth(40);
-            this.slimeEnemy = this.add.sprite(150, 120, 'slime_idle').setScale(0.75).setDepth(40);
+            // Kane & Slime Position & Scale adjustment
+            this.kaneFighter = this.add.sprite(130, 120, 'kane_idle').setScale(1.0).setDepth(40);
+            this.slimeEnemy = this.add.sprite(150, 120, 'slime_idle').setScale(0.35).setDepth(40);
             
             this.tweens.add({
                 targets: this.kaneFighter,
@@ -322,7 +322,7 @@ export class MainScene extends Phaser.Scene {
             });
             this.tweens.add({
                 targets: this.slimeEnemy,
-                scale: 0.8,
+                scale: 0.38,
                 duration: 800,
                 yoyo: true,
                 repeat: -1
