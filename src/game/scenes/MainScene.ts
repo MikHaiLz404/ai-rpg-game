@@ -88,6 +88,12 @@ export class MainScene extends Phaser.Scene {
         // Fighters
         this.load.image('kane_idle', '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png');
         this.load.image('slime_idle', '/images/enemies/slime/idle/frame_1_0.png');
+
+        // Combat Effects
+        this.load.spritesheet('attack_effect', '/images/effects/combat/attack/attack_sprite.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
         
         // Backgrounds
         this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
@@ -129,6 +135,15 @@ export class MainScene extends Phaser.Scene {
         this.createCharAnims('arena', 'npc_arena');
         this.createCharAnims('draco', 'npc_draco');
 
+        // Attack Animation
+        this.anims.create({
+            key: 'hit_effect',
+            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 98 }), // 11x9 = 99 frames
+            frameRate: 24,
+            repeat: 0,
+            hideOnComplete: true
+        });
+
         this.roomText = this.add.text(192, 20, '', {
             fontSize: '18px',
             color: '#fff',
@@ -139,7 +154,7 @@ export class MainScene extends Phaser.Scene {
 
         this.player = this.add.sprite(195, 143, 'player');
         this.player.setScale(1.5).setDepth(50);
-        this.player.anims.play('player-down', true); // เริ่มเล่นอนิเมชั่นท่า Idle Down
+        this.player.anims.play('player-down', true);
 
         this.loadRoom('shop');
 
@@ -263,10 +278,9 @@ export class MainScene extends Phaser.Scene {
         }
 
         if (roomName === 'arena') {
-            this.player.setPosition(60, 240);
+            this.player.setPosition(120, 240);
             this.player.anims.play('player-down', true);
             
-            // Kane & Slime Position & Scale adjustment
             this.kaneFighter = this.add.sprite(100, 144, 'kane_idle').setScale(1.2).setDepth(40);
             this.slimeEnemy = this.add.sprite(200, 144, 'slime_idle').setScale(1.5).setDepth(40);
             
