@@ -211,7 +211,7 @@ export class MainScene extends Phaser.Scene {
         ];
         const selected = npcList[Math.floor(Math.random() * npcList.length)];
 
-        this.customerNPC = this.add.sprite(216, 280, selected.texture);
+        this.customerNPC = this.add.sprite(144, 280, selected.texture);
         this.customerNPC.setScale(1.5).setDepth(45);
         this.customerNPC.anims.play(`${selected.anim}-up`, true);
 
@@ -220,23 +220,12 @@ export class MainScene extends Phaser.Scene {
             y: 120,
             duration: 3000,
             onComplete: () => {
-                // Step back
-                if (this.customerNPC) {
-                    this.customerNPC.anims.play(`${selected.anim}-down`, true);
-                    this.tweens.add({
-                        targets: this.customerNPC,
-                        y: 160,
-                        duration: 1000,
-                        onComplete: () => {
-                            this.customerNPC?.anims.stop();
-                            this.customerNPC?.setFrame(1);
-                            EventBus.emit('customer-arrival', {
-                                id: selected.id,
-                                name: selected.name
-                            });
-                        }
-                    });
-                }
+                this.customerNPC?.anims.stop();
+                this.customerNPC?.setFrame(1);
+                EventBus.emit('customer-arrival', {
+                    id: selected.id,
+                    name: selected.name
+                });
             }
         });
     }
@@ -285,7 +274,7 @@ export class MainScene extends Phaser.Scene {
         else if (entrySide === 'left') this.player.x = 344;
         else if (entrySide === 'down') this.player.y = 40;
         else if (entrySide === 'up') this.player.y = 248;
-        else this.player.setPosition(216, 220);
+        else this.player.setPosition(144, 168);
 
         if (roomName !== 'shop' && this.customerNPC) {
             this.customerNPC.destroy();
