@@ -17,12 +17,13 @@ const WORLD: Record<string, RoomConfig> = {
     arena: {
         name: 'The Grand Arena',
         phase: 'arena',
-        bgImage: 'bg_cave',
+        bgImage: 'bg_arena',
         exits: { left: 'shop' }
     },
     village: {
         name: 'Divine Village',
         phase: 'relationship',
+        bgImage: 'bg_shop', // ใช้ภาพ Shop เป็นพื้นหลังไปก่อนสำหรับหมู่บ้าน
         exits: { up: 'shop', right: 'cave_entrance' }
     },
     cave_entrance: {
@@ -82,7 +83,8 @@ export class MainScene extends Phaser.Scene {
         
         // Backgrounds
         this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
-        this.load.image('bg_cave', '/images/backgrounds/exploration/cave/_srw_tileset_0.png');
+        this.load.image('bg_arena', '/images/backgrounds/arena/interior/bg_arena_interior.png');
+        this.load.image('bg_cave', '/images/backgrounds/exploration/cave/bg_cave_interior.png');
     }
 
     createCharAnims(key: string, texture: string) {
