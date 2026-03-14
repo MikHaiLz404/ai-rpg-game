@@ -10,14 +10,21 @@ interface RoomConfig {
     layers: RoomLayers;
     exits: Record<string, string>;
     phase?: string;
-    tilesets: string[]; // List of tileset keys to use
+    tilesets: string[]; 
 }
 
+/**
+ * Super Retro World Tileset Layout Notes (for 16x16 upscaled to 48x48):
+ * - Tileset B contains furniture/props.
+ * - Indices are 0-based across the entire texture.
+ * - Row 1 (indices 0-47): Often empty or top-edge props.
+ * - Tables/Counters: Often found in middle rows.
+ */
 const WORLD: Record<string, RoomConfig> = {
     shop: {
         name: 'Celestial Emporium',
         phase: 'shop',
-        tilesets: ['shop_atlas'],
+        tilesets: ['shop_atlas', 'tileset_B'], // Using both base and props
         layers: {
             base: [
                 [17, 18, 18, 18, 18, 18, 18, 19],
@@ -29,10 +36,12 @@ const WORLD: Record<string, RoomConfig> = {
             ],
             decor: [
                 [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 150, 151, 152, 0, 210, 211, 0],
+                // Counter (indices from tileset_B, shifted by shop_atlas count if using single tileset, 
+                // but here we'll use separate map systems if needed, or index offset)
+                [0, 2353, 2354, 2355, 0, 0, 0, 0], 
+                [0, 0, 0, 0, 0, 0, 2360, 0],
+                [0, 0, 2380, 0, 0, 0, 0, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 300, 301, 0, 0, 350, 351, 0],
                 [0, 0, 0, 0, 0, 0, 0, 0],
             ]
         },
@@ -75,14 +84,7 @@ const WORLD: Record<string, RoomConfig> = {
                 [5, 25, 25, 25, 25, 25, 25, 5],
                 [5, 5, 5, 5, 5, 5, 5, 5],
             ],
-            decor: [
-                [400, 401, 0, 405, 406, 0, 410, 411],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 500, 501, 502, 0, 0, 0],
-                [0, 0, 510, 511, 512, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-            ]
+            decor: []
         },
         exits: { up: 'shop', right: 'cave_entrance' }
     },
@@ -99,14 +101,7 @@ const WORLD: Record<string, RoomConfig> = {
                 [2, 10, 10, 10, 10, 10, 10, 2],
                 [2, 2, 2, 2, 2, 2, 2, 2],
             ],
-            decor: [
-                [0, 0, 80, 81, 82, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 120, 0, 0, 0, 0, 125, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 150, 151, 152, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-            ]
+            decor: []
         },
         exits: { down: 'shop', right: 'village', up: 'cave_inside' }
     },
@@ -123,14 +118,7 @@ const WORLD: Record<string, RoomConfig> = {
                 [3, 10, 10, 10, 10, 10, 10, 3],
                 [3, 3, 3, 3, 3, 3, 3, 3],
             ],
-            decor: [
-                [0, 200, 201, 202, 203, 204, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 250, 0, 0, 0, 0, 255, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 300, 301, 302, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-            ]
+            decor: []
         },
         exits: { down: 'cave_entrance' }
     }
@@ -155,16 +143,12 @@ export class MainScene extends Phaser.Scene {
             frameHeight: 32
         });
         
-        // Load upscaled 48x48 textures
         this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
         this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
         this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
-        this.load.image('tileset_C', '/images/backgrounds/shop/interior/tileset_C_48x.png');
-        this.load.image('tileset_D', '/images/backgrounds/shop/interior/tileset_D_48x.png');
     }
 
     create() {
-        // Animations
         this.anims.create({
             key: 'down',
             frames: this.anims.generateFrameNumbers('player', { start: 0, end: 2 }),
@@ -213,7 +197,6 @@ export class MainScene extends Phaser.Scene {
         const room = WORLD[roomName];
         if (!room) return;
 
-        // Cleanup
         if (this.baseLayer) this.baseLayer.destroy();
         if (this.decorLayer) this.decorLayer.destroy();
 
@@ -221,34 +204,43 @@ export class MainScene extends Phaser.Scene {
         this.roomText.setText(room.name);
         if (room.phase) EventBus.emit('phase-change', room.phase);
 
-        // Create base layer
+        // Base Layer
         const map = this.make.tilemap({
             data: room.layers.base,
             tileWidth: 48,
             tileHeight: 48
         });
 
-        const tileset = map.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
-        if (tileset) {
-            this.baseLayer = map.createLayer(0, tileset, 0, 0)!;
+        const baseTileset = map.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
+        if (baseTileset) {
+            this.baseLayer = map.createLayer(0, baseTileset, 0, 0)!;
             this.baseLayer.setDepth(0);
         }
 
-        // Create decoration layer
-        if (room.layers.decor) {
+        // Decor Layer (supports offset for multiple tilesets)
+        if (room.layers.decor && room.layers.decor.length > 0) {
             const decorMap = this.make.tilemap({
                 data: room.layers.decor,
                 tileWidth: 48,
                 tileHeight: 48
             });
-            const decorTileset = decorMap.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
-            if (decorTileset) {
-                this.decorLayer = decorMap.createLayer(0, decorTileset, 0, 0)!;
+
+            // If we have a second tileset (like tileset_B), we add it with an offset
+            // Phaser indices for the second tileset start after the first one
+            const firstTilesetCount = 2048; // Estimate or calculated from image size (768/16 * 768/16 = 2304)
+            
+            const ts1 = decorMap.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
+            let ts2 = null;
+            if (room.tilesets.length > 1) {
+                ts2 = decorMap.addTilesetImage(room.tilesets[1], room.tilesets[1], 48, 48, 0, 0, firstTilesetCount);
+            }
+
+            if (ts1) {
+                this.decorLayer = decorMap.createLayer(0, [ts1, ts2].filter(t => t !== null) as Phaser.Tilemaps.Tileset[], 0, 0)!;
                 this.decorLayer.setDepth(10);
             }
         }
 
-        // Positioning
         if (entrySide === 'right') this.player.x = 40;
         else if (entrySide === 'left') this.player.x = 344;
         else if (entrySide === 'down') this.player.y = 40;
