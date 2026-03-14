@@ -1,10 +1,16 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Shop from '@/components/Shop';
 import Arena from '@/components/Arena';
 import Relationship from '@/components/Relationship';
-import Exploration from '@/components/Exploration';
+
+// Dynamic import for Phaser (client-side only)
+const PhaserGame = dynamic(() => import('@/game/PhaserGame'), { 
+  ssr: false,
+  loading: () => <div style={{ padding: '20px', textAlign: 'center' }}>Loading game...</div>
+});
 
 export default function Home() {
   const [phase, setPhase] = useState('exploration');
@@ -47,7 +53,7 @@ export default function Home() {
       </nav>
       
       <main style={{ maxWidth: '800px', margin: '0 auto', background: '#16213e', borderRadius: '12px', minHeight: '500px' }}>
-        {phase === 'exploration' && <Exploration />}
+        {phase === 'exploration' && <PhaserGame />}
         {phase === 'shop' && <Shop />}
         {phase === 'arena' && <Arena />}
         {phase === 'relationship' && <Relationship />}
