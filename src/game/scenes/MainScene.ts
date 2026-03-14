@@ -164,7 +164,7 @@ export class MainScene extends Phaser.Scene {
         ];
         const selected = npcList[Math.floor(Math.random() * npcList.length)];
 
-        this.customerNPC = this.add.sprite(192, 280, selected.texture);
+        this.customerNPC = this.add.sprite(240, 280, selected.texture);
         this.customerNPC.setScale(1.5).setDepth(45);
         this.customerNPC.anims.play(`${selected.anim}-up`, true);
 
@@ -173,12 +173,23 @@ export class MainScene extends Phaser.Scene {
             y: 120,
             duration: 3000,
             onComplete: () => {
-                this.customerNPC?.anims.stop();
-                this.customerNPC?.setFrame(1);
-                EventBus.emit('customer-arrival', {
-                    id: selected.id,
-                    name: selected.name
-                });
+                // Step back
+                if (this.customerNPC) {
+                    this.customerNPC.anims.play(`${selected.anim}-down`, true);
+                    this.tweens.add({
+                        targets: this.customerNPC,
+                        y: 140,
+                        duration: 800,
+                        onComplete: () => {
+                            this.customerNPC?.anims.stop();
+                            this.customerNPC?.setFrame(1);
+                            EventBus.emit('customer-arrival', {
+                                id: selected.id,
+                                name: selected.name
+                            });
+                        }
+                    });
+                }
             }
         });
     }
@@ -227,7 +238,7 @@ export class MainScene extends Phaser.Scene {
         else if (entrySide === 'left') this.player.x = 344;
         else if (entrySide === 'down') this.player.y = 40;
         else if (entrySide === 'up') this.player.y = 248;
-        else this.player.setPosition(192, 168);
+        else this.player.setPosition(240, 180);
 
         if (roomName !== 'shop' && this.customerNPC) {
             this.customerNPC.destroy();
