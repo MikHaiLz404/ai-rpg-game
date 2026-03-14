@@ -12,6 +12,8 @@ interface Companion {
   id: string;
   name: string;
   bond: number;
+  level: number;
+  unlockedSkills: string[];
 }
 
 interface Customer {
@@ -89,15 +91,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
   }),
   
   companions: [
-    { id: 'leo', name: 'เลโอ้', bond: 5 },
-    { id: 'arena', name: 'อารีน่า', bond: 3 },
-    { id: 'draco', name: 'ดราโก้', bond: 2 },
-    { id: 'kane', name: 'เคน', bond: 1 },
+    { id: 'leo', name: 'เลโอ้', bond: 5, level: 1, unlockedSkills: ['Power Strike'] },
+    { id: 'arena', name: 'อารีน่า', bond: 3, level: 1, unlockedSkills: ['Royal Guard'] },
+    { id: 'draco', name: 'ดราโก้', bond: 2, level: 1, unlockedSkills: ['Dragon Breath'] },
+    { id: 'kane', name: 'เคน', bond: 1, level: 1, unlockedSkills: ['Quick Shot'] },
   ],
+  
   addBond: (id, amount) => set((state) => ({
-    companions: state.companions.map(c => 
-      c.id === id ? { ...c, bond: c.bond + amount } : c
-    )
+    companions: state.companions.map(c => {
+      if (c.id === id) {
+        const newBond = c.bond + amount;
+        const newLevel = Math.floor(newBond / 10) + 1;
+        // Logic for unlocking skills based on level can be added here
+        return { ...c, bond: newBond, level: newLevel };
+      }
+      return c;
+    })
   })),
 
   getBondBonus: (id) => {
@@ -112,7 +121,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentCustomer: null,
   setCustomer: (customer) => set({ currentCustomer: customer }),
 
-  // Day Cycle Implementation
   day: 1,
   customersServed: 0,
   isShiftActive: false,
@@ -131,7 +139,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       items: data.inventory.map((i: any) => i.id || i),
       companions: get().companions.map(c => ({
         ...c,
-        bond: data.relationships[c.id] || c.bond
+        bond: data.relationships[c.id] || c.bond,
+        level: Math.floor((data.relationships[c.id] || c.bond) / 10) + 1
       })),
       day: data.day || 1
     });
