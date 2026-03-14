@@ -5,7 +5,7 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-v1-000000000
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, playerName, enemyName, damage, npcName, npcMood, godTheme, level } = await request.json();
+    const { action, playerName, enemyName, damage, npcName, npcMood, godTheme, level, userMessage } = await request.json();
 
     const actionDescriptions: Record<string, string> = {
       attack: 'attacks fiercely',
@@ -30,11 +30,20 @@ export async function POST(request: NextRequest) {
         "type": "physical" or "magical"
       }`;
     } else if (action === 'talk') {
-      prompt = `Act as ${npcName}, a God in a fantasy RPG. Personality: ${npcMood}.
-      The player (${playerName}) wants to bond with you.
+      if (userMessage) {
+        prompt = `Act as ${npcName}, a God in a fantasy RPG. Personality: ${npcMood}.
+        The player (${playerName}) says: "${userMessage}"
+        
+        Respond to the player in character. Keep it short (1-2 sentences). 
+        You can be mysterious, arrogant, kind, or wise depending on your personality.
+        Format: Just the dialogue. Language: Thai or English (Match the language of the player).`;
+      } else {
+        prompt = `Act as ${npcName}, a God in a fantasy RPG. Personality: ${npcMood}.
+        The player (${playerName}) wants to bond with you.
 
-      Instead of simple greeting, provide a short, meaningful monologue (2 sentences) that asks the player for their opinion on a divine matter or shares a secret prophecy. 
-      Format: Just the dialogue. Language: Thai or English.`;
+        Provide a short, meaningful monologue (2 sentences) that asks the player for their opinion on a divine matter or shares a secret prophecy. 
+        Format: Just the dialogue. Language: Thai or English.`;
+      }
     } else {
       prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
         
@@ -57,7 +66,7 @@ Keep it exciting and descriptive. Format: Just the narrative text. Language: Tha
       body: JSON.stringify({
         model: 'meta-llama/llama-3.2-3b-instruct:free',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 100,
+        max_tokens: 150,
       }),
     });
 

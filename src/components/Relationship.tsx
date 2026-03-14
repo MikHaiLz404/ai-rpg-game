@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 
 function makeFrames(base: string, count: number) {
@@ -17,25 +17,44 @@ const NPC_METADATA = {
   kane: { emoji: '🏹', desc: 'ผู้พิทักษ์ (Your Champion)', theme: 'Agility & Archery', sprites: [] },
 };
 
+interface ChatMessage {
+  sender: 'player' | 'npc' | 'system';
+  text: string;
+}
+
 export default function Relationship() {
   const { companions, addBond, unlockSkill } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [chatLog, setChatLog] = useState<string[]>([]);
+  const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
+  const [userInput, setUserMessage] = useState('');
   const [frameIndex, setFrameIndex] = useState(0);
   const [isTalking, setIsTalking] = useState(false);
   const [isGeneratingSkill, setIsGeneratingSkill] = useState(false);
   
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const interval = setInterval(() => setFrameIndex(f => (f + 1) % 12), 200);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [chatLog]);
   
-  const handleTalk = async (id: string) => {
+  const handleTalk = async (id: string, message?: string) => {
     const companion = companions.find(c => c.id === id);
     if (!companion) return;
     
     setIsTalking(true);
-    setSelectedId(id);
+    if (!selectedId) setSelectedId(id);
+
+    if (message) {
+      setChatLog(prev => [...prev, { sender: 'player', text: message }]);
+      setUserMessage('');
+    }
     
     try {
       const res = await fetch('/api/narrate', {
@@ -45,17 +64,18 @@ export default function Relationship() {
           action: 'talk',
           playerName: 'Minju',
           npcName: companion.name,
-          npcMood: NPC_METADATA[id as keyof typeof NPC_METADATA]?.desc || 'divine'
+          npcMood: NPC_METADATA[id as keyof typeof NPC_METADATA]?.desc || 'divine',
+          userMessage: message
         })
       });
       
       const data = await res.json();
       if (data.narrative) {
-        setChatLog([data.narrative]);
-        addBond(id, 1); // Small bond for talking
+        setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]);
+        addBond(id, 1);
       }
     } catch (err) {
-      setChatLog([`${companion.name} nods in approval of your presence.`]);
+      setChatLog(prev => [...prev, { sender: 'npc', text: `${companion.name} nods in approval.` }]);
     } finally {
       setIsTalking(false);
     }
@@ -78,11 +98,10 @@ export default function Relationship() {
         })
       });
       const data = await res.json();
-      // Clean the JSON string from AI if needed
       const skillData: DivineSkill = typeof data.narrative === 'string' ? JSON.parse(data.narrative) : data.narrative;
       
       unlockSkill(id, { ...skillData, godId: id });
-      setChatLog(prev => [`✨ UNLOCKED NEW SKILL: ${skillData.name}!`, ...prev]);
+      setChatLog(prev => [...prev, { sender: 'system', text: `✨ UNLOCKED NEW SKILL: ${skillData.name}!` }]);
     } catch (err) {
       console.error('Skill gen error:', err);
     } finally {
@@ -95,97 +114,111 @@ export default function Relationship() {
   const currentFrame = (metadata && metadata.sprites.length > 0) ? metadata.sprites[frameIndex] : null;
   
   return (
-    <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20">
-      <h2 className="text-2xl font-black mb-6 text-pink-500 uppercase tracking-tighter italic">Divine Connections</h2>
-
-      {selectedCompanion && metadata ? (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col h-[600px]">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic">Divine Connections</h2>
+        {selectedId && (
           <button 
             onClick={() => {setSelectedId(null); setChatLog([]);}} 
-            className="text-slate-500 hover:text-white flex items-center gap-1 text-[10px] font-black uppercase tracking-widest mb-4 transition-colors"
+            className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
           >
-            ← Back to Sanctuary
+            ← Back
           </button>
-          
-          <div className="bg-slate-800/50 p-8 rounded-3xl border border-white/5 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-b from-pink-500/5 to-transparent opacity-50" />
-            <div className="w-28 h-28 mx-auto mb-6 bg-slate-900 rounded-full overflow-hidden flex items-center justify-center border-4 border-pink-500/20 shadow-2xl relative z-10">
+        )}
+      </div>
+
+      {selectedCompanion && metadata ? (
+        <div className="flex-1 flex flex-col min-h-0 space-y-4">
+          <div className="bg-slate-800/30 p-4 rounded-2xl border border-white/5 flex items-center gap-4 relative overflow-hidden">
+            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0">
               {currentFrame ? (
-                <img src={currentFrame} alt={selectedCompanion.name} className="w-20 h-20 object-contain image-pixelated" />
+                <img src={currentFrame} alt={selectedCompanion.name} className="w-12 h-12 object-contain image-pixelated" />
               ) : (
-                <span className="text-5xl">{metadata.emoji}</span>
+                <span className="text-2xl">{metadata.emoji}</span>
               )}
             </div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-tight relative z-10">{selectedCompanion.name}</h3>
-            <p className="text-[10px] text-pink-500/70 font-bold uppercase tracking-widest mb-6 relative z-10">{metadata.desc}</p>
-            
-            <div className="max-w-xs mx-auto space-y-4 relative z-10">
-              <div className="flex justify-between items-end mb-1">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Bond Level {selectedCompanion.level}</span>
-                <span className="text-pink-500 font-black text-xl">{selectedCompanion.bond % 10}/10</span>
-              </div>
-              <div className="w-full h-2 bg-slate-900 rounded-full border border-white/5 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-pink-600 to-rose-400 transition-all duration-1000"
-                  style={{ width: `${(selectedCompanion.bond % 10) * 10}%` }}
-                />
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-black text-white uppercase tracking-tight truncate">{selectedCompanion.name}</h3>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
+                  <div 
+                    className="h-full bg-gradient-to-r from-pink-600 to-rose-400 transition-all duration-1000"
+                    style={{ width: `${(selectedCompanion.bond % 10) * 10}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-black text-pink-500">LVL {selectedCompanion.level}</span>
               </div>
             </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button 
-              onClick={() => handleTalk(selectedCompanion.id)} 
-              disabled={isTalking}
-              className={`flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl transition-all border border-white/10 uppercase text-xs tracking-widest ${isTalking ? 'opacity-50 cursor-wait' : ''}`}
-            >
-              {isTalking ? 'Connecting...' : '💬 Seek Audience'}
-            </button>
-            
-            {/* Skill Generation Button - Only visible if they have "pending" skill unlocks or just reached a level */}
             <button 
               onClick={() => handleGenerateSkill(selectedCompanion.id)}
               disabled={isGeneratingSkill}
-              className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-900 font-black rounded-xl transition-all shadow-lg uppercase text-xs tracking-widest disabled:opacity-50"
+              className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 text-[10px] font-black rounded-lg transition-all shadow-lg uppercase disabled:opacity-50 shrink-0"
             >
-              {isGeneratingSkill ? 'Weaving...' : '✨ Weave Skill'}
+              {isGeneratingSkill ? '...' : '✨ Skill'}
             </button>
           </div>
 
-          {/* Unlocked Skills */}
-          <div className="space-y-3">
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Divine Skills Granted</h4>
-            <div className="grid grid-cols-1 gap-2">
-              {selectedCompanion.unlockedSkills.map((skill, i) => (
-                <div key={i} className="bg-black/30 p-3 rounded-xl border border-white/5 flex justify-between items-center group hover:border-amber-500/30 transition-colors">
-                  <div>
-                    <div className="text-xs font-black text-amber-500 uppercase tracking-tight">{skill.name}</div>
-                    <div className="text-[9px] text-slate-500 italic line-clamp-1">{skill.description}</div>
-                  </div>
-                  <div className="text-[10px] font-black text-white bg-slate-800 px-2 py-1 rounded">x{skill.multiplier}</div>
+          <div 
+            ref={scrollRef}
+            className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800"
+          >
+            {chatLog.length === 0 && (
+              <div className="text-center text-slate-600 italic text-xs py-8">Seek audience to begin your conversation...</div>
+            )}
+            {chatLog.map((msg, i) => (
+              <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
+                  msg.sender === 'player' 
+                    ? 'bg-pink-600 text-white rounded-tr-none' 
+                    : msg.sender === 'npc'
+                    ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5'
+                    : 'bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'
+                }`}>
+                  {msg.text}
                 </div>
-              ))}
-              {selectedCompanion.unlockedSkills.length === 0 && (
-                <div className="text-[10px] text-slate-600 italic px-1 text-center py-4 border border-dashed border-slate-800 rounded-xl">No skills granted yet. Deepen your bond.</div>
-              )}
-            </div>
+              </div>
+            ))}
+            {isTalking && (
+              <div className="flex justify-start">
+                <div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs">
+                  Thinking...
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="bg-black/60 p-6 rounded-2xl h-36 overflow-y-auto border border-white/5 font-mono text-sm leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
-            {chatLog.map((msg, i) => (
-              <div key={i} className={`mb-3 ${i === 0 ? 'text-white italic' : 'text-slate-500'}`}>{msg}</div>
-            ))}
-          </div>
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (userInput.trim()) handleTalk(selectedCompanion.id, userInput);
+            }}
+            className="flex gap-2"
+          >
+            <input 
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserMessage(e.target.value)}
+              placeholder="Type your message to the god..."
+              className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors"
+            />
+            <button 
+              type="submit"
+              disabled={isTalking || !userInput.trim()}
+              className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+            >
+              Send
+            </button>
+          </form>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
           {companions.map((comp) => {
             const meta = NPC_METADATA[comp.id as keyof typeof NPC_METADATA];
             return (comp.id !== 'kane' && (
               <button 
                 key={comp.id} 
                 onClick={() => handleTalk(comp.id)} 
-                className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden"
+                className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden h-48"
               >
                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                   <span className="text-4xl font-black">{comp.level}</span>
