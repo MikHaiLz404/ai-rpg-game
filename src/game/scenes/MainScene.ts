@@ -11,7 +11,7 @@ interface RoomConfig {
     exits: Record<string, string>;
     phase?: string;
     tilesets: string[]; 
-    bgImage?: string; // Support for 1-piece background image
+    bgImage?: string; 
 }
 
 const WORLD: Record<string, RoomConfig> = {
@@ -117,6 +117,9 @@ export class MainScene extends Phaser.Scene {
     roomText!: Phaser.GameObjects.Text;
     
     customerNPC: Phaser.GameObjects.Sprite | null = null;
+    
+    // Mobile Movement
+    mobileDirection: string | null = null;
 
     constructor() {
         super('MainScene');
@@ -127,15 +130,11 @@ export class MainScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
-        
-        // Tilesets
         this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
         this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
         this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
-
-        // Background Images (as fallbacks or primary)
         this.load.image('bg_shop', 'public/images/backgrounds/shop/interior/screenshot (2).png');
-        this.load.image('bg_cave', 'public/images/backgrounds/exploration/cave/_srw_tileset_0.png'); // Using tileset as a temp bg color
+        this.load.image('bg_cave', 'public/images/backgrounds/exploration/cave/_srw_tileset_0.png');
     }
 
     create() {
@@ -188,6 +187,14 @@ export class MainScene extends Phaser.Scene {
         });
 
         EventBus.on('clear-customer', () => this.clearCustomer());
+        
+        // Listen for Mobile controls
+        EventBus.on('mobile-move', (dir: string) => {
+            this.mobileDirection = dir;
+        });
+        EventBus.on('mobile-stop', () => {
+            this.mobileDirection = null;
+        });
 
         EventBus.emit('current-scene-ready', this);
     }
@@ -230,7 +237,6 @@ export class MainScene extends Phaser.Scene {
         const room = WORLD[roomName];
         if (!room) return;
 
-        // Cleanup
         if (this.baseLayer) this.baseLayer.destroy();
         if (this.decorLayer) this.decorLayer.destroy();
         if (this.bgSprite) this.bgSprite.destroy();
@@ -239,7 +245,6 @@ export class MainScene extends Phaser.Scene {
         this.roomText.setText(room.name);
         if (room.phase) EventBus.emit('phase-change', room.phase);
 
-        // Load Background Image if exists
         if (room.bgImage) {
             this.bgSprite = this.add.image(192, 144, room.bgImage);
             const scaleX = 384 / this.bgSprite.width;
@@ -247,7 +252,6 @@ export class MainScene extends Phaser.Scene {
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
 
-        // Base Layer (keeping it for logic/collision if needed)
         const map = this.make.tilemap({
             data: room.layers.base,
             tileWidth: 48,
@@ -258,7 +262,6 @@ export class MainScene extends Phaser.Scene {
         if (baseTileset) {
             this.baseLayer = map.createLayer(0, baseTileset, 0, 0)!;
             this.baseLayer.setDepth(0);
-            // Hide tilemap if bgImage is present to avoid "broken" look
             if (room.bgImage) this.baseLayer.setVisible(false);
         }
 
@@ -280,19 +283,25 @@ export class MainScene extends Phaser.Scene {
         let moving = false;
         const speed = 3;
 
-        if (this.cursors.left?.isDown || this.wasdKeys.A.isDown) {
+        // Combine Keyboard and Mobile Direction
+        const goLeft = this.cursors.left?.isDown || this.wasdKeys.A.isDown || this.mobileDirection === 'left';
+        const goRight = this.cursors.right?.isDown || this.wasdKeys.D.isDown || this.mobileDirection === 'right';
+        const goUp = this.cursors.up?.isDown || this.wasdKeys.W.isDown || this.mobileDirection === 'up';
+        const goDown = this.cursors.down?.isDown || this.wasdKeys.S.isDown || this.mobileDirection === 'down';
+
+        if (goLeft) {
             this.player.x -= speed;
             this.player.anims.play('left', true);
             moving = true;
-        } else if (this.cursors.right?.isDown || this.wasdKeys.D.isDown) {
+        } else if (goRight) {
             this.player.x += speed;
             this.player.anims.play('right', true);
             moving = true;
-        } else if (this.cursors.up?.isDown || this.wasdKeys.W.isDown) {
+        } else if (goUp) {
             this.player.y -= speed;
             this.player.anims.play('up', true);
             moving = true;
-        } else if (this.cursors.down?.isDown || this.wasdKeys.S.isDown) {
+        } else if (goDown) {
             this.player.y += speed;
             this.player.anims.play('down', true);
             moving = true;

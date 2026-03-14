@@ -49,13 +49,61 @@ export default function PhaserGame() {
     };
   }, []);
 
+  const handleMobileMove = (dir: string) => {
+    EventBus.emit('mobile-move', dir);
+  };
+
+  const handleMobileStop = () => {
+    EventBus.emit('mobile-stop');
+  };
+
   return (
     <div className="w-full flex flex-col items-center">
       <div 
         id="phaser-game-container"
         className="w-full max-w-[384px] aspect-[4/3] border-4 border-amber-500/50 rounded-xl overflow-hidden shadow-2xl shadow-amber-500/10 bg-slate-900"
       />
-      <div className="mt-4 flex gap-4 text-[10px] font-bold text-slate-500 tracking-widest uppercase">
+      
+      {/* Mobile Controls */}
+      <div className="mt-6 grid grid-cols-3 gap-2 lg:hidden">
+        <div />
+        <button 
+          onPointerDown={() => handleMobileMove('up')}
+          onPointerUp={handleMobileStop}
+          onPointerLeave={handleMobileStop}
+          className="w-14 h-14 bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center text-2xl active:bg-amber-500 active:text-slate-900 transition-colors"
+        >
+          ▲
+        </button>
+        <div />
+        
+        <button 
+          onPointerDown={() => handleMobileMove('left')}
+          onPointerUp={handleMobileStop}
+          onPointerLeave={handleMobileStop}
+          className="w-14 h-14 bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center text-2xl active:bg-amber-500 active:text-slate-900 transition-colors"
+        >
+          ◀
+        </button>
+        <button 
+          onPointerDown={() => handleMobileMove('down')}
+          onPointerUp={handleMobileStop}
+          onPointerLeave={handleMobileStop}
+          className="w-14 h-14 bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center text-2xl active:bg-amber-500 active:text-slate-900 transition-colors"
+        >
+          ▼
+        </button>
+        <button 
+          onPointerDown={() => handleMobileMove('right')}
+          onPointerUp={handleMobileStop}
+          onPointerLeave={handleMobileStop}
+          className="w-14 h-14 bg-slate-800 border-2 border-slate-700 rounded-xl flex items-center justify-center text-2xl active:bg-amber-500 active:text-slate-900 transition-colors"
+        >
+          ▶
+        </button>
+      </div>
+
+      <div className="mt-4 hidden lg:flex gap-4 text-[10px] font-bold text-slate-500 tracking-widest uppercase">
         <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1 rounded border border-slate-700">WASD</kbd> MOVE</span>
         <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1 rounded border border-slate-700">ENTER</kbd> INTERACT</span>
       </div>
