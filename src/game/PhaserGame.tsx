@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import * as Phaser from 'phaser';
 import { MainScene } from './scenes/MainScene';
 import { EventBus } from './EventBus';
+import { useGameStore } from '@/store/gameStore';
 
 export default function PhaserGame() {
   const gameRef = useRef<Phaser.Game | null>(null);
   const [ready, setReady] = useState(false);
+  const store = useGameStore();
 
   useEffect(() => {
     if (gameRef.current) return;
@@ -33,6 +35,8 @@ export default function PhaserGame() {
     };
 
     gameRef.current = new Phaser.Game(config);
+    // Attach store to game object for access in scenes
+    (gameRef.current as any).store = useGameStore;
 
     const onSceneReady = () => {
       setReady(true);

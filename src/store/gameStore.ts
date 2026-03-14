@@ -38,6 +38,15 @@ interface GameStore {
   getBondBonus: (id: string) => { atk: number; def: number };
   currentCustomer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
+  
+  // Day Cycle
+  day: number;
+  customersServed: number;
+  isShiftActive: boolean;
+  startShift: () => void;
+  endShift: () => void;
+  incrementServed: () => void;
+  
   loadSaveData: (data: any) => void;
 }
 
@@ -103,6 +112,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentCustomer: null,
   setCustomer: (customer) => set({ currentCustomer: customer }),
 
+  // Day Cycle Implementation
+  day: 1,
+  customersServed: 0,
+  isShiftActive: false,
+  startShift: () => set({ isShiftActive: true, customersServed: 0 }),
+  endShift: () => set((state) => ({ isShiftActive: false, day: state.day + 1 })),
+  incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
+
   loadSaveData: (data) => {
     if (!data) return;
     set({
@@ -115,7 +132,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       companions: get().companions.map(c => ({
         ...c,
         bond: data.relationships[c.id] || c.bond
-      }))
+      })),
+      day: data.day || 1
     });
   },
 }));

@@ -224,7 +224,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     trySpawnCustomer() {
-        if (this.currentRoom !== 'shop' || this.customerNPC) return;
+        // Use Zustand state to check if shop is open
+        const { isShiftActive, currentRoom } = (this.game as any).store?.getState() || { isShiftActive: true, currentRoom: this.currentRoom };
+        
+        if (this.currentRoom !== 'shop' || !isShiftActive || this.customerNPC) return;
 
         const npcList = [
             { id: 'leo', name: 'เลโอ้', texture: 'npc_leo', anim: 'leo' },
