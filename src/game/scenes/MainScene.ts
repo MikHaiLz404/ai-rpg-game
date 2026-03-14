@@ -126,10 +126,27 @@ export class MainScene extends Phaser.Scene {
     }
 
     preload() {
+        // Player
         this.load.spritesheet('player', '/images/characters/player/minju/character_26/character_26_frame32x32.png', {
             frameWidth: 32,
             frameHeight: 32
         });
+
+        // NPCs
+        this.load.spritesheet('npc_leo', '/images/characters/npcs/leo/character_2/character_2_frame32x32.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('npc_arena', '/images/characters/npcs/arena/character_10/character_10_frame32x32.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('npc_draco', '/images/characters/npcs/draco/character_24/character_24_frame32x32.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        
+        // Tilesets
         this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
         this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
         this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
@@ -137,31 +154,39 @@ export class MainScene extends Phaser.Scene {
         this.load.image('bg_cave', 'public/images/backgrounds/exploration/cave/_srw_tileset_0.png');
     }
 
+    createCharAnims(key: string, texture: string) {
+        this.anims.create({
+            key: `${key}-down`,
+            frames: this.anims.generateFrameNumbers(texture, { start: 0, end: 2 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: `${key}-left`,
+            frames: this.anims.generateFrameNumbers(texture, { start: 3, end: 5 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: `${key}-right`,
+            frames: this.anims.generateFrameNumbers(texture, { start: 6, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        });
+        this.anims.create({
+            key: `${key}-up`,
+            frames: this.anims.generateFrameNumbers(texture, { start: 9, end: 11 }),
+            frameRate: 10,
+            repeat: -1
+        });
+    }
+
     create() {
-        this.anims.create({
-            key: 'down',
-            frames: this.anims.generateFrameNumbers('player', { start: 0, end: 2 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'left',
-            frames: this.anims.generateFrameNumbers('player', { start: 3, end: 5 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'right',
-            frames: this.anims.generateFrameNumbers('player', { start: 6, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: 'up',
-            frames: this.anims.generateFrameNumbers('player', { start: 9, end: 11 }),
-            frameRate: 10,
-            repeat: -1
-        });
+        // Create animations for player and npcs
+        this.createCharAnims('player', 'player');
+        this.createCharAnims('leo', 'npc_leo');
+        this.createCharAnims('arena', 'npc_arena');
+        this.createCharAnims('draco', 'npc_draco');
 
         this.roomText = this.add.text(192, 20, '', {
             fontSize: '18px',
@@ -188,7 +213,6 @@ export class MainScene extends Phaser.Scene {
 
         EventBus.on('clear-customer', () => this.clearCustomer());
         
-        // Listen for Mobile controls
         EventBus.on('mobile-move', (dir: string) => {
             this.mobileDirection = dir;
         });
@@ -202,18 +226,27 @@ export class MainScene extends Phaser.Scene {
     trySpawnCustomer() {
         if (this.currentRoom !== 'shop' || this.customerNPC) return;
 
-        this.customerNPC = this.add.sprite(192, 280, 'player');
-        this.customerNPC.setTint(0xaaaaaa);
+        const npcList = [
+            { id: 'leo', name: 'เลโอ้', texture: 'npc_leo', anim: 'leo' },
+            { id: 'arena', name: 'อารีน่า', texture: 'npc_arena', anim: 'arena' },
+            { id: 'draco', name: 'ดราโก้', texture: 'npc_draco', anim: 'draco' },
+        ];
+        const selected = npcList[Math.floor(Math.random() * npcList.length)];
+
+        this.customerNPC = this.add.sprite(192, 280, selected.texture);
         this.customerNPC.setScale(1.5).setDepth(45);
+        this.customerNPC.anims.play(`${selected.anim}-up`, true);
 
         this.tweens.add({
             targets: this.customerNPC,
             y: 120,
             duration: 3000,
             onComplete: () => {
+                this.customerNPC?.anims.stop();
+                this.customerNPC?.setFrame(1);
                 EventBus.emit('customer-arrival', {
-                    id: 'npc_' + Date.now(),
-                    name: ['Ares', 'Athena', 'Hermes', 'Village Elder', 'Mysterious Traveler'].sort(() => 0.5 - Math.random())[0]
+                    id: selected.id,
+                    name: selected.name
                 });
             }
         });
@@ -222,6 +255,15 @@ export class MainScene extends Phaser.Scene {
     clearCustomer() {
         if (!this.customerNPC) return;
         
+        // Find which anim to play (down)
+        const textureKey = this.customerNPC.texture.key;
+        let animPrefix = 'player';
+        if (textureKey === 'npc_leo') animPrefix = 'leo';
+        if (textureKey === 'npc_arena') animPrefix = 'arena';
+        if (textureKey === 'npc_draco') animPrefix = 'draco';
+
+        this.customerNPC.anims.play(`${animPrefix}-down`, true);
+
         this.tweens.add({
             targets: this.customerNPC,
             y: 280,
@@ -283,7 +325,6 @@ export class MainScene extends Phaser.Scene {
         let moving = false;
         const speed = 3;
 
-        // Combine Keyboard and Mobile Direction
         const goLeft = this.cursors.left?.isDown || this.wasdKeys.A.isDown || this.mobileDirection === 'left';
         const goRight = this.cursors.right?.isDown || this.wasdKeys.D.isDown || this.mobileDirection === 'right';
         const goUp = this.cursors.up?.isDown || this.wasdKeys.W.isDown || this.mobileDirection === 'up';
@@ -291,19 +332,19 @@ export class MainScene extends Phaser.Scene {
 
         if (goLeft) {
             this.player.x -= speed;
-            this.player.anims.play('left', true);
+            this.player.anims.play('player-left', true);
             moving = true;
         } else if (goRight) {
             this.player.x += speed;
-            this.player.anims.play('right', true);
+            this.player.anims.play('player-right', true);
             moving = true;
         } else if (goUp) {
             this.player.y -= speed;
-            this.player.anims.play('up', true);
+            this.player.anims.play('player-up', true);
             moving = true;
         } else if (goDown) {
             this.player.y += speed;
-            this.player.anims.play('down', true);
+            this.player.anims.play('player-down', true);
             moving = true;
         }
 
@@ -311,10 +352,10 @@ export class MainScene extends Phaser.Scene {
             const currentAnim = this.player.anims.currentAnim;
             if (currentAnim) {
                 this.player.anims.stop();
-                if (currentAnim.key === 'down') this.player.setFrame(1);
-                else if (currentAnim.key === 'left') this.player.setFrame(4);
-                else if (currentAnim.key === 'right') this.player.setFrame(7);
-                else if (currentAnim.key === 'up') this.player.setFrame(10);
+                if (currentAnim.key === 'player-down') this.player.setFrame(1);
+                else if (currentAnim.key === 'player-left') this.player.setFrame(4);
+                else if (currentAnim.key === 'player-right') this.player.setFrame(7);
+                else if (currentAnim.key === 'player-up') this.player.setFrame(10);
             } else {
                 this.player.setFrame(1);
             }
