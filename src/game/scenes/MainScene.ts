@@ -49,6 +49,12 @@ export class MainScene extends Phaser.Scene {
     
     customerNPC: Phaser.GameObjects.Sprite | null = null;
     
+    // Debug
+    debugMode = false;
+    debugGraphics!: Phaser.GameObjects.Graphics;
+    debugTexts: Phaser.GameObjects.Text[] = [];
+    coordText!: Phaser.GameObjects.Text;
+
     // Mobile Movement
     mobileDirection: string | null = null;
 
@@ -131,6 +137,14 @@ export class MainScene extends Phaser.Scene {
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D');
+        
+        // Toggle Debug Mode with 'G'
+        this.input.keyboard.on('keydown-G', () => {
+            this.debugMode = !this.debugMode;
+            this.debugGraphics.setVisible(this.debugMode);
+            this.debugTexts.forEach(t => t.setVisible(this.debugMode));
+            this.coordText.setVisible(this.debugMode);
+        });
 
         this.time.addEvent({
             delay: 15000,
@@ -149,18 +163,37 @@ export class MainScene extends Phaser.Scene {
         });
 
         // Debug Grid
-        const graphics = this.add.graphics();
-        graphics.lineStyle(1, 0xffffff, 0.1);
-        graphics.setDepth(1000);
+        this.debugGraphics = this.add.graphics();
+        this.debugGraphics.lineStyle(1, 0x00ff00, 0.2);
+        this.debugGraphics.setDepth(1000);
 
         for (let x = 0; x <= 384; x += 48) {
-            graphics.lineBetween(x, 0, x, 288);
-            if (x < 384) this.add.text(x + 2, 2, x.toString(), { fontSize: '8px', color: '#ffffff' }).setAlpha(0.3).setDepth(1001);
+            this.debugGraphics.lineBetween(x, 0, x, 288);
+            if (x < 384) {
+                const t = this.add.text(x + 2, 2, x.toString(), { fontSize: '8px', color: '#00ff00' }).setAlpha(0.5).setDepth(1001);
+                this.debugTexts.push(t);
+            }
         }
         for (let y = 0; y <= 288; y += 48) {
-            graphics.lineBetween(0, y, 384, y);
-            if (y < 288) this.add.text(2, y + 2, y.toString(), { fontSize: '8px', color: '#ffffff' }).setAlpha(0.3).setDepth(1001);
+            this.debugGraphics.lineBetween(0, y, 384, y);
+            if (y < 288) {
+                const t = this.add.text(2, y + 2, y.toString(), { fontSize: '8px', color: '#00ff00' }).setAlpha(0.5).setDepth(1001);
+                this.debugTexts.push(t);
+            }
         }
+
+        // Real-time Coordinate Text
+        this.coordText = this.add.text(380, 280, '', {
+            fontSize: '10px',
+            color: '#00ff00',
+            backgroundColor: '#000000cc',
+            padding: { x: 4, y: 2 }
+        }).setOrigin(1, 1).setDepth(2000);
+
+        // Hide debug initially
+        this.debugGraphics.setVisible(false);
+        this.debugTexts.forEach(t => t.setVisible(false));
+        this.coordText.setVisible(false);
 
         EventBus.emit('current-scene-ready', this);
     }
@@ -300,6 +333,11 @@ export class MainScene extends Phaser.Scene {
             } else {
                 this.player.setFrame(1);
             }
+        }
+
+        // Update Coord Text
+        if (this.debugMode) {
+            this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`);
         }
 
         const room = WORLD[this.currentRoom];
