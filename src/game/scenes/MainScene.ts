@@ -1,84 +1,137 @@
 import { EventBus } from '../EventBus';
 
-interface RoomConfig {
-    name: string;
-    map: number[][];
-    exits: Record<string, string>;
-    phase?: string;
-    tileset: string;
+interface RoomLayers {
+    base: number[][];
+    decor?: number[][];
 }
 
-// Map configuration using indices from the ATLAS (1-based index in Phaser)
-// Floor is usually at the start of the atlas
+interface RoomConfig {
+    name: string;
+    layers: RoomLayers;
+    exits: Record<string, string>;
+    phase?: string;
+    tilesets: string[]; // List of tileset keys to use
+}
+
 const WORLD: Record<string, RoomConfig> = {
     shop: {
         name: 'Celestial Emporium',
         phase: 'shop',
-        tileset: 'shop_atlas',
-        map: [
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 25, 25, 25, 25, 25, 25, 1],
-            [1, 25, 26, 26, 26, 26, 25, 1],
-            [1, 25, 26, 26, 26, 26, 25, 1],
-            [1, 25, 25, 25, 25, 25, 25, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-        ],
+        tilesets: ['shop_atlas'],
+        layers: {
+            base: [
+                [17, 18, 18, 18, 18, 18, 18, 19],
+                [65, 25, 25, 25, 25, 25, 25, 67],
+                [65, 26, 26, 26, 26, 26, 26, 67],
+                [65, 26, 26, 26, 26, 26, 26, 67],
+                [65, 25, 25, 25, 25, 25, 25, 67],
+                [113, 114, 114, 114, 114, 114, 114, 115],
+            ],
+            decor: [
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 150, 151, 152, 0, 210, 211, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 300, 301, 0, 0, 350, 351, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        },
         exits: { right: 'arena', down: 'village', up: 'cave_entrance' }
     },
     arena: {
         name: 'The Grand Arena',
         phase: 'arena',
-        tileset: 'cave_atlas',
-        map: [
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 12, 12, 12, 12, 12, 12, 1],
-            [1, 12, 13, 13, 13, 13, 12, 1],
-            [1, 12, 13, 13, 13, 13, 12, 1],
-            [1, 12, 12, 12, 12, 12, 12, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-        ],
+        tilesets: ['cave_atlas'],
+        layers: {
+            base: [
+                [1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 12, 12, 12, 12, 12, 12, 1],
+                [1, 13, 13, 13, 13, 13, 13, 1],
+                [1, 13, 13, 13, 13, 13, 13, 1],
+                [1, 12, 12, 12, 12, 12, 12, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1],
+            ],
+            decor: [
+                [0, 5, 6, 0, 0, 5, 6, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 20, 0, 0, 0, 0, 22, 0],
+                [0, 21, 0, 0, 0, 0, 23, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        },
         exits: { left: 'shop' }
     },
     village: {
         name: 'Divine Village',
         phase: 'relationship',
-        tileset: 'shop_atlas',
-        map: [
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-        ],
+        tilesets: ['shop_atlas'],
+        layers: {
+            base: [
+                [5, 5, 5, 5, 5, 5, 5, 5],
+                [5, 25, 25, 25, 25, 25, 25, 5],
+                [5, 26, 26, 26, 26, 26, 26, 5],
+                [5, 26, 26, 26, 26, 26, 26, 5],
+                [5, 25, 25, 25, 25, 25, 25, 5],
+                [5, 5, 5, 5, 5, 5, 5, 5],
+            ],
+            decor: [
+                [400, 401, 0, 405, 406, 0, 410, 411],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 500, 501, 502, 0, 0, 0],
+                [0, 0, 510, 511, 512, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        },
         exits: { up: 'shop', right: 'cave_entrance' }
     },
     cave_entrance: {
         name: 'Cave Entrance',
         phase: 'exploration',
-        tileset: 'cave_atlas',
-        map: [
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 10, 10, 10, 10, 10, 10, 1],
-            [1, 10, 11, 11, 11, 11, 10, 1],
-            [1, 10, 0, 0, 0, 0, 10, 1],
-            [1, 10, 10, 10, 10, 10, 10, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-        ],
+        tilesets: ['cave_atlas'],
+        layers: {
+            base: [
+                [2, 2, 2, 2, 2, 2, 2, 2],
+                [2, 10, 10, 10, 10, 10, 10, 2],
+                [2, 11, 11, 11, 11, 11, 11, 2],
+                [2, 11, 11, 11, 11, 11, 11, 2],
+                [2, 10, 10, 10, 10, 10, 10, 2],
+                [2, 2, 2, 2, 2, 2, 2, 2],
+            ],
+            decor: [
+                [0, 0, 80, 81, 82, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 120, 0, 0, 0, 0, 125, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 150, 151, 152, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        },
         exits: { down: 'shop', right: 'village', up: 'cave_inside' }
     },
     cave_inside: {
         name: 'Inside Cave',
         phase: 'exploration',
-        tileset: 'cave_atlas',
-        map: [
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 10, 10, 10, 10, 10, 10, 1],
-            [1, 10, 11, 11, 11, 11, 10, 1],
-            [1, 10, 11, 11, 11, 11, 10, 1],
-            [1, 10, 10, 10, 10, 10, 10, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1],
-        ],
+        tilesets: ['cave_atlas'],
+        layers: {
+            base: [
+                [3, 3, 3, 3, 3, 3, 3, 3],
+                [3, 10, 10, 10, 10, 10, 10, 3],
+                [3, 11, 11, 11, 11, 11, 11, 3],
+                [3, 11, 11, 11, 11, 11, 11, 3],
+                [3, 10, 10, 10, 10, 10, 10, 3],
+                [3, 3, 3, 3, 3, 3, 3, 3],
+            ],
+            decor: [
+                [0, 200, 201, 202, 203, 204, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 250, 0, 0, 0, 0, 255, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 300, 301, 302, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        },
         exits: { down: 'cave_entrance' }
     }
 };
@@ -88,7 +141,8 @@ export class MainScene extends Phaser.Scene {
     cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     wasdKeys!: any;
     currentRoom = 'shop';
-    mapLayer!: Phaser.Tilemaps.TilemapLayer;
+    baseLayer!: Phaser.Tilemaps.TilemapLayer;
+    decorLayer!: Phaser.Tilemaps.TilemapLayer;
     roomText!: Phaser.GameObjects.Text;
 
     constructor() {
@@ -96,18 +150,21 @@ export class MainScene extends Phaser.Scene {
     }
 
     preload() {
-        // Player spritesheet
         this.load.spritesheet('player', '/images/characters/player/minju/character_26/character_26_frame32x32.png', {
             frameWidth: 32,
             frameHeight: 32
         });
         
-        // Load the upscaled 48x48 atlas images for tilemaps
+        // Load upscaled 48x48 textures
         this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
         this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
+        this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
+        this.load.image('tileset_C', '/images/backgrounds/shop/interior/tileset_C_48x.png');
+        this.load.image('tileset_D', '/images/backgrounds/shop/interior/tileset_D_48x.png');
     }
 
     create() {
+        // Animations
         this.anims.create({
             key: 'down',
             frames: this.anims.generateFrameNumbers('player', { start: 0, end: 2 }),
@@ -139,10 +196,10 @@ export class MainScene extends Phaser.Scene {
             stroke: '#000',
             strokeThickness: 3,
             fontFamily: 'Arial'
-        }).setOrigin(0.5).setDepth(10);
+        }).setOrigin(0.5).setDepth(100);
 
         this.player = this.add.sprite(192, 168, 'player');
-        this.player.setScale(1.5).setDepth(5);
+        this.player.setScale(1.5).setDepth(50);
 
         this.loadRoom('shop');
 
@@ -156,25 +213,42 @@ export class MainScene extends Phaser.Scene {
         const room = WORLD[roomName];
         if (!room) return;
 
-        if (this.mapLayer) this.mapLayer.destroy();
+        // Cleanup
+        if (this.baseLayer) this.baseLayer.destroy();
+        if (this.decorLayer) this.decorLayer.destroy();
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
         if (room.phase) EventBus.emit('phase-change', room.phase);
 
+        // Create base layer
         const map = this.make.tilemap({
-            data: room.map,
+            data: room.layers.base,
             tileWidth: 48,
             tileHeight: 48
         });
 
-        const tileset = map.addTilesetImage(room.tileset, room.tileset, 48, 48);
+        const tileset = map.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
         if (tileset) {
-            this.mapLayer = map.createLayer(0, tileset, 0, 0)!;
-            // Ensure pixel art clarity
-            this.mapLayer.setRenderOrder('right-down');
+            this.baseLayer = map.createLayer(0, tileset, 0, 0)!;
+            this.baseLayer.setDepth(0);
         }
 
+        // Create decoration layer
+        if (room.layers.decor) {
+            const decorMap = this.make.tilemap({
+                data: room.layers.decor,
+                tileWidth: 48,
+                tileHeight: 48
+            });
+            const decorTileset = decorMap.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
+            if (decorTileset) {
+                this.decorLayer = decorMap.createLayer(0, decorTileset, 0, 0)!;
+                this.decorLayer.setDepth(10);
+            }
+        }
+
+        // Positioning
         if (entrySide === 'right') this.player.x = 40;
         else if (entrySide === 'left') this.player.x = 344;
         else if (entrySide === 'down') this.player.y = 40;
