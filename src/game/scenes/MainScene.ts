@@ -5,12 +5,13 @@ interface RoomConfig {
   tileset: string;
   map: number[][];
   exits: Record<string, string>;
+  colors: number[];
 }
 
 const ROOMS: Record<string, RoomConfig> = {
   shop: {
     name: 'shop',
-    tileset: 'tileset_B',
+    tileset: 'shop_tiles',
     map: [
       [0,0,0,0,0,0,0,0],
       [0,1,1,1,1,1,1,0],
@@ -19,116 +20,121 @@ const ROOMS: Record<string, RoomConfig> = {
       [0,1,1,1,1,1,1,0],
       [0,0,0,0,0,0,0,0],
     ],
-    exits: { right: 'arena', down: 'storage' }
+    exits: { right: 'arena', down: 'storage' },
+    colors: [0x000000, 0x8B4513, 0x654321] // 0=empty, 1=wall, 2=floor
   },
   arena: {
     name: 'arena',
-    tileset: 'tileset_B',
+    tileset: 'arena_tiles',
     map: [
       [0,0,0,0,0,0,0,0],
-      [0,3,3,3,3,3,3,0],
-      [0,3,4,4,4,4,3,0],
-      [0,3,4,4,4,4,3,0],
-      [0,3,3,3,3,3,3,0],
+      [0,1,1,1,1,1,1,0],
+      [0,1,2,2,2,2,1,0],
+      [0,1,2,2,2,2,1,0],
+      [0,1,1,1,1,1,1,0],
       [0,0,0,0,0,0,0,0],
     ],
-    exits: { left: 'shop' }
+    exits: { left: 'shop' },
+    colors: [0x000000, 0x8B0000, 0xDC143C]
   },
   storage: {
     name: 'storage',
-    tileset: 'tileset_C',
+    tileset: 'storage_tiles',
     map: [
       [0,0,0,0,0,0,0,0],
-      [0,5,5,5,5,5,5,0],
-      [0,5,6,6,6,6,5,0],
-      [0,5,6,6,6,6,5,0],
-      [0,5,5,5,5,5,5,0],
+      [0,1,1,1,1,1,1,0],
+      [0,1,2,2,2,2,1,0],
+      [0,1,2,2,2,2,1,0],
+      [0,1,1,1,1,1,1,0],
       [0,0,0,0,0,0,0,0],
     ],
-    exits: { up: 'shop' }
+    exits: { up: 'shop' },
+    colors: [0x000000, 0x4B0082, 0x9370DB]
   },
   village: {
     name: 'village',
-    tileset: 'tileset_D',
+    tileset: 'village_tiles',
     map: [
       [0,0,0,0,0,0,0,0],
-      [0,7,7,7,7,7,7,0],
-      [0,7,8,8,8,8,7,0],
-      [0,7,8,8,8,8,7,0],
-      [0,7,7,7,7,7,7,0],
+      [0,1,1,1,1,1,1,0],
+      [0,1,2,2,2,2,1,0],
+      [0,1,2,2,2,2,1,0],
+      [0,1,1,1,1,1,1,0],
       [0,0,0,0,0,0,0,0],
     ],
-    exits: { right: 'shop' }
+    exits: { right: 'shop' },
+    colors: [0x000000, 0x228B22, 0x90EE90]
   }
 };
 
 export class MainScene extends Phaser.Scene {
-  player: Phaser.GameObjects.Sprite;
+  player: Phaser.GameObjects.Rectangle;
   cursors: Phaser.Types.Input.Keyboard.CursorKeys;
-  playerSpeed = 160;
   lastFacing = 'down';
   currentRoom = 'shop';
-  layer: Phaser.Tilemaps.TilemapLayer;
-  map: Phaser.Tilemaps.Tilemap;
-  tileset: Phaser.Tilemaps.Tileset;
-  loadedTilesets: Set<string> = new Set();
+  tiles: Phaser.GameObjects.Rectangle[][] = [];
 
   constructor() {
-    super('MainScene');
+    super({ key: 'MainScene' });
   }
 
   preload() {
-    this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B.png');
-    this.load.image('tileset_C', '/images/backgrounds/shop/interior/tileset_C.png');
-    this.load.image('tileset_D', '/images/backgrounds/shop/interior/tileset_D.png');
-    
-    for (let i = 0; i < 3; i++) {
-      this.load.image(`player_${i}`, `/images/characters/player/minju/idle/frame_0_${i}.png`);
-    }
+    // ไม่ต้องโหลด tileset images
   }
 
   create() {
-    this.map = this.make.tilemap({ tileWidth: 48, tileHeight: 48, width: 8, height: 6 });
-    this.loadRoom('shop');
+    console.log('🎮 MainScene create()');
     
-    this.player = this.add.sprite(144, 144, 'player_0');
-    this.player.setScale(1.5);
+    // วาด room แรก
+    this.drawRoom('shop');
+    
+    // สร้าง player
+    this.player = this.add.rectangle(144, 144, 32, 32, 0xFFFFFF);
     this.player.setDepth(1);
     
     this.cursors = this.input.keyboard.createCursorKeys();
     EventBus.emit('current-scene-ready', this);
+    console.log('✅ Scene ready!');
   }
 
-  loadRoom(roomName: string) {
+  drawRoom(roomName: string) {
     const room = ROOMS[roomName];
     if (!room) return;
     
-    this.currentRoom = roomName;
+    console.log('Drawing room:', roomName);
     
-    if (this.layer) {
-      this.layer.destroy();
-    }
+    // ล้าง tiles เก่า
+    this.tiles.forEach(row => {
+      row.forEach(tile => tile.destroy());
+    });
+    this.tiles = [];
     
-    if (!this.loadedTilesets.has(room.tileset)) {
-      this.tileset = this.map.addTilesetImage(room.tileset);
-      this.loadedTilesets.add(room.tileset);
-    } else {
-      const ts = this.map.tilesets.find(t => t.name === room.tileset);
-      if (ts) this.tileset = ts;
-    }
-    
-    this.layer = this.map.createBlankLayer('level', this.tileset);
-    
+    // วาด tiles ใหม่
     for (let y = 0; y < room.map.length; y++) {
+      this.tiles[y] = [];
       for (let x = 0; x < room.map[y].length; x++) {
-        this.layer.putTileAt(room.map[y][x], x, y);
+        const tileVal = room.map[y][x];
+        if (tileVal > 0 && tileVal < room.colors.length) {
+          const tile = this.add.rectangle(
+            x * 48 + 24,  // center x
+            y * 48 + 24,  // center y
+            48, 48,
+            room.colors[tileVal]
+          );
+          tile.setDepth(0);
+          this.tiles[y][x] = tile;
+        } else {
+          this.tiles[y][x] = null;
+        }
       }
     }
     
-    this.player.setPosition(144, 144);
+    this.currentRoom = roomName;
   }
 
   update() {
+    if (!this.player || !this.cursors) return;
+    
     if (this.cursors.left?.isDown) {
       this.player.x -= 3;
       this.lastFacing = 'left';
@@ -148,16 +154,20 @@ export class MainScene extends Phaser.Scene {
     const room = ROOMS[this.currentRoom];
     if (room) {
       if (this.player.x > 350 && room.exits.right) {
-        this.loadRoom(room.exits.right);
+        this.drawRoom(room.exits.right);
+        this.player.setPosition(144, 144);
       }
       if (this.player.x < 50 && room.exits.left) {
-        this.loadRoom(room.exits.left);
+        this.drawRoom(room.exits.left);
+        this.player.setPosition(144, 144);
       }
       if (this.player.y > 230 && room.exits.down) {
-        this.loadRoom(room.exits.down);
+        this.drawRoom(room.exits.down);
+        this.player.setPosition(144, 144);
       }
       if (this.player.y < 50 && room.exits.up) {
-        this.loadRoom(room.exits.up);
+        this.drawRoom(room.exits.up);
+        this.player.setPosition(144, 144);
       }
     }
     
