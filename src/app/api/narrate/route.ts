@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Using OpenRouter for free AI access
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-v1-0000000000000000000000000000000000000000000000000000000000000000';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, playerName, enemyName, damage, npcName, npcMood, godTheme, level, userMessage } = await request.json();
+    const { action, playerName, npcName, npcMood, godTheme, level, userMessage, enemyName, damage } = await request.json();
 
     const actionDescriptions: Record<string, string> = {
       attack: 'attacks fiercely',
@@ -55,6 +55,16 @@ Context:
 Keep it exciting and descriptive. Format: Just the narrative text. Language: Thai or English.`;
     }
 
+    // If no API key, return a fallback message immediately to avoid 500 error
+    if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes('000000')) {
+        console.warn('No OpenRouter API Key found. Using fallback narrative.');
+        return NextResponse.json({ 
+            narrative: userMessage 
+                ? `[Divine Silence] ${npcName} acknowledges your words: "${userMessage.substring(0, 20)}..."` 
+                : `${npcName} watches you with divine curiosity, waiting for your next move.`
+        });
+    }
+
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -71,6 +81,8 @@ Keep it exciting and descriptive. Format: Just the narrative text. Language: Tha
     });
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('OpenRouter Error:', errorData);
       throw new Error('AI API failed');
     }
 
@@ -81,8 +93,8 @@ Keep it exciting and descriptive. Format: Just the narrative text. Language: Tha
   } catch (error) {
     console.error('Narrate error:', error);
     return NextResponse.json(
-      { error: 'Failed to generate narrative' },
-      { status: 500 }
+      { narrative: "The gods are silent at this moment, but their presence remains felt." },
+      { status: 200 } // Return 200 with fallback to prevent UI crash
     );
   }
 }

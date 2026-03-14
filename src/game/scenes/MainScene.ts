@@ -135,11 +135,11 @@ export class MainScene extends Phaser.Scene {
         this.createCharAnims('arena', 'npc_arena');
         this.createCharAnims('draco', 'npc_draco');
 
-        // Attack Animation
+        // Attack Animation (Using only the first row of 11 frames)
         this.anims.create({
             key: 'hit_effect',
-            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 98 }),
-            frameRate: 30,
+            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 10 }),
+            frameRate: 20,
             repeat: 0,
             hideOnComplete: true
         });
@@ -225,7 +225,7 @@ export class MainScene extends Phaser.Scene {
             effect.destroy();
         });
 
-        // Add a small shake effect
+        // Shake effect
         const targetSprite = target === 'enemy' ? this.slimeEnemy : this.kaneFighter;
         if (targetSprite) {
             this.tweens.add({
@@ -309,9 +309,9 @@ export class MainScene extends Phaser.Scene {
             this.player.setPosition(120, 240);
             this.player.anims.play('player-down', true);
             
-            // Centered positions around X: 192, Y: 144
-            this.kaneFighter = this.add.sprite(152, 144, 'kane_idle').setScale(1.0).setDepth(40);
-            this.slimeEnemy = this.add.sprite(232, 144, 'slime_idle').setScale(0.35).setDepth(40);
+            // Scaled up slightly
+            this.kaneFighter = this.add.sprite(152, 144, 'kane_idle').setScale(1.3).setDepth(40);
+            this.slimeEnemy = this.add.sprite(232, 144, 'slime_idle').setScale(0.45).setDepth(40);
             
             this.tweens.add({
                 targets: this.kaneFighter,
@@ -322,7 +322,7 @@ export class MainScene extends Phaser.Scene {
             });
             this.tweens.add({
                 targets: this.slimeEnemy,
-                scale: 0.38,
+                scale: 0.48,
                 duration: 800,
                 yoyo: true,
                 repeat: -1
