@@ -20,8 +20,7 @@ export default function PhaserGame() {
       backgroundColor: '#1a1a2e',
       pixelArt: true,
       scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        mode: Phaser.Scale.NONE,  // Fixed size
       },
       scene: [MainScene],
     };
@@ -50,24 +49,22 @@ export default function PhaserGame() {
       padding: '20px'
     }}>
       <h1 style={{ fontSize: '1.8rem', marginBottom: '10px', color: '#fbbf24' }}>
-        ⚔️ Gods' Arena 🏪
+        ⚔️ Gods' Arena
       </h1>
       
       <div 
         id="phaser-game-container"
         style={{
+          width: '384px',
+          height: '336px',
           border: '4px solid #fbbf24',
           borderRadius: '8px',
-          overflow: 'hidden',
-          boxShadow: '0 0 30px rgba(251, 191, 36, 0.3)'
+          overflow: 'hidden'
         }}
       />
       
-      {!ready && <p style={{ color: '#666', marginTop: '10px' }}>กำลังโหลด...</p>}
-      
       <div style={{ marginTop: '15px', color: '#9ca3af', fontSize: '0.85rem', textAlign: 'center' }}>
-        <p>🎮 W/A/S/D หรือ ลูกศร เพื่อเดิน</p>
-        <p>💕 ปุ่ม Space สำหรับโต้ตอบ</p>
+        <p>🎮 W/A/S/D เพื่อเดิน</p>
       </div>
     </div>
   );
