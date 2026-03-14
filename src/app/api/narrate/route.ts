@@ -4,30 +4,38 @@ import { NextRequest, NextResponse } from 'next/server';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-v1-0000000000000000000000000000000000000000000000000000000000000000';
 
 export async function POST(request: NextRequest) {
-  try {
-    const { action, playerName, enemyName, damage, npcName, npcMood, lastMessage } = await request.json();
+  const { action, playerName, enemyName, damage, npcName, npcMood, lastMessage, godTheme, level } = await request.json();
 
-    const actionDescriptions: Record<string, string> = {
-      attack: 'attacks fiercely',
-      defend: 'takes a defensive stance',
-      heal: 'channels healing magic',
-      fireball: 'unleashes a powerful fire spell',
-      talk: 'engages in conversation',
-    };
+  const actionDescriptions: Record<string, string> = {
+    attack: 'attacks fiercely',
+    defend: 'takes a defensive stance',
+    heal: 'channels healing magic',
+    fireball: 'unleashes a powerful fire spell',
+    talk: 'engages in conversation',
+  };
 
-    let prompt = '';
-    
-    if (action === 'talk') {
-      prompt = `Write a short, engaging dialogue response (1-2 sentences) from an NPC in a fantasy RPG.
-      
-Context:
-- Player (${playerName}) is talking to ${npcName}.
-- ${npcName}'s current mood/personality: ${npcMood || 'friendly'}.
-- Previous message: "${lastMessage || 'Hello!'}"
+  let prompt = '';
 
-The response should be in character, mysterious yet welcoming. 
-Format: Just the dialogue text. Language: Thai or English (prefer Thai if appropriate for the character).`;
-    } else {
+  if (action === 'generate_skill') {
+    prompt = `Act as a game designer for a fantasy RPG. Create a unique, powerful combat skill for a champion named Kane.
+    The skill is granted by the God ${npcName} who has the theme: ${godTheme}.
+    This is for Bond Level ${level}.
+
+    Output exactly in this JSON format:
+    {
+      "name": "Skill Name",
+      "description": "Short epic description",
+      "multiplier": number between 1.5 and 3.0,
+      "type": "physical" or "magical"
+    }`;
+  } else if (action === 'talk') {
+    prompt = `Act as ${npcName}, a God in a fantasy RPG. Personality: ${npcMood}.
+    The player (${playerName}) wants to bond with you.
+
+    Instead of simple greeting, provide a short, meaningful monologue (2 sentences) that asks the player for their opinion on a divine matter or shares a secret prophecy. 
+    Format: Just the dialogue. Language: Thai or English.`;
+  } else {
+  ...
       prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
       
 Context:

@@ -8,12 +8,20 @@ interface Player {
   maxHp: number;
 }
 
+export interface DivineSkill {
+  name: string;
+  description: string;
+  multiplier: number;
+  type: 'physical' | 'magical';
+  godId: string;
+}
+
 interface Companion {
   id: string;
   name: string;
   bond: number;
   level: number;
-  unlockedSkills: string[];
+  unlockedSkills: DivineSkill[];
 }
 
 interface Customer {
@@ -37,11 +45,11 @@ interface GameStore {
   removeItem: (item: string) => void;
   companions: Companion[];
   addBond: (id: string, amount: number) => void;
+  unlockSkill: (godId: string, skill: DivineSkill) => void;
   getBondBonus: (id: string) => { atk: number; def: number };
   currentCustomer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
   
-  // Day Cycle
   day: number;
   customersServed: number;
   isShiftActive: boolean;
@@ -52,15 +60,18 @@ interface GameStore {
   loadSaveData: (data: any) => void;
 }
 
+const INITIAL_COMPANIONS: Companion[] = [
+  { id: 'leo', name: 'เลโอ้', bond: 5, level: 1, unlockedSkills: [] },
+  { id: 'arena', name: 'อารีน่า', bond: 3, level: 1, unlockedSkills: [] },
+  { id: 'draco', name: 'ดราโก้', bond: 2, level: 1, unlockedSkills: [] },
+  { id: 'kane', name: 'เคน', bond: 1, level: 1, unlockedSkills: [] },
+];
+
 export const useGameStore = create<GameStore>((set, get) => ({
   phase: 'shop',
   setPhase: (phase) => set({ phase }),
   
-  player: {
-    gold: 500,
-    hp: 100,
-    maxHp: 100,
-  },
+  player: { gold: 500, hp: 100, maxHp: 100 },
   gold: 500,
   addGold: (amount) => set((state) => ({ 
     gold: state.gold + amount,
@@ -90,23 +101,23 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return state;
   }),
   
-  companions: [
-    { id: 'leo', name: 'เลโอ้', bond: 5, level: 1, unlockedSkills: ['Power Strike'] },
-    { id: 'arena', name: 'อารีน่า', bond: 3, level: 1, unlockedSkills: ['Royal Guard'] },
-    { id: 'draco', name: 'ดราโก้', bond: 2, level: 1, unlockedSkills: ['Dragon Breath'] },
-    { id: 'kane', name: 'เคน', bond: 1, level: 1, unlockedSkills: ['Quick Shot'] },
-  ],
+  companions: INITIAL_COMPANIONS,
   
   addBond: (id, amount) => set((state) => ({
     companions: state.companions.map(c => {
       if (c.id === id) {
         const newBond = c.bond + amount;
         const newLevel = Math.floor(newBond / 10) + 1;
-        // Logic for unlocking skills based on level can be added here
         return { ...c, bond: newBond, level: newLevel };
       }
       return c;
     })
+  })),
+
+  unlockSkill: (godId, skill) => set((state) => ({
+    companions: state.companions.map(c => 
+      c.id === godId ? { ...c, unlockedSkills: [...c.unlockedSkills, skill] } : c
+    )
   })),
 
   getBondBonus: (id) => {
@@ -132,15 +143,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!data) return;
     set({
       gold: data.player.gold,
-      player: {
-        ...get().player,
-        gold: data.player.gold,
-      },
+      player: { ...get().player, gold: data.player.gold },
       items: data.inventory.map((i: any) => i.id || i),
       companions: get().companions.map(c => ({
         ...c,
         bond: data.relationships[c.id] || c.bond,
-        level: Math.floor((data.relationships[c.id] || c.bond) / 10) + 1
+        level: Math.floor((data.relationships[c.id] || c.bond) / 10) + 1,
+        unlockedSkills: data.unlockedSkills?.[c.id] || []
       })),
       day: data.day || 1
     });
