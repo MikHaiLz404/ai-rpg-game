@@ -11,13 +11,15 @@ interface RoomConfig {
     exits: Record<string, string>;
     phase?: string;
     tilesets: string[]; 
+    bgImage?: string; // Support for 1-piece background image
 }
 
 const WORLD: Record<string, RoomConfig> = {
     shop: {
         name: 'Celestial Emporium',
         phase: 'shop',
-        tilesets: ['shop_atlas', 'tileset_B'],
+        tilesets: ['shop_atlas'],
+        bgImage: 'bg_shop',
         layers: {
             base: [
                 [17, 18, 18, 18, 18, 18, 18, 19],
@@ -27,14 +29,7 @@ const WORLD: Record<string, RoomConfig> = {
                 [65, 25, 25, 25, 25, 25, 25, 67],
                 [113, 114, 114, 114, 114, 114, 114, 115],
             ],
-            decor: [
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 2353, 2354, 2355, 0, 0, 0, 0], 
-                [0, 0, 0, 0, 0, 0, 2360, 0],
-                [0, 0, 2380, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-            ]
+            decor: []
         },
         exits: { right: 'arena', down: 'village', up: 'cave_entrance' }
     },
@@ -42,6 +37,7 @@ const WORLD: Record<string, RoomConfig> = {
         name: 'The Grand Arena',
         phase: 'arena',
         tilesets: ['cave_atlas'],
+        bgImage: 'bg_cave',
         layers: {
             base: [
                 [1, 1, 1, 1, 1, 1, 1, 1],
@@ -51,14 +47,7 @@ const WORLD: Record<string, RoomConfig> = {
                 [1, 12, 12, 12, 12, 12, 12, 1],
                 [1, 1, 1, 1, 1, 1, 1, 1],
             ],
-            decor: [
-                [0, 5, 6, 0, 0, 5, 6, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 20, 0, 0, 0, 0, 22, 0],
-                [0, 21, 0, 0, 0, 0, 23, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 0],
-            ]
+            decor: []
         },
         exits: { left: 'shop' }
     },
@@ -83,6 +72,7 @@ const WORLD: Record<string, RoomConfig> = {
         name: 'Cave Entrance',
         phase: 'exploration',
         tilesets: ['cave_atlas'],
+        bgImage: 'bg_cave',
         layers: {
             base: [
                 [2, 2, 2, 2, 2, 2, 2, 2],
@@ -100,6 +90,7 @@ const WORLD: Record<string, RoomConfig> = {
         name: 'Inside Cave',
         phase: 'exploration',
         tilesets: ['cave_atlas'],
+        bgImage: 'bg_cave',
         layers: {
             base: [
                 [3, 3, 3, 3, 3, 3, 3, 3],
@@ -122,6 +113,7 @@ export class MainScene extends Phaser.Scene {
     currentRoom = 'shop';
     baseLayer!: Phaser.Tilemaps.TilemapLayer;
     decorLayer!: Phaser.Tilemaps.TilemapLayer;
+    bgSprite: Phaser.GameObjects.Image | null = null;
     roomText!: Phaser.GameObjects.Text;
     
     customerNPC: Phaser.GameObjects.Sprite | null = null;
@@ -135,9 +127,15 @@ export class MainScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
+        
+        // Tilesets
         this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
         this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
         this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
+
+        // Background Images (as fallbacks or primary)
+        this.load.image('bg_shop', 'public/images/backgrounds/shop/interior/screenshot (2).png');
+        this.load.image('bg_cave', 'public/images/backgrounds/exploration/cave/_srw_tileset_0.png'); // Using tileset as a temp bg color
     }
 
     create() {
@@ -232,13 +230,24 @@ export class MainScene extends Phaser.Scene {
         const room = WORLD[roomName];
         if (!room) return;
 
+        // Cleanup
         if (this.baseLayer) this.baseLayer.destroy();
         if (this.decorLayer) this.decorLayer.destroy();
+        if (this.bgSprite) this.bgSprite.destroy();
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
         if (room.phase) EventBus.emit('phase-change', room.phase);
 
+        // Load Background Image if exists
+        if (room.bgImage) {
+            this.bgSprite = this.add.image(192, 144, room.bgImage);
+            const scaleX = 384 / this.bgSprite.width;
+            const scaleY = 288 / this.bgSprite.height;
+            this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
+        }
+
+        // Base Layer (keeping it for logic/collision if needed)
         const map = this.make.tilemap({
             data: room.layers.base,
             tileWidth: 48,
@@ -249,26 +258,8 @@ export class MainScene extends Phaser.Scene {
         if (baseTileset) {
             this.baseLayer = map.createLayer(0, baseTileset, 0, 0)!;
             this.baseLayer.setDepth(0);
-        }
-
-        if (room.layers.decor && room.layers.decor.length > 0) {
-            const decorMap = this.make.tilemap({
-                data: room.layers.decor,
-                tileWidth: 48,
-                tileHeight: 48
-            });
-
-            const firstTilesetCount = 2048;
-            const ts1 = decorMap.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
-            let ts2 = null;
-            if (room.tilesets.length > 1) {
-                ts2 = decorMap.addTilesetImage(room.tilesets[1], room.tilesets[1], 48, 48, 0, 0, firstTilesetCount);
-            }
-
-            if (ts1) {
-                this.decorLayer = decorMap.createLayer(0, [ts1, ts2].filter(t => t !== null) as any, 0, 0)!;
-                this.decorLayer.setDepth(10);
-            }
+            // Hide tilemap if bgImage is present to avoid "broken" look
+            if (room.bgImage) this.baseLayer.setVisible(false);
         }
 
         if (entrySide === 'right') this.player.x = 40;
