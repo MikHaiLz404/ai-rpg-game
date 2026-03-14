@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
+import { EventBus } from '@/game/EventBus';
 
 const ENEMIES = [
   { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/frame_1_0.png' },
@@ -25,7 +26,6 @@ export default function Arena() {
   const [inCombat, setInCombat] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
   
-  // Get all unlocked skills from all gods
   const availableSkills = companions.flatMap(c => c.unlockedSkills);
 
   const startCombat = (enemy: typeof ENEMIES[0]) => {
@@ -41,9 +41,12 @@ export default function Arena() {
     if (!selectedEnemy || result || isAttacking) return;
     
     setIsAttacking(true);
+    
+    // Play attack effect in Phaser
+    EventBus.emit('arena-attack', { target: 'enemy' });
+
     const totalBonusAtk = companions.reduce((acc, c) => acc + getBondBonus(c.id).atk, 0);
     
-    // Base damage + Skill multiplier
     const multiplier = skill ? skill.multiplier : 1.0;
     const playerDmg = Math.floor((Math.random() * 10 + 15 + totalBonusAtk) * multiplier);
     
@@ -80,6 +83,9 @@ export default function Arena() {
       const newPlayerHp = Math.max(0, playerHp - enemyDmg);
       setPlayerHp(newPlayerHp);
       
+      // Play counter attack effect in Phaser
+      EventBus.emit('arena-attack', { target: 'player' });
+
       if (newPlayerHp <= 0) setResult('lose');
       setIsAttacking(false);
     }, 800);
@@ -88,7 +94,6 @@ export default function Arena() {
   if (inCombat && selectedEnemy) {
     return (
       <div className="bg-slate-900/90 p-6 rounded-xl border border-red-500/20 shadow-2xl">
-        {/* Battle Header */}
         <div className="flex justify-around items-center mb-12">
            <div className="text-center">
               <div className="w-20 h-20 bg-blue-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2">
@@ -122,7 +127,6 @@ export default function Arena() {
            </div>
         </div>
 
-        {/* Skill Selection */}
         <div className="grid grid-cols-2 gap-2 mb-6">
           <button 
             onClick={() => executeAttack()}

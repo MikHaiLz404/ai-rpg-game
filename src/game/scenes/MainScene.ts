@@ -135,11 +135,11 @@ export class MainScene extends Phaser.Scene {
         this.createCharAnims('arena', 'npc_arena');
         this.createCharAnims('draco', 'npc_draco');
 
-        // Attack Animation
+        // Attack Animation (11 columns x 9 rows = 99 frames)
         this.anims.create({
             key: 'hit_effect',
-            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 98 }), // 11x9 = 99 frames
-            frameRate: 24,
+            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 98 }),
+            frameRate: 30,
             repeat: 0,
             hideOnComplete: true
         });
@@ -179,6 +179,11 @@ export class MainScene extends Phaser.Scene {
             this.loadRoom(roomName);
         });
 
+        // Listen for combat attacks
+        EventBus.on('arena-attack', (data: { target: 'player' | 'enemy' }) => {
+            this.playAttackEffect(data.target);
+        });
+
         // Debug Grid
         this.debugGraphics = this.add.graphics();
         this.debugGraphics.lineStyle(1, 0x00ff00, 0.2);
@@ -208,6 +213,29 @@ export class MainScene extends Phaser.Scene {
         this.coordText.setVisible(false);
 
         EventBus.emit('current-scene-ready', this);
+    }
+
+    playAttackEffect(target: 'player' | 'enemy') {
+        const x = target === 'enemy' ? (this.slimeEnemy?.x || 150) : (this.kaneFighter?.x || 130);
+        const y = target === 'enemy' ? (this.slimeEnemy?.y || 120) : (this.kaneFighter?.y || 120);
+        
+        const effect = this.add.sprite(x, y, 'attack_effect').setDepth(100);
+        effect.play('hit_effect');
+        effect.on('animationcomplete', () => {
+            effect.destroy();
+        });
+
+        // Add a small shake effect
+        const targetSprite = target === 'enemy' ? this.slimeEnemy : this.kaneFighter;
+        if (targetSprite) {
+            this.tweens.add({
+                targets: targetSprite,
+                x: targetSprite.x + (target === 'enemy' ? 5 : -5),
+                duration: 50,
+                yoyo: true,
+                repeat: 3
+            });
+        }
     }
 
     trySpawnCustomer() {
@@ -281,19 +309,20 @@ export class MainScene extends Phaser.Scene {
             this.player.setPosition(120, 240);
             this.player.anims.play('player-down', true);
             
-            this.kaneFighter = this.add.sprite(100, 144, 'kane_idle').setScale(1.2).setDepth(40);
-            this.slimeEnemy = this.add.sprite(200, 144, 'slime_idle').setScale(1.5).setDepth(40);
+            // Adjusted positions and half-scales
+            this.kaneFighter = this.add.sprite(130, 120, 'kane_idle').setScale(0.6).setDepth(40);
+            this.slimeEnemy = this.add.sprite(150, 120, 'slime_idle').setScale(0.75).setDepth(40);
             
             this.tweens.add({
                 targets: this.kaneFighter,
-                y: 140,
+                y: 118,
                 duration: 1000,
                 yoyo: true,
                 repeat: -1
             });
             this.tweens.add({
                 targets: this.slimeEnemy,
-                scale: 1.6,
+                scale: 0.8,
                 duration: 800,
                 yoyo: true,
                 repeat: -1
