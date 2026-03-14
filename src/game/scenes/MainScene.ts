@@ -148,6 +148,20 @@ export class MainScene extends Phaser.Scene {
             this.mobileDirection = null;
         });
 
+        // Debug Grid
+        const graphics = this.add.graphics();
+        graphics.lineStyle(1, 0xffffff, 0.1);
+        graphics.setDepth(1000);
+
+        for (let x = 0; x <= 384; x += 48) {
+            graphics.lineBetween(x, 0, x, 288);
+            if (x < 384) this.add.text(x + 2, 2, x.toString(), { fontSize: '8px', color: '#ffffff' }).setAlpha(0.3).setDepth(1001);
+        }
+        for (let y = 0; y <= 288; y += 48) {
+            graphics.lineBetween(0, y, 384, y);
+            if (y < 288) this.add.text(2, y + 2, y.toString(), { fontSize: '8px', color: '#ffffff' }).setAlpha(0.3).setDepth(1001);
+        }
+
         EventBus.emit('current-scene-ready', this);
     }
 
