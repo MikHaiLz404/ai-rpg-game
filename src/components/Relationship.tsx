@@ -1,10 +1,18 @@
 'use client';
 import { useState, useEffect } from 'react';
 
+function makeFrames(base: string, count: number) {
+  const arr = [];
+  for (let i = 0; i < count; i++) {
+    arr.push(base + '/frame_' + Math.floor(i/3) + '_' + (i%3) + '.png');
+  }
+  return arr;
+}
+
 const SPRITES = {
-  leo: Array.from({length: 12}, (_, i) => '/images/characters/npcs/leo/idle/frame_0_' + i + '.png'),
-  arena: Array.from({length: 12}, (_, i) => '/images/characters/npcs/arena/idle/frame_0_' + i + '.png'),
-  draco: Array.from({length: 12}, (_, i) => '/images/characters/npcs/draco/idle/frame_0_' + i + '.png'),
+  leo: makeFrames('/images/characters/npcs/leo/idle', 12),
+  arena: makeFrames('/images/characters/npcs/arena/idle', 12),
+  draco: makeFrames('/images/characters/npcs/draco/idle', 12),
 };
 
 export default function Relationship() {
@@ -36,12 +44,13 @@ export default function Relationship() {
   const handleGift = (id: string) => {
     const char = characters.find(c => c.id === id);
     if (!char) return;
-    setNpcs(p => ({...p, [id]: (p[id as keyof typeof p] || 0) + 1}));
+    setNpcs(p => ({...p, [id]: (p[id] || 0) + 1}));
     setChatLog(prev => [...prev, '❤️ คุณให้ของขวัญแก่ ' + char.name + '! Bond +1']);
   };
   
   const selectedChar = characters.find(c => c.id === selectedId);
-  const currentFrame = selectedId && SPRITES[selectedId as keyof typeof SPRITES] ? SPRITES[selectedId as keyof typeof SPRITES][frameIndex] : null;
+  const frames = selectedId && SPRITES[selectedId as keyof typeof SPRITES] ? SPRITES[selectedId as keyof typeof SPRITES] : null;
+  const currentFrame = frames ? frames[frameIndex] : null;
   
   return (
     <div style={{padding: '20px'}}>
