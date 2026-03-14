@@ -130,7 +130,7 @@ export class MainScene extends Phaser.Scene {
             fontFamily: 'Arial'
         }).setOrigin(0.5).setDepth(100);
 
-        this.player = this.add.sprite(192, 168, 'player');
+        this.player = this.add.sprite(195, 143, 'player');
         this.player.setScale(1.5).setDepth(50);
 
         this.loadRoom('shop');
@@ -211,13 +211,13 @@ export class MainScene extends Phaser.Scene {
         ];
         const selected = npcList[Math.floor(Math.random() * npcList.length)];
 
-        this.customerNPC = this.add.sprite(144, 280, selected.texture);
+        this.customerNPC = this.add.sprite(180, 263, selected.texture);
         this.customerNPC.setScale(1.5).setDepth(45);
         this.customerNPC.anims.play(`${selected.anim}-up`, true);
 
         this.tweens.add({
             targets: this.customerNPC,
-            y: 120,
+            y: 200,
             duration: 3000,
             onComplete: () => {
                 this.customerNPC?.anims.stop();
@@ -274,7 +274,7 @@ export class MainScene extends Phaser.Scene {
         else if (entrySide === 'left') this.player.x = 344;
         else if (entrySide === 'down') this.player.y = 40;
         else if (entrySide === 'up') this.player.y = 248;
-        else this.player.setPosition(144, 168);
+        else this.player.setPosition(195, 143);
 
         if (roomName !== 'shop' && this.customerNPC) {
             this.customerNPC.destroy();

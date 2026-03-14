@@ -118,6 +118,10 @@ public/
 - [x] Asset Folders (MVP)
 - [x] Integration (Phaser + Next.js)
 - [x] Deployment (Vercel)
+- [x] Debug System (Toggle Grid/Coords with 'G')
+
+## Debug Controls
+- **G:** Toggle Debug Mode (Shows 48px Grid and Player X,Y coordinates)
 
 ### 🔄 In Progress
 - [ ] Refined Asset Polish (Waiting for P'Jo)
