@@ -35,8 +35,7 @@ export async function POST(request: NextRequest) {
     Instead of simple greeting, provide a short, meaningful monologue (2 sentences) that asks the player for their opinion on a divine matter or shares a secret prophecy. 
     Format: Just the dialogue. Language: Thai or English.`;
   } else {
-  ...
-      prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
+    prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
       
 Context:
 - ${playerName} ${actionDescriptions[action] || 'performs an action'}
@@ -44,7 +43,7 @@ Context:
 - Damage dealt: ${damage || 0}
 
 Keep it exciting and descriptive. Format: Just the narrative text. Language: Thai or English.`;
-    }
+  }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
