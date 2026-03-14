@@ -1,16 +1,9 @@
 import { EventBus } from '../EventBus';
 
-interface RoomLayers {
-    base: number[][];
-    decor?: number[][];
-}
-
 interface RoomConfig {
     name: string;
-    layers: RoomLayers;
     exits: Record<string, string>;
     phase?: string;
-    tilesets: string[]; 
     bgImage?: string; 
 }
 
@@ -18,90 +11,30 @@ const WORLD: Record<string, RoomConfig> = {
     shop: {
         name: 'Celestial Emporium',
         phase: 'shop',
-        tilesets: ['shop_atlas'],
         bgImage: 'bg_shop',
-        layers: {
-            base: [
-                [17, 18, 18, 18, 18, 18, 18, 19],
-                [65, 25, 25, 25, 25, 25, 25, 67],
-                [65, 26, 26, 26, 26, 26, 26, 67],
-                [65, 26, 26, 26, 26, 26, 26, 67],
-                [65, 25, 25, 25, 25, 25, 25, 67],
-                [113, 114, 114, 114, 114, 114, 114, 115],
-            ],
-            decor: []
-        },
         exits: { right: 'arena', down: 'village', up: 'cave_entrance' }
     },
     arena: {
         name: 'The Grand Arena',
         phase: 'arena',
-        tilesets: ['cave_atlas'],
         bgImage: 'bg_cave',
-        layers: {
-            base: [
-                [1, 1, 1, 1, 1, 1, 1, 1],
-                [1, 12, 12, 12, 12, 12, 12, 1],
-                [1, 13, 13, 13, 13, 13, 13, 1],
-                [1, 13, 13, 13, 13, 13, 13, 1],
-                [1, 12, 12, 12, 12, 12, 12, 1],
-                [1, 1, 1, 1, 1, 1, 1, 1],
-            ],
-            decor: []
-        },
         exits: { left: 'shop' }
     },
     village: {
         name: 'Divine Village',
         phase: 'relationship',
-        tilesets: ['shop_atlas'],
-        layers: {
-            base: [
-                [5, 5, 5, 5, 5, 5, 5, 5],
-                [5, 25, 25, 25, 25, 25, 25, 5],
-                [5, 26, 26, 26, 26, 26, 26, 5],
-                [5, 26, 26, 26, 26, 26, 26, 5],
-                [5, 25, 25, 25, 25, 25, 25, 5],
-                [5, 5, 5, 5, 5, 5, 5, 5],
-            ],
-            decor: []
-        },
         exits: { up: 'shop', right: 'cave_entrance' }
     },
     cave_entrance: {
         name: 'Cave Entrance',
         phase: 'exploration',
-        tilesets: ['cave_atlas'],
         bgImage: 'bg_cave',
-        layers: {
-            base: [
-                [2, 2, 2, 2, 2, 2, 2, 2],
-                [2, 10, 10, 10, 10, 10, 10, 2],
-                [2, 11, 11, 11, 11, 11, 11, 2],
-                [2, 11, 11, 11, 11, 11, 11, 2],
-                [2, 10, 10, 10, 10, 10, 10, 2],
-                [2, 2, 2, 2, 2, 2, 2, 2],
-            ],
-            decor: []
-        },
         exits: { down: 'shop', right: 'village', up: 'cave_inside' }
     },
     cave_inside: {
         name: 'Inside Cave',
         phase: 'exploration',
-        tilesets: ['cave_atlas'],
         bgImage: 'bg_cave',
-        layers: {
-            base: [
-                [3, 3, 3, 3, 3, 3, 3, 3],
-                [3, 10, 10, 10, 10, 10, 10, 3],
-                [3, 11, 11, 11, 11, 11, 11, 3],
-                [3, 11, 11, 11, 11, 11, 11, 3],
-                [3, 10, 10, 10, 10, 10, 10, 3],
-                [3, 3, 3, 3, 3, 3, 3, 3],
-            ],
-            decor: []
-        },
         exits: { down: 'cave_entrance' }
     }
 };
@@ -111,8 +44,6 @@ export class MainScene extends Phaser.Scene {
     cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     wasdKeys!: any;
     currentRoom = 'shop';
-    baseLayer!: Phaser.Tilemaps.TilemapLayer;
-    decorLayer!: Phaser.Tilemaps.TilemapLayer;
     bgSprite: Phaser.GameObjects.Image | null = null;
     roomText!: Phaser.GameObjects.Text;
     
@@ -146,12 +77,9 @@ export class MainScene extends Phaser.Scene {
             frameHeight: 32
         });
         
-        // Tilesets
-        this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
-        this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
-        this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
-        this.load.image('bg_shop', 'public/images/backgrounds/shop/interior/screenshot (2).png');
-        this.load.image('bg_cave', 'public/images/backgrounds/exploration/cave/_srw_tileset_0.png');
+        // Backgrounds
+        this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
+        this.load.image('bg_cave', '/images/backgrounds/exploration/cave/_srw_tileset_0.png');
     }
 
     createCharAnims(key: string, texture: string) {
@@ -225,7 +153,7 @@ export class MainScene extends Phaser.Scene {
 
     trySpawnCustomer() {
         // Use Zustand state to check if shop is open
-        const { isShiftActive, currentRoom } = (this.game as any).store?.getState() || { isShiftActive: true, currentRoom: this.currentRoom };
+        const { isShiftActive } = (this.game as any).store?.getState() || { isShiftActive: true };
         
         if (this.currentRoom !== 'shop' || !isShiftActive || this.customerNPC) return;
 
@@ -282,8 +210,6 @@ export class MainScene extends Phaser.Scene {
         const room = WORLD[roomName];
         if (!room) return;
 
-        if (this.baseLayer) this.baseLayer.destroy();
-        if (this.decorLayer) this.decorLayer.destroy();
         if (this.bgSprite) this.bgSprite.destroy();
 
         this.currentRoom = roomName;
@@ -295,19 +221,6 @@ export class MainScene extends Phaser.Scene {
             const scaleX = 384 / this.bgSprite.width;
             const scaleY = 288 / this.bgSprite.height;
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
-        }
-
-        const map = this.make.tilemap({
-            data: room.layers.base,
-            tileWidth: 48,
-            tileHeight: 48
-        });
-
-        const baseTileset = map.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
-        if (baseTileset) {
-            this.baseLayer = map.createLayer(0, baseTileset, 0, 0)!;
-            this.baseLayer.setDepth(0);
-            if (room.bgImage) this.baseLayer.setVisible(false);
         }
 
         if (entrySide === 'right') this.player.x = 40;
