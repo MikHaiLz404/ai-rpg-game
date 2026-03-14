@@ -8,17 +8,19 @@ interface RoomConfig {
     tileset: string;
 }
 
+// Map configuration using indices from the ATLAS (1-based index in Phaser)
+// Floor is usually at the start of the atlas
 const WORLD: Record<string, RoomConfig> = {
     shop: {
         name: 'Celestial Emporium',
         phase: 'shop',
-        tileset: 'shop_tiles',
+        tileset: 'shop_atlas',
         map: [
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
+            [1, 25, 25, 25, 25, 25, 25, 1],
+            [1, 25, 26, 26, 26, 26, 25, 1],
+            [1, 25, 26, 26, 26, 26, 25, 1],
+            [1, 25, 25, 25, 25, 25, 25, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ],
         exits: { right: 'arena', down: 'village', up: 'cave_entrance' }
@@ -26,13 +28,13 @@ const WORLD: Record<string, RoomConfig> = {
     arena: {
         name: 'The Grand Arena',
         phase: 'arena',
-        tileset: 'cave_tiles',
+        tileset: 'cave_atlas',
         map: [
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
+            [1, 12, 12, 12, 12, 12, 12, 1],
+            [1, 12, 13, 13, 13, 13, 12, 1],
+            [1, 12, 13, 13, 13, 13, 12, 1],
+            [1, 12, 12, 12, 12, 12, 12, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ],
         exits: { left: 'shop' }
@@ -40,7 +42,7 @@ const WORLD: Record<string, RoomConfig> = {
     village: {
         name: 'Divine Village',
         phase: 'relationship',
-        tileset: 'shop_tiles',
+        tileset: 'shop_atlas',
         map: [
             [1, 1, 1, 1, 1, 1, 1, 1],
             [1, 2, 2, 2, 2, 2, 2, 1],
@@ -54,13 +56,13 @@ const WORLD: Record<string, RoomConfig> = {
     cave_entrance: {
         name: 'Cave Entrance',
         phase: 'exploration',
-        tileset: 'cave_tiles',
+        tileset: 'cave_atlas',
         map: [
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 3, 0, 0, 3, 2, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
+            [1, 10, 10, 10, 10, 10, 10, 1],
+            [1, 10, 11, 11, 11, 11, 10, 1],
+            [1, 10, 0, 0, 0, 0, 10, 1],
+            [1, 10, 10, 10, 10, 10, 10, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ],
         exits: { down: 'shop', right: 'village', up: 'cave_inside' }
@@ -68,13 +70,13 @@ const WORLD: Record<string, RoomConfig> = {
     cave_inside: {
         name: 'Inside Cave',
         phase: 'exploration',
-        tileset: 'cave_tiles',
+        tileset: 'cave_atlas',
         map: [
             [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 3, 3, 3, 3, 2, 1],
-            [1, 2, 2, 2, 2, 2, 2, 1],
+            [1, 10, 10, 10, 10, 10, 10, 1],
+            [1, 10, 11, 11, 11, 11, 10, 1],
+            [1, 10, 11, 11, 11, 11, 10, 1],
+            [1, 10, 10, 10, 10, 10, 10, 1],
             [1, 1, 1, 1, 1, 1, 1, 1],
         ],
         exits: { down: 'cave_entrance' }
@@ -94,12 +96,15 @@ export class MainScene extends Phaser.Scene {
     }
 
     preload() {
+        // Player spritesheet
         this.load.spritesheet('player', '/images/characters/player/minju/character_26/character_26_frame32x32.png', {
             frameWidth: 32,
             frameHeight: 32
         });
-        this.load.image('shop_tiles', '/images/backgrounds/shop/interior/tileset_B.png');
-        this.load.image('cave_tiles', '/images/backgrounds/exploration/cave/_srw_tileset_0.png');
+        
+        // Load the upscaled 48x48 atlas images for tilemaps
+        this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
+        this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
     }
 
     create() {
@@ -166,6 +171,8 @@ export class MainScene extends Phaser.Scene {
         const tileset = map.addTilesetImage(room.tileset, room.tileset, 48, 48);
         if (tileset) {
             this.mapLayer = map.createLayer(0, tileset, 0, 0)!;
+            // Ensure pixel art clarity
+            this.mapLayer.setRenderOrder('right-down');
         }
 
         if (entrySide === 'right') this.player.x = 40;
