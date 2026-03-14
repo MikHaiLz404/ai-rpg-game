@@ -5,13 +5,8 @@ import * as Phaser from 'phaser';
 import { MainScene } from './scenes/MainScene';
 import { EventBus } from './EventBus';
 
-export interface IRefPhaserGame {
-  game: Phaser.Game;
-  scene: Phaser.Scene;
-}
-
 export default function PhaserGame() {
-  const gameRef = useRef<IRefPhaserGame | null>(null);
+  const gameRef = useRef<Phaser.Game | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -20,33 +15,26 @@ export default function PhaserGame() {
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
       width: 384,
-      height: 288,
+      height: 336,
       parent: 'phaser-game-container',
       backgroundColor: '#1a1a2e',
       pixelArt: true,
       scale: {
-        mode: Phaser.Scale.NONE,
-        width: 384,
-        height: 288,
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH
       },
       scene: [MainScene],
     };
 
-    gameRef.current = {
-      game: new Phaser.Game(config),
-      scene: null as unknown as Phaser.Scene,
-    };
+    gameRef.current = new Phaser.Game(config);
 
-    EventBus.on('current-scene-ready', (scene: Phaser.Scene) => {
-      if (gameRef.current) {
-        gameRef.current.scene = scene;
-      }
+    EventBus.on('current-scene-ready', () => {
       setReady(true);
     });
 
     return () => {
       if (gameRef.current) {
-        gameRef.current.game.destroy(true);
+        gameRef.current.destroy(true);
         gameRef.current = null;
       }
     };
@@ -57,26 +45,30 @@ export default function PhaserGame() {
       display: 'flex', 
       flexDirection: 'column', 
       alignItems: 'center',
+      justifyContent: 'center',
+      minHeight: '100vh',
       padding: '20px'
     }}>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>🗺️ Exploration</h2>
+      <h1 style={{ fontSize: '1.8rem', marginBottom: '10px', color: '#fbbf24' }}>
+        ⚔️ Gods' Arena 🏪
+      </h1>
+      
       <div 
         id="phaser-game-container"
         style={{
-          border: '4px solid #374151',
+          border: '4px solid #fbbf24',
           borderRadius: '8px',
           overflow: 'hidden',
-          width: '384px',
-          height: '288px',
+          boxShadow: '0 0 30px rgba(251, 191, 36, 0.3)'
         }}
       />
-      {ready ? (
-        <p style={{ color: '#9ca3af', marginTop: '10px', fontSize: '0.85rem' }}>
-          🎮 Use arrow keys to move | Walk to edges to change rooms
-        </p>
-      ) : (
-        <p style={{ color: '#666', marginTop: '10px' }}>Loading game...</p>
-      )}
+      
+      {!ready && <p style={{ color: '#666', marginTop: '10px' }}>กำลังโหลด...</p>}
+      
+      <div style={{ marginTop: '15px', color: '#9ca3af', fontSize: '0.85rem', textAlign: 'center' }}>
+        <p>🎮 W/A/S/D หรือ ลูกศร เพื่อเดิน</p>
+        <p>💕 ปุ่ม Space สำหรับโต้ตอบ</p>
+      </div>
     </div>
   );
 }
