@@ -189,7 +189,7 @@ export class MainScene extends Phaser.Scene {
             loop: true
         });
 
-        EventBus.on('clear-customer', this.clearCustomer, this);
+        EventBus.on('clear-customer', () => this.clearCustomer());
 
         EventBus.emit('current-scene-ready', this);
     }
