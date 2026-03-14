@@ -139,6 +139,7 @@ export class MainScene extends Phaser.Scene {
 
         this.player = this.add.sprite(195, 143, 'player');
         this.player.setScale(1.5).setDepth(50);
+        this.player.anims.play('player-down', true); // เริ่มเล่นอนิเมชั่นท่า Idle Down
 
         this.loadRoom('shop');
 
@@ -247,7 +248,6 @@ export class MainScene extends Phaser.Scene {
 
         if (this.bgSprite) this.bgSprite.destroy();
         
-        // Clear previous room entities
         if (this.kaneFighter) this.kaneFighter.destroy();
         if (this.slimeEnemy) this.slimeEnemy.destroy();
 
@@ -262,25 +262,24 @@ export class MainScene extends Phaser.Scene {
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
 
-        // Positions for specific rooms
         if (roomName === 'arena') {
-            this.player.setPosition(210, 60);
+            this.player.setPosition(60, 240);
+            this.player.anims.play('player-down', true);
             
-            // Add Kane and Slime to the middle of the stage
-            this.kaneFighter = this.add.sprite(140, 180, 'kane_idle').setScale(2.5).setDepth(40);
-            this.slimeEnemy = this.add.sprite(244, 180, 'slime_idle').setScale(2.5).setDepth(40);
+            // Kane & Slime Position & Scale adjustment
+            this.kaneFighter = this.add.sprite(100, 144, 'kane_idle').setScale(1.2).setDepth(40);
+            this.slimeEnemy = this.add.sprite(200, 144, 'slime_idle').setScale(1.5).setDepth(40);
             
-            // Basic Idle movement
             this.tweens.add({
                 targets: this.kaneFighter,
-                y: 175,
+                y: 140,
                 duration: 1000,
                 yoyo: true,
                 repeat: -1
             });
             this.tweens.add({
                 targets: this.slimeEnemy,
-                scale: 2.7,
+                scale: 1.6,
                 duration: 800,
                 yoyo: true,
                 repeat: -1
@@ -288,6 +287,7 @@ export class MainScene extends Phaser.Scene {
 
         } else {
             this.player.setPosition(195, 143);
+            this.player.anims.play('player-down', true);
         }
 
         if (roomName !== 'shop' && this.customerNPC) {
