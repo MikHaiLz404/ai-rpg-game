@@ -1,0 +1,191 @@
+{
+  "items": [
+    {
+      "id": "weapon_bronze_sword",
+      "name": "Bronze Sword",
+      "nameTH": "ดาบสำริด",
+      "description": "A basic sword made of bronze",
+      "descriptionTH": "ดาบพื้นฐานที่ทำจากสำริด",
+      "price": 100,
+      "type": "weapon",
+      "effect": { "attack": 5 },
+      "rarity": "common"
+    },
+    {
+      "id": "weapon_silver_spear",
+      "name": "Silver Spear",
+      "nameTH": "หอกเงิน",
+      "description": "A sharp spear forged from silver",
+      "descriptionTH": "หอกคมกริบที่ตีจากเงิน",
+      "price": 250,
+      "type": "weapon",
+      "effect": { "attack": 12 },
+      "rarity": "uncommon"
+    },
+    {
+      "id": "weapon_golden_bow",
+      "name": "Golden Bow",
+      "nameTH": "ธนูทอง",
+      "description": "A divine bow blessed by Apollo",
+      "descriptionTH": "ธนูศักดิ์สิทธิ์ที่อพอลโลให้พร",
+      "price": 400,
+      "type": "weapon",
+      "effect": { "attack": 18 },
+      "rarity": "rare"
+    },
+    {
+      "id": "weapon_thunder_hammer",
+      "name": "Thunder Hammer",
+      "nameTH": "ค้อนสายฟ้า",
+      "description": "Mjolnir's miniature version",
+      "descriptionTH": "สำเนาค้อนของโทร์",
+      "price": 600,
+      "type": "weapon",
+      "effect": { "attack": 25 },
+      "rarity": "epic"
+    },
+    {
+      "id": "weapon_trident",
+      "name": "Poseidon's Trident",
+      "nameTH": "สามง่ามโพไซดอน",
+      "description": "Divine trident of the sea god",
+      "descriptionTH": "สามง่ามศักดิ์สิทธิ์ของเทพทะเล",
+      "price": 800,
+      "type": "weapon",
+      "effect": { "attack": 35 },
+      "rarity": "legendary"
+    },
+    {
+      "id": "armor_leather",
+      "name": "Leather Armor",
+      "nameTH": "เกราะหนัง",
+      "description": "Basic leather protection",
+      "descriptionTH": "เกราะหนังพื้นฐาน",
+      "price": 80,
+      "type": "armor",
+      "effect": { "defense": 3 },
+      "rarity": "common"
+    },
+    {
+      "id": "armor_golden_shield",
+      "name": "Golden Shield",
+      "nameTH": "โล่ทอง",
+      "description": "Divine protection from the gods",
+      "descriptionTH": "เกราะศักดิ์สิทธิ์จากเทพ",
+      "price": 200,
+      "type": "armor",
+      "effect": { "defense": 8 },
+      "rarity": "uncommon"
+    },
+    {
+      "id": "armor_aegis",
+      "name": "Aegis Breastplate",
+      "nameTH": "เอไจส์เสื้อเกราะ",
+      "description": "Shield of Zeus with Gorgon face",
+      "descriptionTH": "โล่ของซูสที่มีหน้ากอร์กอน",
+      "price": 500,
+      "type": "armor",
+      "effect": { "defense": 15, "hp": 20 },
+      "rarity": "rare"
+    },
+    {
+      "id": "armor_helios_armor",
+      "name": "Helios Armor",
+      "nameTH": "เกราะเฮลิออส",
+      "description": "Radiant armor of the sun",
+      "descriptionTH": "เกราะระยิบระยับของเทพอาทิตย์",
+      "price": 700,
+      "type": "armor",
+      "effect": { "defense": 22, "attack": 5 },
+      "rarity": "epic"
+    },
+    {
+      "id": "potion_health_small",
+      "name": "Small Health Potion",
+      "nameTH": "ยาน้ำแดงเล็ก",
+      "description": "Restores small amount of HP",
+      "descriptionTH": "ฟื้นฟู HP เล็กน้อย",
+      "price": 50,
+      "type": "consumable",
+      "effect": { "hp": 30 },
+      "rarity": "common"
+    },
+    {
+      "id": "potion_health_large",
+      "name": "Large Health Potion",
+      "nameTH": "ยาน้ำแดงใหญ่",
+      "description": "Restores large amount of HP",
+      "descriptionTH": "ฟื้นฟู HP มาก",
+      "price": 120,
+      "type": "consumable",
+      "effect": { "hp": 80 },
+      "rarity": "uncommon"
+    },
+    {
+      "id": "potion_poison",
+      "name": "Poison Vial",
+      "nameTH": "ขวดพิษ",
+      "description": "Deal damage to enemies",
+      "descriptionTH": "สร้างความเสียหายให้ศัตรู",
+      "price": 75,
+      "type": "consumable",
+      "effect": { "attack": 15 },
+      "rarity": "common"
+    },
+    {
+      "id": "potion_ambrosia",
+      "name": "Ambrosia",
+      "nameTH": "แอมโบรเซีย",
+      "description": "Nectar of the gods - full restore",
+      "descriptionTH": "น้ำหวานของเทพ - ฟื้นฟูเต็ม",
+      "price": 300,
+      "type": "consumable",
+      "effect": { "hp": 100, "attack": 5, "defense": 5 },
+      "rarity": "rare"
+    },
+    {
+      "id": "potion_speed",
+      "name": "Speed Elixir",
+      "nameTH": "ยาวิเวห์",
+      "description": "Increases attack speed",
+      "descriptionTH": "เพิ่มความเร็วในการโจมตี",
+      "price": 100,
+      "type": "consumable",
+      "effect": { "attack": 10 },
+      "rarity": "uncommon"
+    },
+    {
+      "id": "item_olympian_coin",
+      "name": "Olympian Coin",
+      "nameTH": "เหรียญโอลิมปัส",
+      "description": "Ancient coin with divine power",
+      "descriptionTH": "เหรียญโบราณที่มีพลังศักดิ์สิทธิ์",
+      "price": 1000,
+      "type": "special",
+      "effect": { "gold": 100 },
+      "rarity": "legendary"
+    },
+    {
+      "id": "item_tears_of_muse",
+      "name": "Tears of Muse",
+      "nameTH": "น้ำตามิวส์",
+      "description": "Inspires wisdom and strategy",
+      "descriptionTH": "สร้างแรงบันดาลใจในกลยุทธ์",
+      "price": 250,
+      "type": "special",
+      "effect": { "defense": 3, "attack": 3 },
+      "rarity": "rare"
+    },
+    {
+      "id": "item_nectar",
+      "name": "Nectar",
+      "nameTH": "เนคตาร์",
+      "description": "Drink of the gods",
+      "descriptionTH": "เครื่องดื่มของเทพ",
+      "price": 200,
+      "type": "consumable",
+      "effect": { "hp": 100 },
+      "rarity": "rare"
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "npcs": [
+    {
+      "id": "hermes",
+      "name": "Hermes",
+      "nameTH": "เฮอร์มีส",
+      "title": "Messenger of the Gods",
+      "titleTH": "ผู้ส่งสารของเทพ",
+      "description": "The swift messenger god, always ready to help",
+      "descriptionTH": "เทพผู้ส่งสารที่คล่องแคล่ว พร้อมช่วยเสมอ",
+      "image": "👞",
+      "role": "merchant",
+      "location": "olympus",
+      "dialogueTree": "hermes_main",
+      "bondEffect": {
+        "discount": 0.1,
+        "unlockItems": ["weapon_thunder_hammer"]
+      }
+    },
+    {
+      "id": "aphrodite",
+      "name": "Aphrodite",
+      "nameTH": "อโฟรไดที",
+      "title": "Goddess of Love",
+      "titleTH": "เทพีแห่งความรัก",
+      "description": "The most beautiful goddess, goddess of love and beauty",
+      "descriptionTH": "เทพีที่สวยที่สุด เทพีแห่งความรักและความงาม",
+      "image": "💕",
+      "role": "supporter",
+      "location": "olympus",
+      "dialogueTree": "aphrodite_main",
+      "bondEffect": {
+        "healBonus": 0.2,
+        "charmChance": 0.15
+      }
+    },
+    {
+      "id": "athena",
+      "name": "Athena",
+      "nameTH": "อเธน่า",
+      "title": "Goddess of Wisdom",
+      "titleTH": "เทพีแห่งปัญญา",
+      "description": "Strategic mind and wise counselor",
+      "descriptionTH": "ผู้มีปัญญาและที่ปรึกษาที่ชาญฉลาด",
+      "image": "🦉",
+      "role": "mentor",
+      "location": "olympus",
+      "dialogueTree": "athena_main",
+      "bondEffect": {
+        "defenseBonus": 0.15,
+        "unlockAbilities": ["divine_shield"]
+      }
+    },
+    {
+      "id": "ares",
+      "name": "Ares",
+      "nameTH": "อเรส",
+      "title": "God of War",
+      "titleTH": "เทพแห่งสงคราม",
+      "description": "The brutal god of war, loves combat",
+      "descriptionTH": "เทพโหดร้ายแห่งสงคราม รักการต่อสู้",
+      "image": "⚔️",
+      "role": "trainer",
+      "location": "arena",
+      "dialogueTree": "ares_main",
+      "bondEffect": {
+        "attackBonus": 0.2,
+        "unlockWeapons": ["weapon_trident"]
+      }
+    },
+    {
+      "id": "apollo",
+      "name": "Apollo",
+      "nameTH": "อพอลโล",
+      "title": "God of Light",
+      "titleTH": "เทพแห่งแสงสว่าง",
+      "description": "God of music, healing, and prophecy",
+      "descriptionTH": "เทพแห่งดนตรี การรักษา และการทำนาย",
+      "image": "☀️",
+      "role": "healer",
+      "location": "olympus",
+      "dialogueTree": "apollo_main",
+      "bondEffect": {
+        "healAmount": 0.25,
+        "lightDamage": 0.15
+      }
+    },
+    {
+      "id": "artemis",
+      "name": "Artemis",
+      "nameTH": "อาร์ทีมิส",
+      "title": "Goddess of the Hunt",
+      "titleTH": "เทพีแห่งการล่า",
+      "description": "Mistress of the wilderness and archery",
+      "descriptionTH": "เจ้าแห่งป่าเขาและการยิงธนู",
+      "image": "🏹",
+      "role": "hunter",
+      "location": "forest",
+      "dialogueTree": "artemis_main",
+      "bondEffect": {
+        "critChance": 0.1,
+        "enemyDropRate": 0.2
+      }
+    },
+    {
+      "id": "hades",
+      "name": "Hades",
+      "nameTH": "เฮดส์",
+      "title": "God of the Underworld",
+      "titleTH": "เทพแห่งโลกันต์",
+      "description": "Ruler of the dead, mysterious and powerful",
+      "descriptionTH": "ผู้ปกครองความตาย ลึกลับและทรงพลัง",
+      "image": "💀",
+      "role": "dark_magic",
+      "location": "underworld",
+      "dialogueTree": "hades_main",
+      "bondEffect": {
+        "darkDamage": 0.2,
+        "lifesteal": 0.1
+      }
+    },
+    {
+      "id": "hephaestus",
+      "name": "Hephaestus",
+      "nameTH": "ฮีฟาสตัส",
+      "title": "God of the Forge",
+      "titleTH": "เทพแห่งเหล็กกล้า",
+      "description": "Master blacksmith of the gods",
+      "descriptionTH": "ช่างตีเหล็กชั้นนำของเทพ",
+      "image": "🔨",
+      "role": "blacksmith",
+      "location": "forge",
+      "dialogueTree": "hephaestus_main",
+      "bondEffect": {
+        "armorBonus": 0.15,
+        "weaponUpgrade": true
+      }
+    },
+    {
+      "id": "dionysus",
+      "name": "Dionysus",
+      "nameTH": "ไดโอนิซัส",
+      "title": "God of Wine",
+      "titleTH": "เทพแห่งไวน์",
+      "description": "Party god with mysterious powers",
+      "descriptionTH": "เทพแห่งงานเลี้ยงที่มีพลังลึกลับ",
+      "image": "🍷",
+      "role": "bard",
+      "location": "party",
+      "dialogueTree": "dionysus_main",
+      "bondEffect": {
+        "speedBonus": 0.1,
+        "statusEffectChance": 0.15
+      }
+    },
+    {
+      "id": "persephone",
+      "name": "Persephone",
+      "nameTH": "เพอร์ซีโฟนี",
+      "title": "Queen of the Underworld",
+      "titleTH": "ราชินีแห่งโลกันต์",
+      "description": "Daughter of Demeter, queen of the underworld",
+      "descriptionTH": "ลูกสาวเดเมเตอร์ ราชินีโลกันต์",
+      "image": "🌸",
+      "role": "queen",
+      "location": "underworld",
+      "dialogueTree": "persephone_main",
+      "bondEffect": {
+        "hpBonus": 0.15,
+        "seasonalPowers": true
+      }
+    },
+    {
+      "id": "chiron",
+      "name": "Chiron",
+      "nameTH": "ไครอน",
+      "title": "The Wise Centaur",
+      "titleTH": "เซนเทาร์ผู้ปราดเปรื่อง",
+      "description": "Great teacher of heroes",
+      "descriptionTH": "ครูผู้ยิ่งใหญ่ของฮีโร่",
+      "image": "🎓",
+      "role": "teacher",
+      "location": "mountain",
+      "dialogueTree": "chiron_main",
+      "bondEffect": {
+        "expGain": 0.2,
+        "skillUnlock": true
+      }
+    }
+  ]
+}

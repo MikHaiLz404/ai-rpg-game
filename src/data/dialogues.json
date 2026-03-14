@@ -1,0 +1,352 @@
+{
+  "dialogues": {
+    "hermes_main": {
+      "nodes": {
+        "intro": {
+          "text": "Greetings, mortal! Welcome to Olympus.",
+          "textTH": "สวัสดี มนุษย์! ยินดีต้อนรับสู่โอลิมปัส",
+          "speaker": "hermes",
+          "choices": [
+            { "text": "Who are you?", "textTH": "คุณคือใคร?", "nextId": "whoami" },
+            { "text": "I need supplies.", "textTH": "ฉันต้องการของใช้", "nextId": "shop" },
+            { "text": "Goodbye.", "textTH": "ลาก่อน", "nextId": "end" }
+          ]
+        },
+        "whoami": {
+          "text": "I am Hermes, messenger of the gods! I can deliver anything... for a price.",
+          "textTH": "ฉันคือเฮอร์มีส ผู้ส่งสารของเทพ! ฉันส่งของได้ทุกอย่าง... ตามราคา",
+          "speaker": "hermes",
+          "choices": [
+            { "text": "Interesting.", "textTH": "น่าสนใจ", "nextId": "chat1" },
+            { "text": "Goodbye.", "textTH": "ลาก่อน", "nextId": "end" }
+          ]
+        },
+        "chat1": {
+          "text": "The arena is tough. Want to hear a secret?",
+          "textTH": "อารีน่าหนักนะ อยากฟังความลับไหม?",
+          "speaker": "hermes",
+          "choices": [
+            { "text": "Yes, tell me!", "textTH": "บอกฉันที!", "nextId": "secret", "bondChange": 5 },
+            { "text": "Not now.", "textTH": "ไม่ตอนนี้", "nextId": "end" }
+          ]
+        },
+        "secret": {
+          "text": "The Hydra can be defeated if you strike all heads at once!",
+          "textTH": "ไฮดรากำจรดได้ถ้าคุณโจมตีหัวทั้งหมดพร้อมกัน!",
+          "speaker": "hermes",
+          "choices": [
+            { "text": "Thanks!", "textTH": "ขอบคุณ!", "nextId": "end", "bondChange": 5 }
+          ]
+        },
+        "shop": {
+          "text": "I've got the best goods! 10% discount for friends.",
+          "textTH": "ฉันมีของดีที่สุด! ลด 10% สำหรับเพื่อน",
+          "speaker": "hermes",
+          "choices": [
+            { "text": "Let's see.", "textTH": "ดูหน่อย", "nextId": "end" },
+            { "text": "Goodbye.", "textTH": "ลาก่อน", "nextId": "end" }
+          ]
+        }
+      }
+    },
+    "aphrodite_main": {
+      "nodes": {
+        "intro": {
+          "text": "Hello, beautiful one! How can I help you?",
+          "textTH": "สวัสดี คนงาม! ช่วยอะไรได้ไหม?",
+          "speaker": "aphrodite",
+          "choices": [
+            { "text": "You're beautiful too!", "textTH": "คุณก็สวยเหมือนกัน!", "nextId": "flirt", "bondChange": 5 },
+            { "text": "I need power.", "textTH": "ฉันต้องการพลัง", "nextId": "power" }
+          ]
+        },
+        "flirt": {
+          "text": "Such flattery! Come, let me show you love's power.",
+          "textTH": "ชมเชยจัง! มานี่ ฉันจะให้ดูพลังของความรัก",
+          "speaker": "aphrodite",
+          "choices": [
+            { "text": "What power?", "textTH": "พลังอะไร?", "nextId": "love_power" }
+          ]
+        },
+        "love_power": {
+          "text": "With my blessing, your attacks can charm enemies!",
+          "textTH": "ด้วยพรของฉัน การโจมตีของคุณจะมีเสน่ห์ทำให้ศัตรูหลงได้!",
+          "speaker": "aphrodite",
+          "choices": [
+            { "text": "Amazing!", "textTH": "สุดยอด!", "nextId": "end", "bondChange": 10 }
+          ]
+        },
+        "power": {
+          "text": "Beauty is power, my dear. But I can enhance your combat too.",
+          "textTH": "ความงามคือพลัง ที่รัก แต่ฉันก็เพิ่มพลังต่อสู้ให้ได้เหมือนกัน",
+          "speaker": "aphrodite",
+          "choices": [
+            { "text": "How?", "textTH": "ยังไง?", "nextId": "end", "bondChange": 3 }
+          ]
+        }
+      }
+    },
+    "athena_main": {
+      "nodes": {
+        "intro": {
+          "text": "Greetings, warrior. Wisdom is the key to victory.",
+          "textTH": "สวัสดี นักรบ ปัญญาคือกุญแจสู่ชัยชนะ",
+          "speaker": "athena",
+          "choices": [
+            { "text": "Teach me.", "textTH": "สอนฉัน", "nextId": "teach" },
+            { "text": "I seek battle.", "textTH": "ฉันต้องการต่อสู้", "nextId": "battle" }
+          ]
+        },
+        "teach": {
+          "text": "The enemy has patterns. Observe and adapt.",
+          "textTH": "ศัตรูมีรูปแบบ จงสังเกตและปรับตัว",
+          "speaker": "athena",
+          "choices": [
+            { "text": "I understand.", "textTH": "เข้าใจแล้ว", "nextId": "wisdom_blessing", "bondChange": 8 }
+          ]
+        },
+        "wisdom_blessing": {
+          "text": "You show promise. Take this blessing - it will protect you.",
+          "textTH": "คุณมีความหวัง รับพรนี้ไป - มันจะปกป้องคุณ",
+          "speaker": "athena",
+          "choices": [
+            { "text": "Thank you, Athena.", "textTH": "ขอบคุณ อเธน่า", "nextId": "end" }
+          ]
+        },
+        "battle": {
+          "text": "Battle without wisdom is mere violence. Choose wisely.",
+          "textTH": "สงคราม без разума is just violence เลือกอย่างชาญฉลาด",
+          "speaker": "athena",
+          "choices": [
+            { "text": "You're right.", "textTH": "ถูกต้อง", "nextId": "end", "bondChange": 3 }
+          ]
+        }
+      }
+    },
+    "ares_main": {
+      "nodes": {
+        "intro": {
+          "text": "Hah! Another warrior. Ready to spill blood?",
+          "textTH": "ฮ่า! นักรบอีกตัว พร้อมจะเลือดไหลแล้วหรือ?",
+          "speaker": "ares",
+          "choices": [
+            { "text": "I am ready.", "textTH": "พร้อมแล้ว", "nextId": "ready" },
+            { "text": "Not yet.", "textTH": "ยังไม่พร้อม", "nextId": "not_ready" }
+          ]
+        },
+        "ready": {
+          "text": "Good! The arena is your playground. Crush them!",
+          "textTH": "ดี! อารีน่าคือสนามเล่นของคุณ บดขยี้พวกมัน!",
+          "speaker": "ares",
+          "choices": [
+            { "text": "I will.", "textTH": "จะทำ", "nextId": "end", "bondChange": 10 }
+          ]
+        },
+        "not_ready": {
+          "text": "Weakness! Prepare yourself, then return.",
+          "textTH": "ความอ่อนแอ! เตรียมตัวแล้วค่อยกลับมา",
+          "speaker": "ares",
+          "choices": [
+            { "text": "Yes, sir.", "textTH": "ครับ", "nextId": "end" }
+          ]
+        }
+      }
+    },
+    "apollo_main": {
+      "nodes": {
+        "intro": {
+          "text": "Greetings, seeker of light. How may I illuminate your path?",
+          "textTH": "สวัสดี ผู้แสวงหาแสงสว่าง ช่วยส่องทางให้ได้ไหม?",
+          "speaker": "apollo",
+          "choices": [
+            { "text": "I need healing.", "textTH": "ฉันต้องการรักษา", "nextId": "heal" },
+            { "text": "Teach me.", "textTH": "สอนฉัน", "nextId": "teach" }
+          ]
+        },
+        "heal": {
+          "text": "The sun's warmth can mend any wound. Feel its power!",
+          "textTH": "ความอบอุ่นของดวงอาทิตย์รักษาได้ทุกบาดแผล รู้สึกพลังมัน!",
+          "speaker": "apollo",
+          "choices": [
+            { "text": "Thank you.", "textTH": "ขอบคุณ", "nextId": "end", "bondChange": 8 }
+          ]
+        },
+        "teach": {
+          "text": "The light shows truth. Learn to see beyond the shadows.",
+          "textTH": "แสงสว่างเผยความจริง เรียนรู้ที่จะมองเห็นนอกเงามืด",
+          "speaker": "apollo",
+          "choices": [
+            { "text": "I will try.", "textTH": "จะพยายาม", "nextId": "end", "bondChange": 5 }
+          ]
+        }
+      }
+    },
+    "artemis_main": {
+      "nodes": {
+        "intro": {
+          "text": "Stay quiet, mortal. The forest has many secrets.",
+          "textTH": "เงียบไว้ มนุษย์ ป่ามีความลับมากมาย",
+          "speaker": "artemis",
+          "choices": [
+            { "text": "I respect nature.", "textTH": "ฉันเคารพธรรมชาติ", "nextId": "respect" },
+            { "text": "I seek prey.", "textTH": "ฉันต้องการล่า", "nextId": "hunt" }
+          ]
+        },
+        "respect": {
+          "text": "Good. The wild accepts those who understand it.",
+          "textTH": "ดี ป่ารับผู้ที่เข้าใจมัน",
+          "speaker": "artemis",
+          "choices": [
+            { "text": "Guide me.", "textTH": "นำทางฉัน", "nextId": "end", "bondChange": 10 }
+          ]
+        },
+        "hunt": {
+          "text": "Then become one with the hunt. Follow me.",
+          "textTH": "งั้นจงเป็นหนึ่งกับการล่า ตามฉันมา",
+          "speaker": "artemis",
+          "choices": [
+            { "text": "Lead the way.", "textTH": "นำทาง", "nextId": "end", "bondChange": 8 }
+          ]
+        }
+      }
+    },
+    "hades_main": {
+      "nodes": {
+        "intro": {
+          "text": "You tread in my domain... boldly.",
+          "textTH": "เธอเดินในดินแดนของฉัน... กล้าดี",
+          "speaker": "hades",
+          "choices": [
+            { "text": "I am not afraid.", "textTH": "ฉันไม่กลัว", "nextId": "brave" },
+            { "text": "Forgive me.", "textTH": "ขอโทษ", "nextId": "apologize" }
+          ]
+        },
+        "brave": {
+          "text": "Interesting. Perhaps you can serve me.",
+          "textTH": "น่าสนใจ บางทีเธออาจรับใช้ฉันได้",
+          "speaker": "hades",
+          "choices": [
+            { "text": "I accept.", "textTH": "รับ", "nextId": "end", "bondChange": 10 }
+          ]
+        },
+        "apologize": {
+          "text": "A prudent choice. But fear not, I am generous.",
+          "textTH": "เลือกฉลาด แต่อย่ากลัว ฉันใจดี",
+          "speaker": "hades",
+          "choices": [
+            { "text": "Thank you.", "textTH": "ขอบคุณ", "nextId": "end", "bondChange": 5 }
+          ]
+        }
+      }
+    },
+    "hephaestus_main": {
+      "nodes": {
+        "intro": {
+          "text": "Another customer? Let me show you my creations.",
+          "textTH": "ลูกค้าอีกตัว? มาดูผลงานของฉัน",
+          "speaker": "hephaestus",
+          "choices": [
+            { "text": "Show me.", "textTH": "ให้ดู", "nextId": "show" },
+            { "text": "I need repairs.", "textTH": "ต้องการซ่อม", "nextId": "repair" }
+          ]
+        },
+        "show": {
+          "text": "Weapons and armor fit for gods themselves!",
+          "textTH": "อาวุธและเกราะที่เหมาะกับเทพเอง!",
+          "speaker": "hephaestus",
+          "choices": [
+            { "text": "Impressive!", "textTH": "น่าประทับใจ!", "nextId": "end", "bondChange": 8 }
+          ]
+        },
+        "repair": {
+          "text": "Give me your equipment. I will make it as new.",
+          "textTH": "เอาของมา ฉันจะทำให้เหมือนใหม่",
+          "speaker": "hephaestus",
+          "choices": [
+            { "text": "Here it is.", "textTH": "นี่", "nextId": "end", "bondChange": 5 }
+          ]
+        }
+      }
+    },
+    "dionysus_main": {
+      "nodes": {
+        "intro": {
+          "text": "WINE! Friends! Party! Everything good in life!",
+          "textTH": "ไวน์! เพื่อน! ปาร์ตี้! ทุกอย่างดีในชีวิต!",
+          "speaker": "dionysus",
+          "choices": [
+            { "text": "Join the party!", "textTH": "ร่วมปาร์ตี้!", "nextId": "party" },
+            { "text": "Not now.", "textTH": "ไม่ตอนนี้", "nextId": "end" }
+          ]
+        },
+        "party": {
+          "text": "Ha! Drink this wine and feel the divine power!",
+          "textTH": "ฮ่า! ดื่มไวน์นี้และรู้สึกพลังศักดิ์สิทธิ์!",
+          "speaker": "dionysus",
+          "choices": [
+            { "text": "Cheers!", "textTH": "ชนะ!", "nextId": "end", "bondChange": 10 }
+          ]
+        }
+      }
+    },
+    "persephone_main": {
+      "nodes": {
+        "intro": {
+          "text": "The seasons turn... and so does fate.",
+          "textTH": "ฤดูหมุนเวียน... โชคชะตาก็เช่นกัน",
+          "speaker": "persephone",
+          "choices": [
+            { "text": "Your grace.", "textTH": "ขอพระนาง", "nextId": "grace" },
+            { "text": "What do you mean?", "textTH": "หมายความว่ายังไง?", "nextId": "explain" }
+          ]
+        },
+        "grace": {
+          "text": "Half my power is from earth, half from darkness. Choose your blessing.",
+          "textTH": "ครึ่งพลังฉันมาจากดิน ครึ่งจากความมืด เลือกพรของเธอ",
+          "speaker": "persephone",
+          "choices": [
+            { "text": "Nature.", "textTH": "ธรรมชาติ", "nextId": "end", "bondChange": 8 },
+            { "text": "Darkness.", "textTH": "ความมืด", "nextId": "end", "bondChange": 8 }
+          ]
+        },
+        "explain": {
+          "text": "You will understand... in time.",
+          "textTH": "เธอจะเข้าใจ... เมื่อถึงเวลา",
+          "speaker": "persephone",
+          "choices": [
+            { "text": "I see.", "textTH": "เห็นแล้ว", "nextId": "end", "bondChange": 3 }
+          ]
+        }
+      }
+    },
+    "chiron_main": {
+      "nodes": {
+        "intro": {
+          "text": "Welcome, young warrior. What brings you here?",
+          "textTH": "ยินดีต้อนรับ นักรบหนุ่ม อะไรพามานี่?",
+          "speaker": "chiron",
+          "choices": [
+            { "text": "I seek knowledge.", "textTH": "แสวงหาความรู้", "nextId": "knowledge" },
+            { "text": "Train me.", "textTH": "ฝึกฉัน", "nextId": "train" }
+          ]
+        },
+        "knowledge": {
+          "text": "Knowledge is power. The gods have many secrets to share.",
+          "textTH": "ความรู้คือพลัง เทพมีความลับมากมายแบ่งปัน",
+          "speaker": "chiron",
+          "choices": [
+            { "text": "Teach me everything.", "textTH": "สอนทุกอย่าง", "nextId": "end", "bondChange": 10 }
+          ]
+        },
+        "train": {
+          "text": "Strength alone is not enough. You need wisdom to match.",
+          "textTH": "แค่พลังไม่พอ เธอต้องมีปัญญาคู่ด้วย",
+          "speaker": "chiron",
+          "choices": [
+            { "text": "I understand.", "textTH": "เข้าใจ", "nextId": "end", "bondChange": 8 }
+          ]
+        }
+      }
+    }
+  }
+}
