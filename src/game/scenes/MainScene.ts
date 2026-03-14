@@ -23,7 +23,7 @@ const WORLD: Record<string, RoomConfig> = {
     village: {
         name: 'Divine Village',
         phase: 'relationship',
-        bgImage: 'bg_shop', // ใช้ภาพ Shop เป็นพื้นหลังไปก่อนสำหรับหมู่บ้าน
+        bgImage: 'bg_shop', 
         exits: { up: 'shop', right: 'cave_entrance' }
     },
     cave_entrance: {
@@ -50,6 +50,10 @@ export class MainScene extends Phaser.Scene {
     
     customerNPC: Phaser.GameObjects.Sprite | null = null;
     
+    // Arena Fighters
+    kaneFighter: Phaser.GameObjects.Sprite | null = null;
+    slimeEnemy: Phaser.GameObjects.Sprite | null = null;
+
     // Debug
     debugMode = false;
     debugGraphics!: Phaser.GameObjects.Graphics;
@@ -80,6 +84,10 @@ export class MainScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
+
+        // Fighters
+        this.load.image('kane_idle', '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png');
+        this.load.image('slime_idle', '/images/enemies/slime/idle/frame_1_0.png');
         
         // Backgrounds
         this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
@@ -151,7 +159,6 @@ export class MainScene extends Phaser.Scene {
 
         EventBus.on('clear-customer', () => this.clearCustomer());
         
-        // Listen for external room changes (from UI menu)
         EventBus.on('change-room', (roomName: string) => {
             this.loadRoom(roomName);
         });
@@ -239,6 +246,10 @@ export class MainScene extends Phaser.Scene {
         if (!room) return;
 
         if (this.bgSprite) this.bgSprite.destroy();
+        
+        // Clear previous room entities
+        if (this.kaneFighter) this.kaneFighter.destroy();
+        if (this.slimeEnemy) this.slimeEnemy.destroy();
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
@@ -251,8 +262,33 @@ export class MainScene extends Phaser.Scene {
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
 
-        // ตัวละครยืนนิ่งที่ตำแหน่งเดิมเสมอเมื่อเปลี่ยนห้อง
-        this.player.setPosition(195, 143);
+        // Positions for specific rooms
+        if (roomName === 'arena') {
+            this.player.setPosition(210, 60);
+            
+            // Add Kane and Slime to the middle of the stage
+            this.kaneFighter = this.add.sprite(140, 180, 'kane_idle').setScale(2.5).setDepth(40);
+            this.slimeEnemy = this.add.sprite(244, 180, 'slime_idle').setScale(2.5).setDepth(40);
+            
+            // Basic Idle movement
+            this.tweens.add({
+                targets: this.kaneFighter,
+                y: 175,
+                duration: 1000,
+                yoyo: true,
+                repeat: -1
+            });
+            this.tweens.add({
+                targets: this.slimeEnemy,
+                scale: 2.7,
+                duration: 800,
+                yoyo: true,
+                repeat: -1
+            });
+
+        } else {
+            this.player.setPosition(195, 143);
+        }
 
         if (roomName !== 'shop' && this.customerNPC) {
             this.customerNPC.destroy();
@@ -261,7 +297,6 @@ export class MainScene extends Phaser.Scene {
     }
 
     update() {
-        // Disabled all movement controls
         if (this.debugMode) {
             this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`);
         }
