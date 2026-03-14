@@ -1,16 +1,23 @@
 'use client';
 import { useState } from 'react';
 
+const SPRITES: Record<string, string> = {
+  leo: '/images/characters/npcs/leo/character_2/character_2_frame32x32.png',
+  arena: '/images/characters/npcs/arena/character_10/character_10_frame32x32.png',
+  draco: '/images/characters/npcs/draco/character_24/character_24_frame32x32.png',
+  kane: '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png',
+};
+
 export default function Relationship() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [npcs, setNpcs] = useState<Record<string, number>>({ leo: 5, arena: 3, draco: 2, kane: 1 });
   const [chatLog, setChatLog] = useState<string[]>([]);
   
   const characters = [
-    { id: 'leo', name: 'เลโอ้', emoji: '⚔️', desc: 'เทพสงคราม', sprite: '/images/characters/npcs/leo/character_2/character_2_frame32x32.png' },
-    { id: 'arena', name: 'อารีน่า', emoji: '👑', desc: 'ราชินี', sprite: '/images/characters/npcs/arena/character_10/character_10_frame32x32.png' },
-    { id: 'draco', name: 'ดราโก้', emoji: '🐉', desc: 'มังกร', sprite: '/images/characters/npcs/draco/character_24/character_24_frame32x32.png' },
-    { id: 'kane', name: 'เคน', emoji: '🗡️', desc: 'นักฆ่า', sprite: '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png' },
+    { id: 'leo', name: 'เลโอ้', emoji: '⚔️', desc: 'เทพสงคราม' },
+    { id: 'arena', name: 'อารีน่า', emoji: '👑', desc: 'ราชินี' },
+    { id: 'draco', name: 'ดราโก้', emoji: '🐉', desc: 'มังกร' },
+    { id: 'kane', name: 'เคน', emoji: '🗡️', desc: 'นักฆ่า' },
   ];
   
   const handleTalk = (id: string) => {
@@ -47,8 +54,26 @@ export default function Relationship() {
           </button>
           
           <div style={{ background: '#16213e', padding: '20px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center' }}>
-            <div style={{ width: '64px', height: '64px', margin: '0 auto 10px', background: '#0f172a', borderRadius: '8px', overflow: 'hidden' }}>
-              <img src={selectedChar.sprite} alt={selectedChar.name} style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
+            <div style={{ 
+              width: '64px', 
+              height: '64px', 
+              margin: '0 auto 10px', 
+              background: '#0f172a', 
+              borderRadius: '8px', 
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {SPRITES[selectedChar.id] ? (
+                <img 
+                  src={SPRITES[selectedChar.id]} 
+                  alt={selectedChar.name} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} 
+                />
+              ) : (
+                <span style={{ fontSize: '2rem' }}>{selectedChar.emoji}</span>
+              )}
             </div>
             <h3>{selectedChar.name}</h3>
             <p style={{ color: '#9ca3af' }}>{selectedChar.desc}</p>
@@ -66,16 +91,28 @@ export default function Relationship() {
           </div>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
           {characters.map((char) => (
-            <button key={char.id} onClick={() => handleTalk(char.id)}
-              style={{ padding: '15px', background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-              <div style={{ width: '48px', height: '48px', background: '#0f172a', borderRadius: '4px', overflow: 'hidden' }}>
-                <img src={char.sprite} alt={char.name} style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
-              </div>
-              <span>{char.name}</span>
-              <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>{char.desc}</span>
-              <span style={{ color: '#ec4899' }}>❤️ {npcs[char.id] || 0}</span>
+            <button 
+              key={char.id} 
+              onClick={() => handleTalk(char.id)}
+              style={{
+                padding: '15px',
+                background: '#374151',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span style={{ fontSize: '2rem' }}>{char.emoji}</span>
+              <span style={{ fontWeight: 'bold' }}>{char.name}</span>
+              <span style={{ color: '#9ca3af', fontSize: '0.75rem' }}>{char.desc}</span>
+              <span style={{ color: '#ec4899', fontSize: '0.85rem' }}>❤️ {npcs[char.id] || 0}</span>
             </button>
           ))}
         </div>
