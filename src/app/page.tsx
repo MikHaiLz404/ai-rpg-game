@@ -9,6 +9,7 @@ import { EventBus } from '@/game/EventBus';
 import Shop from '@/components/Shop';
 import Arena from '@/components/Arena';
 import Relationship from '@/components/Relationship';
+import ChampionStatus from '@/components/ChampionStatus';
 
 const PhaserGame = dynamic(() => import('@/game/PhaserGame'), { 
   ssr: false,
@@ -75,6 +76,10 @@ export default function Home() {
     };
   }, [setPhase]);
 
+  const changeRoom = (room: string) => {
+    EventBus.emit('change-room', room);
+  };
+
   return (
     <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-12">
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
@@ -87,19 +92,15 @@ export default function Home() {
             </div>
           </div>
           
+          <div className="flex items-center gap-2">
+            <NavButton label="Shop" icon="🏪" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
+            <NavButton label="Arena" icon="🏟️" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+            <NavButton label="Village" icon="🏘️" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
+            <NavButton label="Status" icon="👤" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
+          </div>
+
           <div className="flex items-center gap-4 md:gap-8">
-            <button 
-              onClick={() => {
-                const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
-                const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
-                saveGame(gold, null, saveItems as any, relationships, 0, true);
-                alert('Divine Progress Saved!');
-              }}
-              className="hidden md:block px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all active:scale-95"
-            >
-              💾 Save Progress
-            </button>
-            <div className="flex flex-col items-end">
+            <div className="hidden md:flex flex-col items-end">
               <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Divine Wealth</span>
               <div className="flex items-center gap-2 text-amber-400 font-black text-xl">
                 <span>💰</span>
@@ -119,22 +120,38 @@ export default function Home() {
             </div>
           </div>
           
-          <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center text-2xl shadow-inner border border-slate-700/50">
-                {phase === 'shop' && '🏪'}
-                {phase === 'arena' && '🏟️'}
-                {phase === 'exploration' && '🌲'}
-                {phase === 'relationship' && '🏘️'}
-            </div>
-            <div>
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Sanctum</div>
-              <div className="text-sm font-black text-amber-500 uppercase tracking-tight">
-                {phase === 'shop' && 'Celestial Emporium'}
-                {phase === 'arena' && 'The Grand Arena'}
-                {phase === 'exploration' && 'Wilderness Borders'}
-                {phase === 'relationship' && 'Divine Village'}
+          <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center text-2xl shadow-inner border border-slate-700/50">
+                  {phase === 'shop' && '🏪'}
+                  {phase === 'arena' && '🏟️'}
+                  {phase === 'exploration' && '🌲'}
+                  {phase === 'relationship' && '🏘️'}
+                  {(phase as any) === 'status' && '👤'}
+              </div>
+              <div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Sanctum</div>
+                <div className="text-sm font-black text-amber-500 uppercase tracking-tight">
+                  {phase === 'shop' && 'Celestial Emporium'}
+                  {phase === 'arena' && 'The Grand Arena'}
+                  {phase === 'exploration' && 'Wilderness Borders'}
+                  {phase === 'relationship' && 'Divine Village'}
+                  {(phase as any) === 'status' && "Kane's Status"}
+                </div>
               </div>
             </div>
+
+            <button 
+              onClick={() => {
+                const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
+                const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
+                saveGame(gold, null, saveItems as any, relationships, 0, true);
+                alert('Divine Progress Saved!');
+              }}
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+            >
+              💾 Save
+            </button>
           </div>
         </div>
         
@@ -144,23 +161,26 @@ export default function Home() {
             {phase === 'arena' && <Arena />}
             {phase === 'exploration' && <ExplorationUI />}
             {phase === 'relationship' && <Relationship />}
-          </div>
-          
-          <div className="md:hidden">
-            <button 
-              onClick={() => {
-                const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
-                const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
-                saveGame(gold, null, saveItems as any, relationships, 0, true);
-                alert('Divine Progress Saved!');
-              }}
-              className="w-full py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
-            >
-              💾 Save Progress
-            </button>
+            {(phase as any) === 'status' && <ChampionStatus />}
           </div>
         </div>
       </div>
     </main>
+  );
+}
+
+function NavButton({ label, icon, active, onClick }: { label: string, icon: string, active: boolean, onClick: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`px-3 py-2 rounded-lg flex flex-col items-center min-w-[60px] transition-all ${
+        active 
+          ? 'bg-amber-500/10 border border-amber-500/50 text-amber-500' 
+          : 'bg-slate-800/50 border border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+      }`}
+    >
+      <span className="text-lg">{icon}</span>
+      <span className="text-[8px] font-black uppercase tracking-widest mt-1">{label}</span>
+    </button>
   );
 }

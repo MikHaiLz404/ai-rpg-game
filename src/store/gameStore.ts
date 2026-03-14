@@ -115,9 +115,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   })),
 
   unlockSkill: (godId, skill) => set((state) => ({
-    companions: state.companions.map(c => 
-      c.id === godId ? { ...c, unlockedSkills: [...c.unlockedSkills, skill] } : c
-    )
+    companions: state.companions.map(c => {
+      // Add to the God who granted it
+      if (c.id === godId) {
+        return { ...c, unlockedSkills: [...c.unlockedSkills, skill] };
+      }
+      // ALSO add to Kane (the Champion) so he can use it in battle
+      if (c.id === 'kane') {
+        // Prevent duplicate skills
+        const hasSkill = c.unlockedSkills.some(s => s.name === skill.name);
+        if (hasSkill) return c;
+        return { ...c, unlockedSkills: [...c.unlockedSkills, skill] };
+      }
+      return c;
+    })
   })),
 
   getBondBonus: (id) => {
