@@ -4,7 +4,9 @@ interface RoomConfig {
     name: string;
     exits: Record<string, string>;
     phase?: string;
-    bgImage?: string; 
+    bgImage?: string;
+    // ขอบเขตที่เดินได้ (ถ้าไม่กำหนดจะเดินได้ทั้งจอ)
+    bounds?: { x: number, y: number, width: number, height: number };
 }
 
 const WORLD: Record<string, RoomConfig> = {
@@ -12,7 +14,9 @@ const WORLD: Record<string, RoomConfig> = {
         name: 'Celestial Emporium',
         phase: 'shop',
         bgImage: 'bg_shop',
-        exits: { right: 'arena', down: 'village', up: 'cave_entrance' }
+        exits: { right: 'arena', down: 'village', up: 'cave_entrance' },
+        // ตัวอย่างการจำกัดพื้นที่: ให้เดินได้แค่ช่วงกลางฉาก (ปรับตามความเหมาะสม)
+        bounds: { x: 50, y: 130, width: 300, height: 100 }
     },
     arena: {
         name: 'The Grand Arena',
@@ -40,7 +44,7 @@ const WORLD: Record<string, RoomConfig> = {
 };
 
 export class MainScene extends Phaser.Scene {
-    player!: Phaser.GameObjects.Sprite;
+    player!: Phaser.Physics.Arcade.Sprite; // เปลี่ยนเป็น Physics Sprite
     cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     wasdKeys!: any;
     currentRoom = 'shop';
@@ -54,6 +58,7 @@ export class MainScene extends Phaser.Scene {
     debugGraphics!: Phaser.GameObjects.Graphics;
     debugTexts: Phaser.GameObjects.Text[] = [];
     coordText!: Phaser.GameObjects.Text;
+    boundsRect!: Phaser.GameObjects.Rectangle;
 
     // Mobile Movement
     mobileDirection: string | null = null;
@@ -116,7 +121,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     create() {
-        // Create animations for player and npcs
+        // Create animations
         this.createCharAnims('player', 'player');
         this.createCharAnims('leo', 'npc_leo');
         this.createCharAnims('arena', 'npc_arena');
@@ -130,20 +135,23 @@ export class MainScene extends Phaser.Scene {
             fontFamily: 'Arial'
         }).setOrigin(0.5).setDepth(100);
 
-        this.player = this.add.sprite(195, 143, 'player');
+        // Setup Player with Physics
+        this.player = this.physics.add.sprite(195, 143, 'player');
         this.player.setScale(1.5).setDepth(50);
+        this.player.setCollideWorldBounds(true);
 
         this.loadRoom('shop');
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D');
         
-        // Toggle Debug Mode with 'G'
+        // Toggle Debug Mode
         this.input.keyboard.on('keydown-G', () => {
             this.debugMode = !this.debugMode;
             this.debugGraphics.setVisible(this.debugMode);
             this.debugTexts.forEach(t => t.setVisible(this.debugMode));
             this.coordText.setVisible(this.debugMode);
+            if (this.boundsRect) this.boundsRect.setVisible(this.debugMode);
         });
 
         this.time.addEvent({
@@ -162,7 +170,7 @@ export class MainScene extends Phaser.Scene {
             this.mobileDirection = null;
         });
 
-        // Debug Grid
+        // Debug Visuals
         this.debugGraphics = this.add.graphics();
         this.debugGraphics.lineStyle(1, 0x00ff00, 0.2);
         this.debugGraphics.setDepth(1000);
@@ -182,15 +190,10 @@ export class MainScene extends Phaser.Scene {
             }
         }
 
-        // Real-time Coordinate Text
         this.coordText = this.add.text(380, 280, '', {
-            fontSize: '10px',
-            color: '#00ff00',
-            backgroundColor: '#000000cc',
-            padding: { x: 4, y: 2 }
+            fontSize: '10px', color: '#00ff00', backgroundColor: '#000000cc', padding: { x: 4, y: 2 }
         }).setOrigin(1, 1).setDepth(2000);
 
-        // Hide debug initially
         this.debugGraphics.setVisible(false);
         this.debugTexts.forEach(t => t.setVisible(false));
         this.coordText.setVisible(false);
@@ -199,9 +202,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     trySpawnCustomer() {
-        // Use Zustand state to check if shop is open
         const { isShiftActive } = (this.game as any).store?.getState() || { isShiftActive: true };
-        
         if (this.currentRoom !== 'shop' || !isShiftActive || this.customerNPC) return;
 
         const npcList = [
@@ -222,18 +223,13 @@ export class MainScene extends Phaser.Scene {
             onComplete: () => {
                 this.customerNPC?.anims.stop();
                 this.customerNPC?.setFrame(1);
-                EventBus.emit('customer-arrival', {
-                    id: selected.id,
-                    name: selected.name
-                });
+                EventBus.emit('customer-arrival', { id: selected.id, name: selected.name });
             }
         });
     }
 
     clearCustomer() {
         if (!this.customerNPC) return;
-        
-        // Find which anim to play (down)
         const textureKey = this.customerNPC.texture.key;
         let animPrefix = 'player';
         if (textureKey === 'npc_leo') animPrefix = 'leo';
@@ -241,7 +237,6 @@ export class MainScene extends Phaser.Scene {
         if (textureKey === 'npc_draco') animPrefix = 'draco';
 
         this.customerNPC.anims.play(`${animPrefix}-down`, true);
-
         this.tweens.add({
             targets: this.customerNPC,
             y: 280,
@@ -258,6 +253,7 @@ export class MainScene extends Phaser.Scene {
         if (!room) return;
 
         if (this.bgSprite) this.bgSprite.destroy();
+        if (this.boundsRect) this.boundsRect.destroy();
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
@@ -270,10 +266,20 @@ export class MainScene extends Phaser.Scene {
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
 
-        if (entrySide === 'right') this.player.x = 40;
-        else if (entrySide === 'left') this.player.x = 344;
-        else if (entrySide === 'down') this.player.y = 40;
-        else if (entrySide === 'up') this.player.y = 248;
+        // Apply Room Bounds (กำแพงล่องหนขอบห้อง)
+        if (room.bounds) {
+            this.physics.world.setBounds(room.bounds.x, room.bounds.y, room.bounds.width, room.bounds.height);
+            // วาดกรอบ Debug สำหรับพื้นที่เดินได้
+            this.boundsRect = this.add.rectangle(room.bounds.x, room.bounds.y, room.bounds.width, room.bounds.height, 0x0000ff, 0.1)
+                .setOrigin(0, 0).setStrokeStyle(1, 0x0000ff).setDepth(999).setVisible(this.debugMode);
+        } else {
+            this.physics.world.setBounds(0, 0, 384, 288);
+        }
+
+        if (entrySide === 'right') this.player.setPosition(room.bounds ? room.bounds.x + 20 : 40, this.player.y);
+        else if (entrySide === 'left') this.player.setPosition(room.bounds ? room.bounds.x + room.bounds.width - 20 : 344, this.player.y);
+        else if (entrySide === 'down') this.player.setPosition(this.player.x, room.bounds ? room.bounds.y + 20 : 40);
+        else if (entrySide === 'up') this.player.setPosition(this.player.x, room.bounds ? room.bounds.y + room.bounds.height - 20 : 248);
         else this.player.setPosition(195, 143);
 
         if (roomName !== 'shop' && this.customerNPC) {
@@ -283,10 +289,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     update() {
-        if (!this.cursors || !this.wasdKeys) return;
+        if (!this.player.body) return;
 
-        let moving = false;
-        const speed = 3;
+        const speed = 150;
+        this.player.setVelocity(0);
 
         const goLeft = this.cursors.left?.isDown || this.wasdKeys.A.isDown || this.mobileDirection === 'left';
         const goRight = this.cursors.right?.isDown || this.wasdKeys.D.isDown || this.mobileDirection === 'right';
@@ -294,50 +300,43 @@ export class MainScene extends Phaser.Scene {
         const goDown = this.cursors.down?.isDown || this.wasdKeys.S.isDown || this.mobileDirection === 'down';
 
         if (goLeft) {
-            this.player.x -= speed;
+            this.player.setVelocityX(-speed);
             this.player.anims.play('player-left', true);
-            moving = true;
         } else if (goRight) {
-            this.player.x += speed;
+            this.player.setVelocityX(speed);
             this.player.anims.play('player-right', true);
-            moving = true;
         } else if (goUp) {
-            this.player.y -= speed;
+            this.player.setVelocityY(-speed);
             this.player.anims.play('player-up', true);
-            moving = true;
         } else if (goDown) {
-            this.player.y += speed;
+            this.player.setVelocityY(speed);
             this.player.anims.play('player-down', true);
-            moving = true;
-        }
-
-        if (!moving) {
+        } else {
+            this.player.anims.stop();
+            // Idle frames
             const currentAnim = this.player.anims.currentAnim;
             if (currentAnim) {
-                this.player.anims.stop();
                 if (currentAnim.key === 'player-down') this.player.setFrame(1);
                 else if (currentAnim.key === 'player-left') this.player.setFrame(4);
                 else if (currentAnim.key === 'player-right') this.player.setFrame(7);
                 else if (currentAnim.key === 'player-up') this.player.setFrame(10);
-            } else {
-                this.player.setFrame(1);
             }
         }
 
-        // Update Coord Text
         if (this.debugMode) {
             this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`);
         }
 
         const room = WORLD[this.currentRoom];
         if (room) {
-            if (this.player.x > 375 && room.exits.right) this.loadRoom(room.exits.right, 'right');
-            else if (this.player.x < 10 && room.exits.left) this.loadRoom(room.exits.left, 'left');
-            else if (this.player.y > 278 && room.exits.down) this.loadRoom(room.exits.down, 'down');
-            else if (this.player.y < 10 && room.exits.up) this.loadRoom(room.exits.up, 'up');
+            // Check for exits (อิงตามตำแหน่ง World แทนพิกัดหน้าจอ)
+            const checkX = this.player.x;
+            const checkY = this.player.y;
+            
+            if (checkX > 370 && room.exits.right) this.loadRoom(room.exits.right, 'right');
+            else if (checkX < 15 && room.exits.left) this.loadRoom(room.exits.left, 'left');
+            else if (checkY > 275 && room.exits.down) this.loadRoom(room.exits.down, 'down');
+            else if (checkY < 15 && room.exits.up) this.loadRoom(room.exits.up, 'up');
         }
-
-        this.player.x = Phaser.Math.Clamp(this.player.x, 8, 376);
-        this.player.y = Phaser.Math.Clamp(this.player.y, 8, 280);
     }
 }
