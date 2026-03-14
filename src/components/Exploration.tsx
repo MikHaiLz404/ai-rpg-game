@@ -1,63 +1,130 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const TILE_SIZE = 48;
+const GRID_COLS = 8;
+const GRID_ROWS = 6;
 
-// Room backgrounds (tileset/atlas images)
-const ROOM_BG = {
-  shop: '/images/backgrounds/shop/interior/tileset_B.png',
-  arena: '/images/backgrounds/shop/interior/atlas_16x.png',
-  storage: '/images/backgrounds/shop/interior/tileset_C.png',
-  village: '/images/backgrounds/shop/interior/tileset_D.png',
+// Tile maps for each room (tile_0_0 = row 0, col 0)
+const ROOM_MAPS = {
+  shop: [
+    [0,0,0,0,0,0,0,0],
+    [0,1,1,1,1,1,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,2,2,2,2,1,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,0,0,0,0,0],
+  ],
+  arena: [
+    [0,0,0,0,0,0,0,0],
+    [0,3,3,3,3,3,3,0],
+    [0,3,4,4,4,4,3,0],
+    [0,3,4,4,4,4,3,0],
+    [0,3,3,3,3,3,3,0],
+    [0,0,0,0,0,0,0,0],
+  ],
+  storage: [
+    [0,0,0,0,0,0,0,0],
+    [0,5,5,5,5,5,5,0],
+    [0,5,6,6,6,6,5,0],
+    [0,5,6,6,6,6,5,0],
+    [0,5,5,5,5,5,5,0],
+    [0,0,0,0,0,0,0,0],
+  ],
+  village: [
+    [0,0,0,0,0,0,0,0],
+    [0,7,7,7,7,7,7,0],
+    [0,7,8,8,8,8,7,0],
+    [0,7,8,8,8,8,7,0],
+    [0,7,7,7,7,7,7,0],
+    [0,0,0,0,0,0,0,0],
+  ],
 };
 
-const MAP = {
-  shop: { name: '🏪 ร้านค้า', x: 2, y: 2, color: '#92400e', exits: { right: 'arena', down: 'storage' } },
-  arena: { name: '⚔️ อารีน่า', x: 4, y: 2, color: '#991b1b', exits: { left: 'shop' } },
-  storage: { name: '📦 คลัง', x: 2, y: 4, color: '#7c3aed', exits: { up: 'shop' } },
-  village: { name: '🏘่ หมู่บ้าน', x: 0, y: 2, color: '#166534', exits: { right: 'shop' } },
+// Tile image mappings (tileset_B: rows 0-3, tileset_C: rows 4-7, etc.)
+const TILE_MAPPINGS: Record<string, string> = {
+  'shop': '/images/backgrounds/shop/interior/tileset_B/tile_',
+  'arena': '/images/backgrounds/shop/interior/tileset_B/tile_',
+  'storage': '/images/backgrounds/shop/interior/tileset_C/tile_',
+  'village': '/images/backgrounds/shop/interior/tileset_D/tile_',
 };
 
-// Player frames
-const PLAYER_FRAMES = Array.from({length: 4}, (_, i) => '/images/characters/player/minju/idle/frame_0_' + i + '.png');
+// Player sprite frames (4 frame animation)
+const PLAYER_SPRITES = [
+  '/images/characters/player/minju/idle/frame_0_0.png',
+  '/images/characters/player/minju/idle/frame_0_1.png',
+  '/images/characters/player/minju/idle/frame_0_2.png',
+  '/images/characters/player/minju/idle/frame_0_1.png',
+];
+
+const MAP_EXITS: Record<string, Record<string, string>> = {
+  shop: { right: 'arena', down: 'storage' },
+  arena: { left: 'shop' },
+  storage: { up: 'shop' },
+  village: { right: 'shop' },
+};
+
+const ROOM_NAMES: Record<string, string> = {
+  shop: '🏪 ร้านค้า',
+  arena: '⚔️ Arena',
+  storage: '📦 คลัง',
+  village: '🏘่ หมู่บ้าน',
+};
 
 export default function Exploration() {
   const [room, setRoom] = useState('shop');
-  const [playerX, setPlayerX] = useState(2);
-  const [playerY, setPlayerY] = useState(2);
-  const [frameIndex, setFrameIndex] = useState(0);
+  const [playerX, setPlayerX] = useState(3);
+  const [playerY, setPlayerY] = useState(3);
+  const [frame, setFrame] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   
-  // Animation
+  // Animation loop
   useEffect(() => {
-    const interval = setInterval(() => setFrameIndex(f => (f + 1) % 4), 200);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => {
+      setFrame(f => (f + 1) % 4);
+    }, 200);
+    return () => clearInterval(timer);
   }, []);
   
-  const handleMove = (dx: number, dy: number) => {
-    const newX = playerX + dx;
-    const newY = playerY + dy;
-    if (newX < 0 || newX > 6 || newY < 0 || newY > 4) return;
-    setPlayerX(newX);
-    setPlayerY(newY);
-  };
+  const canMove = useCallback((x: number, y: number) => {
+    if (x < 1 || x > GRID_COLS - 2 || y < 1 || y > GRID_ROWS - 2) return false;
+    return true;
+  }, []);
   
-  const handleKeyDown = (e: KeyboardEvent) => {
-    switch(e.key) {
-      case 'ArrowUp': case 'w': handleMove(0, -1); break;
-      case 'ArrowDown': case 's': handleMove(0, 1); break;
-      case 'ArrowLeft': case 'a': handleMove(-1, 0); break;
-      case 'ArrowRight': case 'd': handleMove(1, 0); break;
-    }
-  };
+  const handleMove = useCallback((dx: number, dy: number) => {
+    setPlayerX(x => {
+      const nx = x + dx;
+      if (!canMove(nx, playerY)) return x;
+      return nx;
+    });
+    setPlayerY(y => {
+      const ny = y + dy;
+      if (!canMove(playerX, ny)) return y;
+      return ny;
+    });
+  }, [canMove, playerX, playerY]);
   
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [playerX, playerY, room]);
+    const handleKey = (e: KeyboardEvent) => {
+      if (showMenu) {
+        if (e.key === 'Escape') setShowMenu(false);
+        return;
+      }
+      switch (e.key) {
+        case 'ArrowUp': case 'w': case 'W': handleMove(0, -1); break;
+        case 'ArrowDown': case 's': case 'S': handleMove(0, 1); break;
+        case 'ArrowLeft': case 'a': case 'A': handleMove(-1, 0); break;
+        case 'ArrowRight': case 'd': case 'D': handleMove(1, 0); break;
+        case 'Escape': setShowMenu(true); break;
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [handleMove, showMenu]);
   
-  const currentRoom = MAP[room as keyof typeof MAP];
-  const bgImage = ROOM_BG[room as keyof typeof ROOM_BG];
+  const currentMap = ROOM_MAPS[room as keyof typeof ROOM_MAPS];
+  const tileBase = TILE_MAPPINGS[room] || TILE_MAPPINGS['shop'];
+  const exits = MAP_EXITS[room];
   
   return (
     <div style={{ padding: '20px' }}>
@@ -71,92 +138,96 @@ export default function Exploration() {
       {showMenu ? (
         <div style={{ background: '#16213e', padding: '20px', borderRadius: '8px' }}>
           <h3 style={{ marginBottom: '15px' }}>📋 เมนู</h3>
+          <p style={{ color: '#9ca3af', marginBottom: '10px' }}>กด ESC เพื่อกลับ</p>
           <div style={{ display: 'grid', gap: '10px' }}>
-            <button style={{ padding: '15px', background: '#f59e0b', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>🏪 ร้านค้า</button>
-            <button style={{ padding: '15px', background: '#ef4444', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>⚔️ Arena</button>
-            <button style={{ padding: '15px', background: '#ec4899', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>💕 ความสัมพันธ์</button>
+            <button onClick={() => { setRoom('shop'); setShowMenu(false); }} style={{ padding: '15px', background: '#92400e', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>🏪 ร้านค้า</button>
+            <button onClick={() => { setRoom('arena'); setShowMenu(false); }} style={{ padding: '15px', background: '#dc2626', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>⚔️ Arena</button>
+            <button onClick={() => { setRoom('storage'); setShowMenu(false); }} style={{ padding: '15px', background: '#7c3aed', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>📦 คลัง</button>
+            <button onClick={() => { setRoom('village'); setShowMenu(false); }} style={{ padding: '15px', background: '#16a34a', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>🏘่ หมู่บ้าน</button>
           </div>
         </div>
       ) : (
         <>
-          <div style={{ marginBottom: '10px', color: '#9ca3af' }}>📍 {currentRoom?.name || 'Unknown'}</div>
+          <div style={{ marginBottom: '10px', color: '#9ca3af', fontSize: '0.9rem' }}>📍 {ROOM_NAMES[room]} | ตำแหน่ง: ({playerX}, {playerY})</div>
           
-          {/* Game Area with Background */}
+          {/* Game Grid */}
           <div style={{ 
-            position: 'relative',
-            width: '100%',
-            maxWidth: '450px',
-            height: '320px',
+            display: 'grid',
+            gridTemplateColumns: `repeat(${GRID_COLS}, ${TILE_SIZE}px)`,
+            gridTemplateRows: `repeat(${GRID_ROWS}, ${TILE_SIZE}px)`,
+            gap: 0,
+            width: 'fit-content',
             margin: '0 auto',
-            borderRadius: '12px',
-            overflow: 'hidden',
             border: '4px solid #374151',
-            background: `url(${bgImage}) center/cover no-repeat`
+            borderRadius: '8px',
+            overflow: 'hidden',
+            background: '#1a1a2e'
           }}>
-            {/* Dark overlay for visibility */}
-            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)' }} />
-            
-            {/* Room decorations */}
-            {room === 'shop' && (
-              <div style={{ position: 'absolute', top: '15%', left: '10%', width: '80px', height: '60px', background: '#78350f', borderRadius: '4px' }} />
+            {currentMap.map((row, rowIdx) => 
+              row.map((tileId, colIdx) => (
+                <div key={`${rowIdx}-${colIdx}`} style={{ width: TILE_SIZE, height: TILE_SIZE, overflow: 'hidden' }}>
+                  <img 
+                    src={tileBase + tileId + '.png'} 
+                    alt="" 
+                    style={{ width: '100%', height: '100%', objectFit: 'none', imageRendering: 'pixelated' }}
+                  />
+                </div>
+              ))
             )}
             
-            {/* Exits */}
-            {currentRoom?.exits && Object.entries(currentRoom.exits).map(([dir, target]) => (
-              <button
-                key={dir}
-                onClick={() => { setRoom(target); setPlayerX(2); setPlayerY(2); }}
-                style={{
-                  position: 'absolute',
-                  padding: '8px 12px',
-                  background: '#00000080',
-                  border: '2px solid #fbbf24',
-                  borderRadius: '8px',
-                  color: '#fbbf24',
-                  cursor: 'pointer',
-                  zIndex: 10,
-                  ...(dir === 'right' && { right: '10px', top: '50%', transform: 'translateY(-50%)' }),
-                  ...(dir === 'left' && { left: '10px', top: '50%', transform: 'translateY(-50%)' }),
-                  ...(dir === 'up' && { top: '10px', left: '50%', transform: 'translateX(-50%)' }),
-                  ...(dir === 'down' && { bottom: '10px', left: '50%', transform: 'translateX(-50%)' }),
-                }}
-              >
-                {dir === 'right' ? '→' : dir === 'left' ? '←' : dir === 'up' ? '↑' : '↓'}
-              </button>
-            ))}
-            
-            {/* Player */}
+            {/* Player overlay */}
             <div style={{
               position: 'absolute',
-              left: playerX * TILE_SIZE + 20,
-              top: playerY * TILE_SIZE + 20,
+              left: playerX * TILE_SIZE,
+              top: playerY * TILE_SIZE,
               width: TILE_SIZE,
               height: TILE_SIZE,
-              transition: 'left 0.15s, top 0.15s',
-              zIndex: 5
+              transition: 'left 0.1s, top 0.1s',
+              pointerEvents: 'none'
             }}>
-              <img src={PLAYER_FRAMES[frameIndex]} alt="Player" style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
+              <img 
+                src={PLAYER_SPRITES[frame]} 
+                alt="Player"
+                style={{ width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }}
+              />
             </div>
           </div>
           
-          {/* Controls */}
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <p style={{ color: '#9ca3af', marginBottom: '10px' }}>🎮 กดลูกศร หรือ W/A/S/D เพื่อเดิน</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '5px', maxWidth: '150px', margin: '0 auto' }}>
-              <div />
-              <button onClick={() => handleMove(0, -1)} style={{ padding: '10px', background: '#374151', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>↑</button>
-              <div />
-              <button onClick={() => handleMove(-1, 0)} style={{ padding: '10px', background: '#374151', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>←</button>
-              <button onClick={() => handleMove(0, 1)} style={{ padding: '10px', background: '#374151', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>↓</button>
-              <button onClick={() => handleMove(1, 0)} style={{ padding: '10px', background: '#374151', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer' }}>→</button>
-            </div>
-          </div>
-          
-          {/* Room buttons */}
-          <div style={{ marginTop: '20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-            {Object.entries(MAP).map(([id, r]) => (
-              <button key={id} onClick={() => setRoom(id)} style={{ padding: '10px', background: room === id ? r.color : '#374151', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', opacity: room === id ? 1 : 0.6 }}>{r.name}</button>
+          {/* Exits */}
+          <div style={{ marginTop: '15px', display: 'flex', justifyContent: 'center', gap: '10px' }}>
+            {exits && Object.entries(exits).map(([dir, target]) => (
+              <button
+                key={dir}
+                onClick={() => setRoom(target)}
+                style={{
+                  padding: '10px 20px',
+                  background: '#fbbf24',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#000',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                {dir === 'right' ? '→ ' + ROOM_NAMES[target] : 
+                 dir === 'left' ? ROOM_NAMES[target] + ' ←' :
+                 dir === 'up' ? '↑ ' + ROOM_NAMES[target] :
+                 ROOM_NAMES[target] + ' ↓'}
+              </button>
             ))}
+          </div>
+          
+          {/* D-Pad */}
+          <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            <p style={{ color: '#9ca3af', marginBottom: '10px', fontSize: '0.85rem' }}>🎮 ลูกศร / WASD | ESC = เมนู</p>
+            <div style={{ display: 'inline-grid', gridTemplateColumns: 'repeat(3, 44px)', gap: '4px' }}>
+              <div />
+              <button onClick={() => handleMove(0, -1)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>↑</button>
+              <div />
+              <button onClick={() => handleMove(-1, 0)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>←</button>
+              <button onClick={() => handleMove(0, 1)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>↓</button>
+              <button onClick={() => handleMove(1, 0)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>→</button>
+            </div>
           </div>
         </>
       )}
