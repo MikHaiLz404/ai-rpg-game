@@ -15,23 +15,33 @@ export default function PhaserGame() {
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
       width: 384,
-      height: 336,
+      height: 288,
       parent: 'phaser-game-container',
-      backgroundColor: '#1a1a2e',
+      backgroundColor: '#020617',
       pixelArt: true,
+      physics: {
+        default: 'arcade',
+        arcade: {
+          gravity: { x: 0, y: 0 }
+        }
+      },
       scale: {
-        mode: Phaser.Scale.NONE,  // Fixed size
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
       },
       scene: [MainScene],
     };
 
     gameRef.current = new Phaser.Game(config);
 
-    EventBus.on('current-scene-ready', () => {
+    const onSceneReady = () => {
       setReady(true);
-    });
+    };
+
+    EventBus.on('current-scene-ready', onSceneReady);
 
     return () => {
+      EventBus.off('current-scene-ready', onSceneReady);
       if (gameRef.current) {
         gameRef.current.destroy(true);
         gameRef.current = null;
@@ -40,31 +50,14 @@ export default function PhaserGame() {
   }, []);
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexDirection: 'column', 
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      padding: '20px'
-    }}>
-      <h1 style={{ fontSize: '1.8rem', marginBottom: '10px', color: '#fbbf24' }}>
-        ⚔️ Gods' Arena
-      </h1>
-      
+    <div className="w-full flex flex-col items-center">
       <div 
         id="phaser-game-container"
-        style={{
-          width: '384px',
-          height: '336px',
-          border: '4px solid #fbbf24',
-          borderRadius: '8px',
-          overflow: 'hidden'
-        }}
+        className="w-full max-w-[384px] aspect-[4/3] border-4 border-amber-500/50 rounded-xl overflow-hidden shadow-2xl shadow-amber-500/10 bg-slate-900"
       />
-      
-      <div style={{ marginTop: '15px', color: '#9ca3af', fontSize: '0.85rem', textAlign: 'center' }}>
-        <p>🎮 W/A/S/D เพื่อเดิน</p>
+      <div className="mt-4 flex gap-4 text-[10px] font-bold text-slate-500 tracking-widest uppercase">
+        <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1 rounded border border-slate-700">WASD</kbd> MOVE</span>
+        <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1 rounded border border-slate-700">ENTER</kbd> INTERACT</span>
       </div>
     </div>
   );

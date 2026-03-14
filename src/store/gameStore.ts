@@ -25,6 +25,8 @@ interface GameStore {
   addItem: (item: string) => void;
   companions: Companion[];
   addBond: (id: string, amount: number) => void;
+  getBondBonus: (id: string) => { atk: number; def: number };
+  loadSaveData: (data: any) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -67,4 +69,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
       c.id === id ? { ...c, bond: c.bond + amount } : c
     )
   })),
+
+  getBondBonus: (id) => {
+    const companion = get().companions.find(c => c.id === id);
+    if (!companion) return { atk: 0, def: 0 };
+    return {
+      atk: Math.floor(companion.bond / 2),
+      def: Math.floor(companion.bond / 3)
+    };
+  },
+
+  loadSaveData: (data) => {
+    if (!data) return;
+    set({
+      gold: data.player.gold,
+      player: {
+        ...get().player,
+        gold: data.player.gold,
+      },
+      items: data.inventory.map((i: any) => i.id || i),
+      companions: get().companions.map(c => ({
+        ...c,
+        bond: data.relationships[c.id] || c.bond
+      }))
+    });
+  },
 }));

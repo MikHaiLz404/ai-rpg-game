@@ -5,23 +5,38 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || 'sk-or-v1-000000000
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, playerName, enemyName, damage } = await request.json();
+    const { action, playerName, enemyName, damage, npcName, npcMood, lastMessage } = await request.json();
 
     const actionDescriptions: Record<string, string> = {
       attack: 'attacks fiercely',
       defend: 'takes a defensive stance',
       heal: 'channels healing magic',
       fireball: 'unleashes a powerful fire spell',
+      talk: 'engages in conversation',
     };
 
-    const prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
+    let prompt = '';
     
+    if (action === 'talk') {
+      prompt = `Write a short, engaging dialogue response (1-2 sentences) from an NPC in a fantasy RPG.
+      
 Context:
-- ${playerName} ${actionDescriptions[action]}
-- Enemy is ${enemyName}
-- Damage dealt: ${damage}
+- Player (${playerName}) is talking to ${npcName}.
+- ${npcName}'s current mood/personality: ${npcMood || 'friendly'}.
+- Previous message: "${lastMessage || 'Hello!'}"
 
-Keep it exciting and descriptive. Format in Thai or English.`;
+The response should be in character, mysterious yet welcoming. 
+Format: Just the dialogue text. Language: Thai or English (prefer Thai if appropriate for the character).`;
+    } else {
+      prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
+      
+Context:
+- ${playerName} ${actionDescriptions[action] || 'performs an action'}
+- Enemy is ${enemyName || 'a mysterious foe'}
+- Damage dealt: ${damage || 0}
+
+Keep it exciting and descriptive. Format: Just the narrative text. Language: Thai or English.`;
+    }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',

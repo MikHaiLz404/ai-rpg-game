@@ -11,7 +11,7 @@ const ENEMIES = [
 ];
 
 export default function Arena() {
-  const { gold, addGold } = useGameStore();
+  const { gold, addGold, companions, getBondBonus } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
@@ -28,14 +28,37 @@ export default function Arena() {
     setInCombat(true);
   };
   
-  const attack = () => {
+  const attack = async () => {
     if (!selectedEnemy || result) return;
     
+    // Apply bond bonuses from all companions
+    const totalBonusAtk = companions.reduce((acc, c) => acc + getBondBonus(c.id).atk, 0);
+
     // Player attacks
-    const playerDmg = Math.floor(Math.random() * 15) + 10;
+    const playerDmg = Math.floor(Math.random() * 15) + 10 + totalBonusAtk;
     const newEnemyHp = Math.max(0, enemyHp - playerDmg);
     setEnemyHp(newEnemyHp);
-    setCombatLog(prev => [`⚔️ You dealt ${playerDmg} damage!`, ...prev]);
+    
+    try {
+      const res = await fetch('/api/narrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'attack',
+          playerName: 'Minju',
+          enemyName: selectedEnemy.name,
+          damage: playerDmg
+        })
+      });
+      const data = await res.json();
+      if (data.narrative) {
+        setCombatLog(prev => [`⚔️ ${data.narrative}`, ...prev]);
+      } else {
+        setCombatLog(prev => [`⚔️ You dealt ${playerDmg} damage!`, ...prev]);
+      }
+    } catch (err) {
+      setCombatLog(prev => [`⚔️ You dealt ${playerDmg} damage!`, ...prev]);
+    }
     
     if (newEnemyHp <= 0) {
       setResult('win');
@@ -45,11 +68,31 @@ export default function Arena() {
     }
     
     // Enemy attacks
-    setTimeout(() => {
+    setTimeout(async () => {
       const enemyDmg = Math.floor(Math.random() * selectedEnemy.atk) + 5;
       const newPlayerHp = Math.max(0, playerHp - enemyDmg);
       setPlayerHp(newPlayerHp);
-      setCombatLog(prev => [`💥 ${selectedEnemy.emoji} ${selectedEnemy.name} dealt ${enemyDmg} damage!`, ...prev]);
+      
+      try {
+        const res = await fetch('/api/narrate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'attack',
+            playerName: selectedEnemy.name,
+            enemyName: 'Minju',
+            damage: enemyDmg
+          })
+        });
+        const data = await res.json();
+        if (data.narrative) {
+          setCombatLog(prev => [`💥 ${data.narrative}`, ...prev]);
+        } else {
+          setCombatLog(prev => [`💥 ${selectedEnemy.emoji} ${selectedEnemy.name} dealt ${enemyDmg} damage!`, ...prev]);
+        }
+      } catch (err) {
+        setCombatLog(prev => [`💥 ${selectedEnemy.emoji} ${selectedEnemy.name} dealt ${enemyDmg} damage!`, ...prev]);
+      }
       
       if (newPlayerHp <= 0) {
         setResult('lose');
@@ -75,7 +118,12 @@ export default function Arena() {
           {/* Player side */}
           <div className="bg-slate-800/50 p-4 rounded-lg border border-blue-500/20">
             <div className="flex justify-between items-end mb-2">
-              <span className="text-xl font-bold">👤 Minju</span>
+              <div>
+                <span className="text-xl font-bold">👤 Minju</span>
+                <div className="text-[10px] text-blue-400 font-bold uppercase tracking-tighter">
+                  Bond Bonus: +{companions.reduce((acc, c) => acc + getBondBonus(c.id).atk, 0)} ATK
+                </div>
+              </div>
               <span className="text-sm">{playerHp} / 100 HP</span>
             </div>
             <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden border border-slate-600">

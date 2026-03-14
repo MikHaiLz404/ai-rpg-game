@@ -23,21 +23,49 @@ export default function Relationship() {
   const [chatLog, setChatLog] = useState<string[]>([]);
   const [frameIndex, setFrameIndex] = useState(0);
   
+  const [isTalking, setIsTalking] = useState(false);
+  
   useEffect(() => {
     const interval = setInterval(() => setFrameIndex(f => (f + 1) % 12), 200);
     return () => clearInterval(interval);
   }, []);
   
-  const handleTalk = (id: string) => {
+  const handleTalk = async (id: string) => {
     const companion = companions.find(c => c.id === id);
     if (!companion) return;
-    const msgs = [
-      `${companion.name}: สวัสดีครับนักเดินทาง!`,
-      `${companion.name}: วันนี้เจ้าดูแข็งแกร่งขึ้นนะ`,
-      `${companion.name}: เจ้าพร้อมสำหรับการประลองครั้งต่อไปหรือยัง?`
-    ];
-    setChatLog([msgs[Math.floor(Math.random() * 3)]]);
+    
+    setIsTalking(true);
     setSelectedId(id);
+    
+    try {
+      const res = await fetch('/api/narrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'talk',
+          playerName: 'Minju',
+          npcName: companion.name,
+          npcMood: metadata?.[id as keyof typeof NPC_METADATA]?.desc || 'friendly',
+          lastMessage: chatLog[0] || 'Greetings!'
+        })
+      });
+      
+      const data = await res.json();
+      if (data.narrative) {
+        setChatLog([data.narrative]);
+      } else {
+        throw new Error('No narrative');
+      }
+    } catch (err) {
+      const msgs = [
+        `${companion.name}: สวัสดีครับนักเดินทาง!`,
+        `${companion.name}: วันนี้เจ้าดูแข็งแกร่งขึ้นนะ`,
+        `${companion.name}: เจ้าพร้อมสำหรับการประลองครั้งต่อไปหรือยัง?`
+      ];
+      setChatLog([msgs[Math.floor(Math.random() * 3)]]);
+    } finally {
+      setIsTalking(false);
+    }
   };
   
   const handleGift = (id: string) => {
@@ -76,18 +104,25 @@ export default function Relationship() {
             </div>
             <h3 className="text-xl font-bold text-white">{selectedCompanion.name}</h3>
             <p className="text-sm text-slate-400">{metadata.desc}</p>
-            <div className="mt-4 flex items-center justify-center gap-2 text-pink-400 font-bold">
-              <span>❤️ BOND LEVEL:</span>
-              <span className="text-2xl">{selectedCompanion.bond}</span>
+    <div className="mt-4 flex flex-col items-center gap-2">
+              <div className="flex items-center gap-2 text-pink-400 font-bold">
+                <span>❤️ BOND LEVEL:</span>
+                <span className="text-2xl">{selectedCompanion.bond}</span>
+              </div>
+              <div className="flex gap-4 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <span className="text-blue-400">ATK BONUS: +{Math.floor(selectedCompanion.bond / 2)}</span>
+                <span className="text-green-400">DEF BONUS: +{Math.floor(selectedCompanion.bond / 3)}</span>
+              </div>
             </div>
           </div>
 
           <div className="flex gap-4">
             <button 
               onClick={() => handleTalk(selectedCompanion.id)} 
-              className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors"
+              disabled={isTalking}
+              className={`flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors ${isTalking ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              💬 TALK
+              {isTalking ? '...' : '💬 TALK'}
             </button>
             <button 
               onClick={() => handleGift(selectedCompanion.id)} 
