@@ -13,6 +13,7 @@ export interface IRefPhaserGame {
 export default function PhaserGame() {
   const gameRef = useRef<IRefPhaserGame | null>(null);
   const [ready, setReady] = useState(false);
+  const [currentRoom, setCurrentRoom] = useState('shop');
 
   useEffect(() => {
     if (gameRef.current) return;
@@ -25,8 +26,9 @@ export default function PhaserGame() {
       backgroundColor: '#1a1a2e',
       pixelArt: true,
       scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+        mode: Phaser.Scale.NONE,  // Fixed size, no scaling
+        width: 384,
+        height: 288,
       },
       scene: [MainScene],
     };
@@ -65,11 +67,13 @@ export default function PhaserGame() {
           border: '4px solid #374151',
           borderRadius: '8px',
           overflow: 'hidden',
+          width: '384px',
+          height: '288px',
         }}
       />
       {!ready && <p style={{ color: '#666', marginTop: '10px' }}>Loading game...</p>}
       <p style={{ color: '#9ca3af', marginTop: '10px', fontSize: '0.85rem' }}>
-        🎮 Use arrow keys to move
+        🎮 Use arrow keys to move | Walk to edges to change rooms
       </p>
     </div>
   );
