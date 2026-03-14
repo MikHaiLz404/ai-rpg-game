@@ -14,6 +14,15 @@ interface Companion {
   bond: number;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  request: string;
+  offeredGold: number;
+  wantedItemId: string;
+  isGod: boolean;
+}
+
 interface GameStore {
   phase: GamePhase;
   setPhase: (phase: GamePhase) => void;
@@ -23,9 +32,12 @@ interface GameStore {
   spendGold: (amount: number) => boolean;
   items: string[];
   addItem: (item: string) => void;
+  removeItem: (item: string) => void;
   companions: Companion[];
   addBond: (id: string, amount: number) => void;
   getBondBonus: (id: string) => { atk: number; def: number };
+  currentCustomer: Customer | null;
+  setCustomer: (customer: Customer | null) => void;
   loadSaveData: (data: any) => void;
 }
 
@@ -55,8 +67,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return false;
   },
   
-  items: ['potion', 'sword'],
+  items: ['potion_health', 'sword', 'mirror'],
   addItem: (item) => set((state) => ({ items: [...state.items, item] })),
+  removeItem: (item) => set((state) => {
+    const index = state.items.indexOf(item);
+    if (index > -1) {
+      const newItems = [...state.items];
+      newItems.splice(index, 1);
+      return { items: newItems };
+    }
+    return state;
+  }),
   
   companions: [
     { id: 'leo', name: 'เลโอ้', bond: 5 },
@@ -78,6 +99,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       def: Math.floor(companion.bond / 3)
     };
   },
+
+  currentCustomer: null,
+  setCustomer: (customer) => set({ currentCustomer: customer }),
 
   loadSaveData: (data) => {
     if (!data) return;

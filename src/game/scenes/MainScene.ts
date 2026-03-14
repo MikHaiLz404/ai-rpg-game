@@ -13,18 +13,11 @@ interface RoomConfig {
     tilesets: string[]; 
 }
 
-/**
- * Super Retro World Tileset Layout Notes (for 16x16 upscaled to 48x48):
- * - Tileset B contains furniture/props.
- * - Indices are 0-based across the entire texture.
- * - Row 1 (indices 0-47): Often empty or top-edge props.
- * - Tables/Counters: Often found in middle rows.
- */
 const WORLD: Record<string, RoomConfig> = {
     shop: {
         name: 'Celestial Emporium',
         phase: 'shop',
-        tilesets: ['shop_atlas', 'tileset_B'], // Using both base and props
+        tilesets: ['shop_atlas', 'tileset_B'],
         layers: {
             base: [
                 [17, 18, 18, 18, 18, 18, 18, 19],
@@ -36,8 +29,6 @@ const WORLD: Record<string, RoomConfig> = {
             ],
             decor: [
                 [0, 0, 0, 0, 0, 0, 0, 0],
-                // Counter (indices from tileset_B, shifted by shop_atlas count if using single tileset, 
-                // but here we'll use separate map systems if needed, or index offset)
                 [0, 2353, 2354, 2355, 0, 0, 0, 0], 
                 [0, 0, 0, 0, 0, 0, 2360, 0],
                 [0, 0, 2380, 0, 0, 0, 0, 0],
@@ -132,6 +123,8 @@ export class MainScene extends Phaser.Scene {
     baseLayer!: Phaser.Tilemaps.TilemapLayer;
     decorLayer!: Phaser.Tilemaps.TilemapLayer;
     roomText!: Phaser.GameObjects.Text;
+    
+    customerNPC: Phaser.GameObjects.Sprite | null = null;
 
     constructor() {
         super('MainScene');
@@ -142,7 +135,6 @@ export class MainScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
-        
         this.load.image('shop_atlas', '/images/backgrounds/shop/interior/atlas_48x.png');
         this.load.image('cave_atlas', '/images/backgrounds/exploration/cave/cave_48x.png');
         this.load.image('tileset_B', '/images/backgrounds/shop/interior/tileset_B_48x.png');
@@ -190,7 +182,50 @@ export class MainScene extends Phaser.Scene {
         this.cursors = this.input.keyboard.createCursorKeys();
         this.wasdKeys = this.input.keyboard.addKeys('W,A,S,D');
 
+        this.time.addEvent({
+            delay: 15000,
+            callback: this.trySpawnCustomer,
+            callbackScope: this,
+            loop: true
+        });
+
+        EventBus.on('clear-customer', this.clearCustomer, this);
+
         EventBus.emit('current-scene-ready', this);
+    }
+
+    trySpawnCustomer() {
+        if (this.currentRoom !== 'shop' || this.customerNPC) return;
+
+        this.customerNPC = this.add.sprite(192, 280, 'player');
+        this.customerNPC.setTint(0xaaaaaa);
+        this.customerNPC.setScale(1.5).setDepth(45);
+
+        this.tweens.add({
+            targets: this.customerNPC,
+            y: 120,
+            duration: 3000,
+            onComplete: () => {
+                EventBus.emit('customer-arrival', {
+                    id: 'npc_' + Date.now(),
+                    name: ['Ares', 'Athena', 'Hermes', 'Village Elder', 'Mysterious Traveler'].sort(() => 0.5 - Math.random())[0]
+                });
+            }
+        });
+    }
+
+    clearCustomer() {
+        if (!this.customerNPC) return;
+        
+        this.tweens.add({
+            targets: this.customerNPC,
+            y: 280,
+            duration: 2000,
+            onComplete: () => {
+                this.customerNPC?.destroy();
+                this.customerNPC = null;
+            }
+        });
     }
 
     loadRoom(roomName: string, entrySide?: 'left' | 'right' | 'up' | 'down') {
@@ -204,7 +239,6 @@ export class MainScene extends Phaser.Scene {
         this.roomText.setText(room.name);
         if (room.phase) EventBus.emit('phase-change', room.phase);
 
-        // Base Layer
         const map = this.make.tilemap({
             data: room.layers.base,
             tileWidth: 48,
@@ -217,7 +251,6 @@ export class MainScene extends Phaser.Scene {
             this.baseLayer.setDepth(0);
         }
 
-        // Decor Layer (supports offset for multiple tilesets)
         if (room.layers.decor && room.layers.decor.length > 0) {
             const decorMap = this.make.tilemap({
                 data: room.layers.decor,
@@ -225,10 +258,7 @@ export class MainScene extends Phaser.Scene {
                 tileHeight: 48
             });
 
-            // If we have a second tileset (like tileset_B), we add it with an offset
-            // Phaser indices for the second tileset start after the first one
-            const firstTilesetCount = 2048; // Estimate or calculated from image size (768/16 * 768/16 = 2304)
-            
+            const firstTilesetCount = 2048;
             const ts1 = decorMap.addTilesetImage(room.tilesets[0], room.tilesets[0], 48, 48);
             let ts2 = null;
             if (room.tilesets.length > 1) {
@@ -236,7 +266,7 @@ export class MainScene extends Phaser.Scene {
             }
 
             if (ts1) {
-                this.decorLayer = decorMap.createLayer(0, [ts1, ts2].filter(t => t !== null) as Phaser.Tilemaps.Tileset[], 0, 0)!;
+                this.decorLayer = decorMap.createLayer(0, [ts1, ts2].filter(t => t !== null) as any, 0, 0)!;
                 this.decorLayer.setDepth(10);
             }
         }
@@ -246,6 +276,11 @@ export class MainScene extends Phaser.Scene {
         else if (entrySide === 'down') this.player.y = 40;
         else if (entrySide === 'up') this.player.y = 248;
         else this.player.setPosition(192, 168);
+
+        if (roomName !== 'shop' && this.customerNPC) {
+            this.customerNPC.destroy();
+            this.customerNPC = null;
+        }
     }
 
     update() {
