@@ -8,6 +8,12 @@ interface Player {
   maxHp: number;
 }
 
+interface Companion {
+  id: string;
+  name: string;
+  bond: number;
+}
+
 interface GameStore {
   phase: GamePhase;
   setPhase: (phase: GamePhase) => void;
@@ -17,6 +23,8 @@ interface GameStore {
   spendGold: (amount: number) => boolean;
   items: string[];
   addItem: (item: string) => void;
+  companions: Companion[];
+  addBond: (id: string, amount: number) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -47,4 +55,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   
   items: ['potion', 'sword'],
   addItem: (item) => set((state) => ({ items: [...state.items, item] })),
+  
+  companions: [
+    { id: 'leo', name: 'เลโอ้', bond: 5 },
+    { id: 'arena', name: 'อารีน่า', bond: 3 },
+    { id: 'draco', name: 'ดราโก้', bond: 2 },
+    { id: 'kane', name: 'เคน', bond: 1 },
+  ],
+  addBond: (id, amount) => set((state) => ({
+    companions: state.companions.map(c => 
+      c.id === id ? { ...c, bond: c.bond + amount } : c
+    )
+  })),
 }));

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useGameStore } from '@/store/gameStore';
 
 function makeFrames(base: string, count: number) {
   const arr = [];
@@ -9,15 +10,16 @@ function makeFrames(base: string, count: number) {
   return arr;
 }
 
-const SPRITES = {
-  leo: makeFrames('/images/characters/npcs/leo/idle', 12),
-  arena: makeFrames('/images/characters/npcs/arena/idle', 12),
-  draco: makeFrames('/images/characters/npcs/draco/idle', 12),
+const NPC_METADATA = {
+  leo: { emoji: '⚔️', desc: 'เทพสงคราม', sprites: makeFrames('/images/characters/npcs/leo/idle', 12) },
+  arena: { emoji: '👑', desc: 'ราชินี', sprites: makeFrames('/images/characters/npcs/arena/idle', 12) },
+  draco: { emoji: '🐉', desc: 'มังกร', sprites: makeFrames('/images/characters/npcs/draco/idle', 12) },
+  kane: { emoji: '🗡️', desc: 'นักฆ่า', sprites: [] },
 };
 
 export default function Relationship() {
+  const { companions, addBond } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [npcs, setNpcs] = useState({leo: 5, arena: 3, draco: 2, kane: 1});
   const [chatLog, setChatLog] = useState<string[]>([]);
   const [frameIndex, setFrameIndex] = useState(0);
   
@@ -26,65 +28,99 @@ export default function Relationship() {
     return () => clearInterval(interval);
   }, []);
   
-  const characters = [
-    {id: 'leo', name: 'เลโอ้', emoji: '⚔️', desc: 'เทพสงคราม'},
-    {id: 'arena', name: 'อารีน่า', emoji: '👑', desc: 'ราชินี'},
-    {id: 'draco', name: 'ดราโก้', emoji: '🐉', desc: 'มังกร'},
-    {id: 'kane', name: 'เคน', emoji: '🗡️', desc: 'นักฆ่า'},
-  ];
-  
   const handleTalk = (id: string) => {
-    const char = characters.find(c => c.id === id);
-    if (!char) return;
-    const msgs = [char.name + ': สวัสดีครับ!', char.name + ': วันนี้มีอะไรให้ช่วยไหม?', char.name + ': เตรียมตัวพร้อมสำหรับ Arena แล้วใช่ไหม?'];
+    const companion = companions.find(c => c.id === id);
+    if (!companion) return;
+    const msgs = [
+      `${companion.name}: สวัสดีครับนักเดินทาง!`,
+      `${companion.name}: วันนี้เจ้าดูแข็งแกร่งขึ้นนะ`,
+      `${companion.name}: เจ้าพร้อมสำหรับการประลองครั้งต่อไปหรือยัง?`
+    ];
     setChatLog([msgs[Math.floor(Math.random() * 3)]]);
     setSelectedId(id);
   };
   
   const handleGift = (id: string) => {
-    const char = characters.find(c => c.id === id);
-    if (!char) return;
-    setNpcs(p => ({...p, [id]: (p[id] || 0) + 1}));
-    setChatLog(prev => [...prev, '❤️ คุณให้ของขวัญแก่ ' + char.name + '! Bond +1']);
+    const companion = companions.find(c => c.id === id);
+    if (!companion) return;
+    addBond(id, 1);
+    setChatLog(prev => [`❤️ มอบของขวัญให้ ${companion.name} (Bond +1)`, ...prev]);
   };
   
-  const selectedChar = characters.find(c => c.id === selectedId);
-  const frames = selectedId && SPRITES[selectedId as keyof typeof SPRITES] ? SPRITES[selectedId as keyof typeof SPRITES] : null;
-  const currentFrame = frames ? frames[frameIndex] : null;
+  const selectedCompanion = companions.find(c => c.id === selectedId);
+  const metadata = selectedId ? NPC_METADATA[selectedId as keyof typeof NPC_METADATA] : null;
+  const currentFrame = (metadata && metadata.sprites.length > 0) ? metadata.sprites[frameIndex] : null;
   
   return (
-    <div style={{padding: '20px'}}>
-      <h2 style={{fontSize: '1.5rem', marginBottom: '15px'}}>💕 Relationship</h2>
-      {selectedChar ? (
-        <div>
-          <button onClick={() => {setSelectedId(null); setChatLog([])}} style={{padding: '8px 16px', background: '#374151', border: 'none', borderRadius: '4px', color: '#fff', cursor: 'pointer', marginBottom: '15px'}}>← Back</button>
-          <div style={{background: '#16213e', padding: '20px', borderRadius: '8px', marginBottom: '20px', textAlign: 'center'}}>
-            <div style={{width: '64px', height: '64px', margin: '0 auto 10px', background: '#0f172a', borderRadius: '8px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-              {currentFrame ? <img src={currentFrame} alt={selectedChar.name} style={{width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated'}}/> : <span style={{fontSize: '2rem'}}>{selectedChar.emoji}</span>}
+    <div className="p-4 bg-slate-900/80 rounded-xl border border-pink-900/30">
+      <h2 className="text-2xl font-bold mb-6 text-pink-400 flex items-center gap-2">
+        💕 Divine Connections
+      </h2>
+
+      {selectedCompanion && metadata ? (
+        <div className="space-y-6">
+          <button 
+            onClick={() => {setSelectedId(null); setChatLog([]);}} 
+            className="text-slate-400 hover:text-white flex items-center gap-1 text-sm mb-2"
+          >
+            ← Back to All Gods
+          </button>
+          
+          <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-700 text-center">
+            <div className="w-24 h-24 mx-auto mb-4 bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border-2 border-pink-500/30">
+              {currentFrame ? (
+                <img src={currentFrame} alt={selectedCompanion.name} className="w-full h-full object-contain image-pixelated" />
+              ) : (
+                <span className="text-4xl">{metadata.emoji}</span>
+              )}
             </div>
-            <h3>{selectedChar.name}</h3>
-            <p style={{color: '#9ca3af'}}>{selectedChar.desc}</p>
-            <p style={{color: '#ec4899', marginTop: '10px'}}>❤️ Bond: {npcs[selectedChar.id as keyof typeof npcs] || 0}</p>
+            <h3 className="text-xl font-bold text-white">{selectedCompanion.name}</h3>
+            <p className="text-sm text-slate-400">{metadata.desc}</p>
+            <div className="mt-4 flex items-center justify-center gap-2 text-pink-400 font-bold">
+              <span>❤️ BOND LEVEL:</span>
+              <span className="text-2xl">{selectedCompanion.bond}</span>
+            </div>
           </div>
-          <div style={{display: 'flex', gap: '10px', marginBottom: '20px'}}>
-            <button onClick={() => handleTalk(selectedChar.id)} style={{flex: 1, padding: '15px', background: '#3b82f6', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer'}}>💬 Talk</button>
-            <button onClick={() => handleGift(selectedChar.id)} style={{flex: 1, padding: '15px', background: '#ec4899', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer'}}>🎁 Gift</button>
+
+          <div className="flex gap-4">
+            <button 
+              onClick={() => handleTalk(selectedCompanion.id)} 
+              className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors"
+            >
+              💬 TALK
+            </button>
+            <button 
+              onClick={() => handleGift(selectedCompanion.id)} 
+              className="flex-1 py-3 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg transition-colors"
+            >
+              🎁 GIVE GIFT
+            </button>
           </div>
-          <div style={{background: '#1f2937', padding: '10px', borderRadius: '8px', minHeight: '100px'}}>
-            {chatLog.map((msg, i) => <div key={i} style={{marginBottom: '5px', fontSize: '0.9rem'}}>{msg}</div>)}
-            {chatLog.length === 0 && <span style={{color: '#666'}}>Start a conversation...</span>}
+
+          <div className="bg-black/40 p-4 rounded-lg h-32 overflow-y-auto border border-slate-800 font-mono text-sm">
+            {chatLog.map((msg, i) => (
+              <div key={i} className={`mb-1 ${i === 0 ? 'text-white' : 'text-slate-500'}`}>{msg}</div>
+            ))}
           </div>
         </div>
       ) : (
-        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px'}}>
-          {characters.map((char) => (
-            <button key={char.id} onClick={() => handleTalk(char.id)} style={{padding: '15px', background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'}}>
-              <span style={{fontSize: '2rem'}}>{char.emoji}</span>
-              <span style={{fontWeight: 'bold'}}>{char.name}</span>
-              <span style={{color: '#9ca3af', fontSize: '0.75rem'}}>{char.desc}</span>
-              <span style={{color: '#ec4899', fontSize: '0.85rem'}}>❤️ {npcs[char.id as keyof typeof npcs] || 0}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {companions.map((comp) => {
+            const meta = NPC_METADATA[comp.id as keyof typeof NPC_METADATA];
+            return (
+              <button 
+                key={comp.id} 
+                onClick={() => handleTalk(comp.id)} 
+                className="p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-pink-500/50 rounded-xl transition-all flex flex-col items-center gap-3 group"
+              >
+                <span className="text-4xl group-hover:scale-110 transition-transform">{meta?.emoji || '👤'}</span>
+                <div className="text-center">
+                  <div className="font-bold">{comp.name}</div>
+                  <div className="text-xs text-pink-400">Bond: {comp.bond}</div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

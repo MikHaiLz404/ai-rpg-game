@@ -1,22 +1,19 @@
 'use client';
 import { useState } from 'react';
-
-// Character sprites
-const PLAYER_SPRITE = '/images/characters/player/minju/character_26/character_26_frame32x32.png';
+import { useGameStore } from '@/store/gameStore';
 
 const ENEMIES = [
-  { id: 'slime', name: '🦠 Slime', hp: 30, atk: 5, reward: 20, sprite: null },
-  { id: 'goblin', name: '👺 Goblin', hp: 50, atk: 10, reward: 40, sprite: null },
-  { id: 'wolf', name: '🐺 Wolf', hp: 80, atk: 15, reward: 60, sprite: null },
-  { id: 'dragon', name: '🐉 Dragon', hp: 150, atk: 25, reward: 100, sprite: null },
+  { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20 },
+  { id: 'goblin', name: 'Goblin', emoji: '👺', hp: 50, atk: 10, reward: 40 },
+  { id: 'wolf', name: 'Wolf', emoji: '🐺', hp: 80, atk: 15, reward: 60 },
+  { id: 'dragon', name: 'Dragon', emoji: '🐉', hp: 150, atk: 25, reward: 100 },
 ];
 
 export default function Arena() {
-  const [gold, setGold] = useState(500);
+  const { gold, addGold } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
-  const [enemyHp, setEnemyHp] = useState(50);
-  const [turn, setTurn] = useState(1);
+  const [enemyHp, setEnemyHp] = useState(0);
   const [result, setResult] = useState<'win' | 'lose' | null>(null);
   const [selectedEnemy, setSelectedEnemy] = useState<typeof ENEMIES[0] | null>(null);
   const [inCombat, setInCombat] = useState(false);
@@ -25,9 +22,8 @@ export default function Arena() {
     setSelectedEnemy(enemy);
     setEnemyHp(enemy.hp);
     setPlayerHp(100);
-    setTurn(1);
     setResult(null);
-    setCombatLog([`⚔️ Combat started: ${enemy.name}!`]);
+    setCombatLog([`⚔️ Combat started against ${enemy.emoji} ${enemy.name}!`]);
     setInCombat(true);
   };
   
@@ -38,12 +34,12 @@ export default function Arena() {
     const playerDmg = Math.floor(Math.random() * 15) + 10;
     const newEnemyHp = Math.max(0, enemyHp - playerDmg);
     setEnemyHp(newEnemyHp);
-    setCombatLog(prev => [...prev, `⚔️ You dealt ${playerDmg} damage!`]);
+    setCombatLog(prev => [`⚔️ You dealt ${playerDmg} damage!`, ...prev]);
     
     if (newEnemyHp <= 0) {
       setResult('win');
-      setGold(g => g + selectedEnemy.reward);
-      setCombatLog(prev => [...prev, `🎉 You won! +${selectedEnemy.reward} gold!`]);
+      addGold(selectedEnemy.reward);
+      setCombatLog(prev => [`🎉 VICTORY! You earned ${selectedEnemy.reward}💰`, ...prev]);
       return;
     }
     
@@ -52,199 +48,109 @@ export default function Arena() {
       const enemyDmg = Math.floor(Math.random() * selectedEnemy.atk) + 5;
       const newPlayerHp = Math.max(0, playerHp - enemyDmg);
       setPlayerHp(newPlayerHp);
-      setTurn(t => t + 1);
-      setCombatLog(prev => [...prev, `${selectedEnemy.name} dealt ${enemyDmg} damage!`]);
+      setCombatLog(prev => [`💥 ${selectedEnemy.emoji} ${selectedEnemy.name} dealt ${enemyDmg} damage!`, ...prev]);
       
       if (newPlayerHp <= 0) {
         setResult('lose');
-        setCombatLog(prev => [...prev, `💀 You died!`]);
+        setCombatLog(prev => [`💀 DEFEAT! You were defeated by ${selectedEnemy.name}`, ...prev]);
       }
-    }, 500);
+    }, 400);
   };
   
-  const flee = () => {
+  const finishCombat = () => {
     setInCombat(false);
     setSelectedEnemy(null);
-    setCombatLog([]);
   };
-  
+
   if (inCombat && selectedEnemy) {
     return (
-      <div style={{ padding: '20px' }}>
-        <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>⚔️ Arena Combat</h2>
-        
-        {/* Sprites */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-around', 
-          alignItems: 'center',
-          marginBottom: '30px',
-          padding: '20px',
-          background: '#0f172a',
-          borderRadius: '8px'
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <img 
-              src={PLAYER_SPRITE} 
-              alt="Player"
-              style={{ width: '64px', height: '64px', imageRendering: 'pixelated' }}
-            />
-            <div>👤 You</div>
-          </div>
-          <div style={{ fontSize: '2rem' }}>VS</div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              width: '64px', 
-              height: '64px', 
-              background: '#1e293b',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '2rem'
-            }}>
-              {selectedEnemy.name.split(' ')[0]}
-            </div>
-            <div>{selectedEnemy.name.split(' ').slice(1).join(' ')}</div>
-          </div>
+      <div className="bg-slate-900/80 p-6 rounded-xl border border-red-900/30">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-red-500">⚔️ Battle in Progress</h2>
+          <div className="text-amber-400 font-bold">💰 {gold}</div>
         </div>
-        
-        {/* Health Bars */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ marginBottom: '10px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>👤 You</span>
-              <span>{playerHp}/100</span>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Player side */}
+          <div className="bg-slate-800/50 p-4 rounded-lg border border-blue-500/20">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-xl font-bold">👤 Hero</span>
+              <span className="text-sm">{playerHp} / 100 HP</span>
             </div>
-            <div style={{ width: '100%', height: '20px', background: '#374151', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ 
-                width: `${playerHp}%`, 
-                height: '100%', 
-                background: playerHp > 50 ? '#22c55e' : playerHp > 25 ? '#eab308' : '#ef4444',
-                transition: 'width 0.3s'
-              }} />
+            <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500 transition-all duration-300"
+                style={{ width: `${playerHp}%` }}
+              />
             </div>
           </div>
-          
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{selectedEnemy.name}</span>
-              <span>{enemyHp}/{selectedEnemy.hp}</span>
+
+          {/* Enemy side */}
+          <div className="bg-slate-800/50 p-4 rounded-lg border border-red-500/20">
+            <div className="flex justify-between items-end mb-2">
+              <span className="text-xl font-bold">{selectedEnemy.emoji} {selectedEnemy.name}</span>
+              <span className="text-sm">{enemyHp} / {selectedEnemy.hp} HP</span>
             </div>
-            <div style={{ width: '100%', height: '20px', background: '#374151', borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ 
-                width: `${(enemyHp / selectedEnemy.hp) * 100}%`, 
-                height: '100%', 
-                background: '#ef4444',
-                transition: 'width 0.3s'
-              }} />
+            <div className="w-full h-4 bg-slate-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-red-500 transition-all duration-300"
+                style={{ width: `${(enemyHp / selectedEnemy.hp) * 100}%` }}
+              />
             </div>
           </div>
         </div>
-        
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-          <button 
-            onClick={attack}
-            disabled={!!result}
-            style={{
-              padding: '15px 30px',
-              background: result ? '#6b7280' : '#ef4444',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: result ? 'not-allowed' : 'pointer',
-              fontSize: '1rem'
-            }}
-          >
-            ⚔️ Attack
-          </button>
-          <button 
-            onClick={flee}
-            style={{
-              padding: '15px 30px',
-              background: '#6b7280',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-              fontSize: '1rem'
-            }}
-          >
-            🏃 Flee
-          </button>
-        </div>
-        
-        {/* Result */}
-        {result && (
-          <div style={{ 
-            padding: '20px', 
-            background: result === 'win' ? '#166534' : '#991b1b',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            textAlign: 'center'
-          }}>
-            {result === 'win' ? '🎉 VICTORY!' : '💀 DEFEAT'}
-            <br/>
+
+        <div className="flex gap-4 mb-8">
+          {!result ? (
+            <>
+              <button 
+                onClick={attack}
+                className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-red-900/20"
+              >
+                ⚔️ ATTACK
+              </button>
+              <button 
+                onClick={finishCombat}
+                className="px-6 py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              >
+                🏃 FLEE
+              </button>
+            </>
+          ) : (
             <button 
-              onClick={flee}
-              style={{
-                marginTop: '10px',
-                padding: '10px 20px',
-                background: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
+              onClick={finishCombat}
+              className={`flex-1 py-4 font-bold rounded-lg text-white ${result === 'win' ? 'bg-green-600 hover:bg-green-500' : 'bg-slate-600 hover:bg-slate-500'}`}
             >
-              Continue
+              {result === 'win' ? 'CONTINUE VICTORIOUS' : 'RETURN TO CAMP'}
             </button>
-          </div>
-        )}
-        
-        {/* Combat Log */}
-        <div style={{ 
-          background: '#1f2937', 
-          padding: '10px', 
-          borderRadius: '8px',
-          maxHeight: '200px',
-          overflow: 'auto'
-        }}>
+          )}
+        </div>
+
+        <div className="bg-black/40 p-4 rounded-lg h-40 overflow-y-auto border border-slate-800 font-mono text-sm">
           {combatLog.map((log, i) => (
-            <div key={i} style={{ marginBottom: '5px', fontSize: '0.9rem' }}>{log}</div>
+            <div key={i} className={`mb-1 ${i === 0 ? 'text-white' : 'text-slate-500'}`}>{log}</div>
           ))}
         </div>
       </div>
     );
   }
-  
+
   return (
-    <div style={{ padding: '20px' }}>
-      <h2 style={{ fontSize: '1.5rem', marginBottom: '15px' }}>⚔️ Arena</h2>
-      <p style={{ marginBottom: '20px', color: '#9ca3af' }}>Select an enemy to fight:</p>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '10px' }}>
+    <div className="bg-slate-900/80 p-6 rounded-xl border border-slate-700">
+      <h2 className="text-2xl font-bold mb-6 text-red-400">⚔️ Divine Arena</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {ENEMIES.map((enemy) => (
           <button
             key={enemy.id}
             onClick={() => startCombat(enemy)}
-            style={{
-              padding: '15px',
-              background: '#374151',
-              border: 'none',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '5px'
-            }}
+            className="p-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-red-500/50 rounded-xl transition-all flex flex-col items-center gap-3 group"
           >
-            <span style={{ fontSize: '2rem' }}>{enemy.name.split(' ')[0]}</span>
-            <span>{enemy.name.split(' ').slice(1).join(' ')}</span>
-            <span style={{ color: '#ef4444' }}>HP: {enemy.hp}</span>
-            <span style={{ color: '#fbbf24' }}>Reward: {enemy.reward}💰</span>
+            <span className="text-4xl group-hover:scale-110 transition-transform">{enemy.emoji}</span>
+            <div className="text-center">
+              <div className="font-bold">{enemy.name}</div>
+              <div className="text-xs text-red-400">HP: {enemy.hp}</div>
+              <div className="text-xs text-amber-500">💰 {enemy.reward}</div>
+            </div>
           </button>
         ))}
       </div>
