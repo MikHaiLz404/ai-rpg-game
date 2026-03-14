@@ -67,7 +67,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return false;
   },
   
-  items: ['potion_health', 'sword', 'mirror'],
+  items: ['potion_health', 'potion_health', 'soap', 'mirror', 'flower', 'flower'],
   addItem: (item) => set((state) => ({ items: [...state.items, item] })),
   removeItem: (item) => set((state) => {
     const index = state.items.indexOf(item);

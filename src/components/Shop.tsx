@@ -19,14 +19,12 @@ const ITEMS = [
 ];
 
 export default function Shop() {
-  const { gold, addGold, items, removeItem, currentCustomer, setCustomer, companions, addBond } = useGameStore();
+  const { gold, addGold, spendGold, addItem, items, removeItem, currentCustomer, setCustomer, companions, addBond } = useGameStore();
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     const onArrival = async (npc: { id: string, name: string }) => {
       setIsGenerating(true);
-      
-      // Select a random item they want
       const wantedItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
       const offeredGold = Math.floor(wantedItem.price * (0.8 + Math.random() * 0.5));
       const isGod = companions.some(c => c.name === npc.name);
@@ -44,11 +42,10 @@ export default function Shop() {
           })
         });
         const data = await res.json();
-        
         setCustomer({
           id: npc.id,
           name: npc.name,
-          request: data.narrative || `I need a ${wantedItem.name}. Can you help me?`,
+          request: data.narrative || `I need a ${wantedItem.name}.`,
           offeredGold,
           wantedItemId: wantedItem.id,
           isGod
@@ -75,16 +72,13 @@ export default function Shop() {
 
   const handleSell = () => {
     if (!currentCustomer) return;
-    
     if (items.includes(currentCustomer.wantedItemId)) {
       removeItem(currentCustomer.wantedItemId);
       addGold(currentCustomer.offeredGold);
-      
       if (currentCustomer.isGod) {
         const companion = companions.find(c => c.name === currentCustomer.name);
         if (companion) addBond(companion.id, 2);
       }
-      
       setCustomer(null);
       EventBus.emit('clear-customer');
     }
@@ -95,10 +89,19 @@ export default function Shop() {
     EventBus.emit('clear-customer');
   };
 
+  const handleRestock = (item: typeof ITEMS[0]) => {
+    const wholesalePrice = Math.floor(item.price * 0.6);
+    if (gold >= wholesalePrice) {
+      if (spendGold(wholesalePrice)) {
+        addItem(item.id);
+      }
+    }
+  };
+
   return (
     <div className="p-4 bg-slate-900/90 rounded-xl shadow-2xl border border-amber-500/20">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-black text-amber-500 uppercase tracking-tighter">Celestial Shop</h2>
+        <h2 className="text-2xl font-black text-amber-500 uppercase tracking-tighter leading-none">Celestial Shop</h2>
         <div className="bg-amber-500/10 px-4 py-2 rounded-lg border border-amber-500/30 flex items-center gap-2">
           <span className="text-xl">💰</span>
           <span className="text-xl font-black text-amber-400">{gold.toLocaleString()}</span>
@@ -138,7 +141,7 @@ export default function Shop() {
               disabled={!items.includes(currentCustomer.wantedItemId)}
               className={`flex-1 py-4 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg
                 ${items.includes(currentCustomer.wantedItemId) 
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' 
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-amber-500/20' 
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}
               `}
             >
@@ -151,14 +154,9 @@ export default function Shop() {
               Decline
             </button>
           </div>
-          {!items.includes(currentCustomer.wantedItemId) && (
-            <p className="text-center text-[10px] text-red-400 font-bold uppercase animate-pulse">
-              ⚠️ You don't have this item in stock!
-            </p>
-          )}
         </div>
       ) : (
-        <div className="py-12 text-center space-y-4 bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
+        <div className="py-8 text-center space-y-4 bg-slate-800/30 rounded-2xl border border-slate-800 border-dashed">
           {isGenerating ? (
             <div className="animate-pulse flex flex-col items-center gap-3">
               <div className="text-4xl">⏳</div>
@@ -174,22 +172,46 @@ export default function Shop() {
       )}
 
       {/* Inventory Mini View */}
-      <div className="mt-8">
+      <div className="mt-6">
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between items-center">
-          <span>Shop Inventory</span>
-          <span className="text-amber-500/50">{items.length} Units</span>
+          <span>Your Stock ({items.length})</span>
         </h3>
-        <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700">
+        <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700">
           {items.map((itemId, i) => {
             const item = ITEMS.find(t => t.id === itemId);
             return (
-              <div key={i} className="bg-slate-800/80 p-2 rounded-lg border border-slate-700 flex items-center gap-2 group hover:border-amber-500/30 transition-colors">
+              <div key={i} className="bg-slate-800/80 p-2 rounded-lg border border-slate-700 flex items-center gap-2 group hover:border-amber-500/30 transition-colors shadow-sm">
                 <span className="text-lg">{item?.emoji || '📦'}</span>
-                <span className="text-[10px] font-bold text-slate-300 uppercase hidden md:inline">{item?.name || itemId}</span>
+                <span className="text-[9px] font-bold text-slate-300 uppercase leading-none hidden md:inline">{item?.name || itemId}</span>
               </div>
             );
           })}
-          {items.length === 0 && <div className="text-[10px] text-slate-600 italic">Empty shelves...</div>}
+          {items.length === 0 && <div className="text-[10px] text-red-400 italic font-bold">No items to sell! Use Wholesale.</div>}
+        </div>
+      </div>
+
+      {/* Restock Section */}
+      <div className="mt-6 border-t border-slate-800 pt-6">
+        <h3 className="text-[10px] font-black text-amber-500/70 uppercase tracking-widest mb-4">
+          Wholesale Restock (Buy Stock)
+        </h3>
+        <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-700">
+          {ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleRestock(item)}
+              disabled={gold < Math.floor(item.price * 0.6)}
+              className="flex items-center justify-between bg-slate-800/40 p-2 rounded-lg border border-slate-700 hover:border-amber-500/30 hover:bg-slate-800 transition-all text-left group disabled:opacity-30 disabled:grayscale"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{item.emoji}</span>
+                <div className="text-[9px] font-bold text-slate-300 uppercase leading-tight">{item.name}</div>
+              </div>
+              <div className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded group-hover:bg-amber-500 group-hover:text-slate-900 transition-colors">
+                {Math.floor(item.price * 0.6)}💰
+              </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
