@@ -5,7 +5,7 @@ const TILE_SIZE = 48;
 const GRID_COLS = 8;
 const GRID_ROWS = 6;
 
-// Tile maps for each room (tile_0_0 = row 0, col 0)
+// Simple room maps using tileset_B
 const ROOM_MAPS = {
   shop: [
     [0,0,0,0,0,0,0,0],
@@ -41,7 +41,6 @@ const ROOM_MAPS = {
   ],
 };
 
-// Tile image mappings (tileset_B: rows 0-3, tileset_C: rows 4-7, etc.)
 const TILE_MAPPINGS: Record<string, string> = {
   'shop': '/images/backgrounds/shop/interior/tileset_B/tile_',
   'arena': '/images/backgrounds/shop/interior/tileset_B/tile_',
@@ -49,7 +48,6 @@ const TILE_MAPPINGS: Record<string, string> = {
   'village': '/images/backgrounds/shop/interior/tileset_D/tile_',
 };
 
-// Player sprite frames (4 frame animation)
 const PLAYER_SPRITES = [
   '/images/characters/player/minju/idle/frame_0_0.png',
   '/images/characters/player/minju/idle/frame_0_1.png',
@@ -78,31 +76,23 @@ export default function Exploration() {
   const [frame, setFrame] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
   
-  // Animation loop
   useEffect(() => {
-    const timer = setInterval(() => {
-      setFrame(f => (f + 1) % 4);
-    }, 200);
+    const timer = setInterval(() => setFrame(f => (f + 1) % 4), 200);
     return () => clearInterval(timer);
-  }, []);
-  
-  const canMove = useCallback((x: number, y: number) => {
-    if (x < 1 || x > GRID_COLS - 2 || y < 1 || y > GRID_ROWS - 2) return false;
-    return true;
   }, []);
   
   const handleMove = useCallback((dx: number, dy: number) => {
     setPlayerX(x => {
       const nx = x + dx;
-      if (!canMove(nx, playerY)) return x;
+      if (nx < 1 || nx > GRID_COLS - 2) return x;
       return nx;
     });
     setPlayerY(y => {
       const ny = y + dy;
-      if (!canMove(playerX, ny)) return y;
+      if (ny < 1 || ny > GRID_ROWS - 2) return y;
       return ny;
     });
-  }, [canMove, playerX, playerY]);
+  }, []);
   
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -150,32 +140,36 @@ export default function Exploration() {
         <>
           <div style={{ marginBottom: '10px', color: '#9ca3af', fontSize: '0.9rem' }}>📍 {ROOM_NAMES[room]} | ตำแหน่ง: ({playerX}, {playerY})</div>
           
-          {/* Game Grid */}
+          {/* Game Container */}
           <div style={{ 
-            display: 'grid',
-            gridTemplateColumns: `repeat(${GRID_COLS}, ${TILE_SIZE}px)`,
-            gridTemplateRows: `repeat(${GRID_ROWS}, ${TILE_SIZE}px)`,
-            gap: 0,
-            width: 'fit-content',
+            position: 'relative',
+            width: GRID_COLS * TILE_SIZE,
+            height: GRID_ROWS * TILE_SIZE,
             margin: '0 auto',
             border: '4px solid #374151',
             borderRadius: '8px',
             overflow: 'hidden',
             background: '#1a1a2e'
           }}>
-            {currentMap.map((row, rowIdx) => 
-              row.map((tileId, colIdx) => (
-                <div key={`${rowIdx}-${colIdx}`} style={{ width: TILE_SIZE, height: TILE_SIZE, overflow: 'hidden' }}>
-                  <img 
-                    src={tileBase + tileId + '.png'} 
-                    alt="" 
-                    style={{ width: '100%', height: '100%', objectFit: 'none', imageRendering: 'pixelated' }}
-                  />
-                </div>
-              ))
-            )}
+            {/* Tiles Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID_COLS}, ${TILE_SIZE}px)`, gridTemplateRows: `repeat(${GRID_ROWS}, ${TILE_SIZE}px)` }}>
+              {currentMap.map((row, rowIdx) => 
+                row.map((tileId, colIdx) => (
+                  <div key={`${rowIdx}-${colIdx}`} style={{ width: TILE_SIZE, height: TILE_SIZE, overflow: 'hidden', background: tileId === 0 ? '#000' : 'transparent' }}>
+                    {tileId > 0 && (
+                      <img 
+                        src={tileBase + tileId + '.png'} 
+                        alt=""
+                        loading="lazy"
+                        style={{ width: '100%', height: '100%', objectFit: 'none', imageRendering: 'pixelated' }}
+                      />
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
             
-            {/* Player overlay */}
+            {/* Player */}
             <div style={{
               position: 'absolute',
               left: playerX * TILE_SIZE,
@@ -183,7 +177,6 @@ export default function Exploration() {
               width: TILE_SIZE,
               height: TILE_SIZE,
               transition: 'left 0.1s, top 0.1s',
-              pointerEvents: 'none'
             }}>
               <img 
                 src={PLAYER_SPRITES[frame]} 
