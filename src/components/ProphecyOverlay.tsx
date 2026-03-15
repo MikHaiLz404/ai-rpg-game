@@ -8,17 +8,20 @@ interface Prophecy {
   godName: string;
   emoji: string;
   text: string;
+  agentName?: string;
 }
 
 export default function ProphecyOverlay() {
   const { day, gold, companions, showProphecy, setShowProphecy } = useGameStore();
   const [prophecies, setProphecies] = useState<Prophecy[]>([]);
+  const [source, setSource] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [revealed, setRevealed] = useState(0);
 
   useEffect(() => {
     if (!showProphecy) {
       setProphecies([]);
+      setSource('');
       setRevealed(0);
       return;
     }
@@ -43,6 +46,7 @@ export default function ProphecyOverlay() {
         });
         const data = await res.json();
         setProphecies(data.prophecies || []);
+        setSource(data.source || '');
 
         // Reveal prophecies one by one
         let i = 0;
@@ -115,6 +119,11 @@ export default function ProphecyOverlay() {
                   <div className="flex-1 min-w-0">
                     <div className="text-[10px] font-black text-amber-500/70 uppercase tracking-widest mb-1">{p.godName}</div>
                     <div className="text-sm text-slate-200 leading-relaxed italic">{p.text}</div>
+                    {source === 'openclaw' && p.agentName && (
+                      <div className="text-[9px] text-cyan-400/60 mt-1 font-mono">
+                        via agent: {p.agentName}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

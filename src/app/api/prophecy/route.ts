@@ -184,6 +184,7 @@ export async function POST(request: NextRequest) {
           godName: GOD_PROMPTS[r.godId]?.name || r.godId,
           emoji: r.godId === 'leo' ? '⚔️' : r.godId === 'arena' ? '👑' : '🐉',
           text: r.text,
+          agentName: GOD_TO_AGENT[r.godId] || null,
         })),
       });
     }

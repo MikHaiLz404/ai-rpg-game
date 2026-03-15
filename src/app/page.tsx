@@ -74,7 +74,7 @@ export default function Home() {
   const isUrgent = turnsLeft <= 5;
 
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-16 overflow-x-hidden">
+    <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-16 md:pb-0 overflow-x-hidden">
       {/* Divine Council Prophecy */}
       <ProphecyOverlay />
 
@@ -179,53 +179,30 @@ export default function Home() {
             <DialogueOverlay />
           </div>
 
-          <div className="hidden md:flex p-4 bg-slate-900/40 border border-slate-800 rounded-2xl justify-between items-center backdrop-blur-sm">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl shadow-inner border border-slate-700/50">
-                  {phase === 'shop' && '🏪'}
-                  {phase === 'arena' && '🏟️'}
-                  {phase === 'exploration' && '🌲'}
-                  {phase === 'relationship' && '🏘️'}
-                  {(phase as any) === 'status' && '👤'}
-              </div>
-              <div>
-                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5 opacity-70">
-                  {isUrgent ? `${turnsLeft} TURNS LEFT` : 'Current Sanctum'}
-                </div>
-                <div className="text-xs font-black text-amber-500 uppercase tracking-tight">
-                  {phase === 'shop' && 'Celestial Emporium'}
-                  {phase === 'arena' && 'The Grand Arena'}
-                  {phase === 'exploration' && 'Wilderness Borders'}
-                  {phase === 'relationship' && 'Divine Village'}
-                  {(phase as any) === 'status' && "Kane's Status"}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
-                  const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
-                  saveGame(gold, null, saveItems as any, relationships, 0, true);
-                  alert('Divine Progress Saved!');
-                }}
-                className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
-              >
-                💾 Save
-              </button>
-              <button
-                onClick={() => {
-                  if (confirm('Reset all game data? This cannot be undone.')) {
-                    deleteAllSaves();
-                    resetGame();
-                  }
-                }}
-                className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 text-red-400"
-              >
-                🗑 Reset
-              </button>
-            </div>
+          {/* Save/Reset buttons — desktop */}
+          <div className="hidden md:flex gap-2 justify-end">
+            <button
+              onClick={() => {
+                const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
+                const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
+                saveGame(gold, null, saveItems as any, relationships, 0, true);
+                alert('Divine Progress Saved!');
+              }}
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
+            >
+              💾 Save
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('Reset all game data? This cannot be undone.')) {
+                  deleteAllSaves();
+                  resetGame();
+                }
+              }}
+              className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 text-red-400"
+            >
+              🗑 Reset
+            </button>
           </div>
         </div>
 
@@ -240,8 +217,8 @@ export default function Home() {
           </div>
         </div>
       </div>
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md">
+      {/* Bottom Nav — mobile only */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md md:hidden">
         <div className="grid grid-cols-4 gap-0">
           <MobileNavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
           <MobileNavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />

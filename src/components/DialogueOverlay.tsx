@@ -31,14 +31,14 @@ export default function DialogueOverlay() {
   }
 
   return (
-    <div className={`absolute left-2 right-2 md:left-4 md:right-4 z-[100] animate-in duration-300 ${
+    <div className={`absolute left-2 right-2 z-[100] animate-in duration-300 ${
       isTop
-        ? 'top-2 md:top-4 slide-in-from-top-4'
-        : 'bottom-2 md:bottom-4 slide-in-from-bottom-4'
+        ? 'top-2 slide-in-from-top-4'
+        : 'bottom-2 slide-in-from-bottom-4'
     }`}>
-      <div className="bg-slate-900/95 border border-amber-500/50 md:border-2 rounded-lg md:rounded-xl p-2 md:p-4 shadow-2xl flex gap-2 md:gap-4 items-end">
+      <div className="bg-slate-900/95 border border-amber-500/50 md:border-2 rounded-lg md:rounded-xl p-2 md:p-3 shadow-2xl flex gap-2 md:gap-3 items-end">
         {/* Portrait Slot */}
-        <div className="w-12 h-12 md:w-24 md:h-24 bg-slate-800 rounded-md md:rounded-lg border border-amber-500/30 flex-shrink-0 overflow-hidden relative">
+        <div className="w-12 h-12 md:w-16 md:h-16 bg-slate-800 rounded-md md:rounded-lg border border-amber-500/30 flex-shrink-0 overflow-hidden relative">
           {portraitSrc && (
             <img
               src={portraitSrc}
@@ -59,7 +59,7 @@ export default function DialogueOverlay() {
               ✕
             </button>
           </div>
-          <div className="text-slate-100 text-xs md:text-sm leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
+          <div className="text-slate-100 text-xs md:text-sm leading-relaxed font-medium line-clamp-3">
             {dialogue.text}
           </div>
         </div>
