@@ -11,7 +11,7 @@ import os
 import re
 
 # Gemini API
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyClIC6QlULh39G1Zpceeq8e2ZEPeCGAAaY')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '') # Enter your API key here or use environment variable
 
 def translate_with_gemini(text: str, target_lang: str = "Thai") -> str:
     """Translate text using Gemini API"""

@@ -10,7 +10,7 @@ import os
 import re
 
 # Gemini API configuration
-GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', 'AIzaSyClIC6QlULh39G1Zpceeq8e2ZEPeCGAAaY')
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '') # Enter your API key here or use environment variable
 GEMINI_MODEL = 'gemini-2.0-flash'
 
 def generate_with_gemini(prompt: str) -> str:
