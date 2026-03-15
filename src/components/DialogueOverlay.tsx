@@ -10,9 +10,11 @@ const FACIAL_EXPRESSIONS: Record<string, string> = {
 };
 
 export default function DialogueOverlay() {
-  const { dialogue, setDialogue } = useGameStore();
+  const { dialogue, setDialogue, phase } = useGameStore();
 
   if (!dialogue) return null;
+
+  const isTop = phase === 'shop';
 
   // Determine portrait - only Minju has facial expressions for now
   let portraitSrc = dialogue.portrait;
@@ -22,7 +24,11 @@ export default function DialogueOverlay() {
   }
 
   return (
-    <div className="absolute bottom-2 left-2 right-2 md:bottom-4 md:left-4 md:right-4 z-[100] animate-in slide-in-from-bottom-4 duration-300">
+    <div className={`absolute left-2 right-2 md:left-4 md:right-4 z-[100] animate-in duration-300 ${
+      isTop
+        ? 'top-2 md:top-4 slide-in-from-top-4'
+        : 'bottom-2 md:bottom-4 slide-in-from-bottom-4'
+    }`}>
       <div className="bg-slate-900/95 border border-amber-500/50 md:border-2 rounded-lg md:rounded-xl p-2 md:p-4 shadow-2xl flex gap-2 md:gap-4 items-end">
         {/* Portrait Slot */}
         <div className="w-12 h-12 md:w-24 md:h-24 bg-slate-800 rounded-md md:rounded-lg border border-amber-500/30 flex-shrink-0 overflow-hidden relative">
