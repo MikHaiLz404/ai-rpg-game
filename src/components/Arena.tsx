@@ -17,7 +17,7 @@ const CHAMPION = {
 };
 
 export default function Arena() {
-  const { gold, addGold, companions, getBondBonus, addBond, setDialogue, defeatVampire, gameOver } = useGameStore();
+  const { gold, addGold, companions, getBondBonus, addBond, setDialogue, defeatVampire, gameOver, choicesLeft, consumeChoice } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
@@ -35,12 +35,22 @@ export default function Arena() {
   const availableSkills = companions.flatMap(c => c.unlockedSkills);
 
   const startCombat = (enemy: typeof ENEMIES[0]) => {
+    if (choicesLeft <= 0) {
+      setDialogue({
+        speaker: 'Minju',
+        text: 'วันนี้เหนื่อยมากแล้วค่ะ... เราพักผ่อนแล้วค่อยลุยใหม่พรุ่งนี้ดีไหมคะ?',
+        portrait: 'work'
+      });
+      return;
+    }
+
     setSelectedEnemy(enemy);
     setEnemyHp(enemy.hp);
     setPlayerHp(100);
     setResult(null);
     setCombatLog([`⚔️ เริ่มการต่อสู้: Kane ปะทะ ${enemy.name}`]);
     setInCombat(true);
+    consumeChoice();
 
     // Update Phaser scene enemy sprite
     EventBus.emit('arena-enemy-change', { enemyType: enemy.id });
@@ -176,7 +186,7 @@ export default function Arena() {
            <div className="text-2xl font-black text-white italic opacity-20 animate-pulse">VS</div>
 
            <div className="text-center">
-              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-red-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
+              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
                 {selectedEnemy.image ? (
                   <div
                     className="w-8 h-8 image-pixelated scale-[2.5]"
@@ -264,7 +274,9 @@ export default function Arena() {
                 <div className="text-[9px] font-black text-amber-500/70 uppercase">รางวัล: {enemy.reward} ทอง</div>
               </div>
             </div>
-            <div className="text-[10px] font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">สู้ ⚔️</div>
+            <div className="text-[10px] font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              {choicesLeft > 0 ? 'สู้ ⚔️' : 'แต้มหมด'}
+            </div>
           </button>
         ))}
       </div>

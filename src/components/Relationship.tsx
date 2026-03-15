@@ -10,7 +10,7 @@ interface ChatMessage {
 }
 
 export default function Relationship() {
-  const { companions, addBond, unlockSkill, markThresholdClaimed, setDialogue } = useGameStore();
+  const { companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, choicesLeft, consumeChoice } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [userInput, setUserMessage] = useState('');
@@ -76,12 +76,22 @@ export default function Relationship() {
     const companion = companions.find(c => c.id === id);
     if (!companion) return;
 
+    if (message && choicesLeft <= 0) {
+      setDialogue({
+        speaker: 'Minju',
+        text: 'วันนี้เหนื่อยมากแล้วค่ะ... เราพักผ่อนแล้วค่อยคุยใหม่พรุ่งนี้ดีไหมคะ?',
+        portrait: 'work'
+      });
+      return;
+    }
+
     const config = NPC_CONFIGS[id];
 
     setIsTalking(true);
     if (!selectedId) setSelectedId(id);
 
     if (message) {
+      consumeChoice();
       setChatLog(prev => [...prev, { sender: 'player', text: message }]);
       setUserMessage('');
 
@@ -252,10 +262,10 @@ export default function Relationship() {
             />
             <button
               type="submit"
-              disabled={isTalking || !userInput.trim()}
+              disabled={isTalking || !userInput.trim() || choicesLeft <= 0}
               className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
             >
-              ส่ง
+              {choicesLeft > 0 ? 'ส่ง' : 'แต้มหมด'}
             </button>
           </form>
         </div>

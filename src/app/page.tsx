@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useGameStore, MAX_TURNS } from '@/store/gameStore';
+import { useGameStore, MAX_TURNS, MAX_CHOICES_PER_DAY } from '@/store/gameStore';
 import { useSaveStore } from '@/store/saveStore';
 import { useEffect } from 'react';
 import { EventBus } from '@/game/EventBus';
@@ -28,7 +28,7 @@ const PhaserGame = dynamic(() => import('@/game/PhaserGame'), {
 export default function Home() {
   const {
     phase, setPhase, gold, items, companions, loadSaveData, resetGame,
-    day, setDialogue, gameOver
+    day, choicesLeft, setDialogue, gameOver
   } = useGameStore();
   const { initializeSave, currentSaveData, saveGame, autoSaveEnabled, deleteAllSaves } = useSaveStore();
 
@@ -134,7 +134,17 @@ export default function Home() {
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">วันที</span>
+              <span className="text-[9px] text-amber-500/70 font-black uppercase tracking-widest flex items-center justify-end gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Actions Left
+              </span>
+              <div className="font-black text-xl leading-none text-white">
+                {choicesLeft} <span className="text-xs opacity-30">/ {MAX_CHOICES_PER_DAY}</span>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div className="text-right">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">วันที่</span>
               <div className={`font-black text-xl leading-none ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
                 {day} <span className="text-sm opacity-50">/ {MAX_TURNS}</span>
               </div>
@@ -152,9 +162,12 @@ export default function Home() {
       <header className="md:hidden border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <span className={`text-[10px] font-black uppercase ${isUrgent ? 'text-red-400' : 'text-slate-500'}`}>
-              วันที่ {day}/{MAX_TURNS}
-            </span>
+            <div className="text-right">
+              <div className="text-[8px] text-amber-500/70 font-black uppercase leading-none mb-0.5">{choicesLeft} Left</div>
+              <span className={`text-[10px] font-black uppercase ${isUrgent ? 'text-red-400' : 'text-slate-500'}`}>
+                Day {day}/{MAX_TURNS}
+              </span>
+            </div>
             <div className="w-px h-4 bg-slate-700" />
             <div className="flex items-center gap-1.5 text-amber-400 font-black text-base">
               <span className="text-xs opacity-70">💰</span>

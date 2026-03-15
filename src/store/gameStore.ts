@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export type GamePhase = 'shop' | 'arena' | 'exploration' | 'relationship';
 
 export const MAX_TURNS = 20;
+export const MAX_CHOICES_PER_DAY = 3;
 
 interface Player {
   gold: number;
@@ -61,6 +62,8 @@ interface GameStore {
   setCustomer: (customer: Customer | null) => void;
 
   day: number;
+  choicesLeft: number;
+  consumeChoice: () => void;
   customersServed: number;
   isShiftActive: boolean;
   startShift: () => void;
@@ -171,18 +174,28 @@ export const useGameStore = create<GameStore>((set, get) => ({
   setCustomer: (customer) => set({ currentCustomer: customer }),
 
   day: 1,
+  choicesLeft: MAX_CHOICES_PER_DAY,
+  consumeChoice: () => set((state) => {
+    const nextChoices = state.choicesLeft - 1;
+    if (nextChoices <= 0) {
+      // Day ends
+      const newDay = state.day + 1;
+      if (newDay > MAX_TURNS && !state.vampireDefeated) {
+        return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const };
+      }
+      return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true };
+    }
+    return { choicesLeft: nextChoices };
+  }),
+
   customersServed: 0,
   isShiftActive: false,
   startShift: () => set({ isShiftActive: true, customersServed: 0 }),
-  endShift: () => set((state) => {
-    const newDay = state.day + 1;
-    // Check if exceeded max turns without defeating vampire
-    if (newDay > MAX_TURNS && !state.vampireDefeated) {
-      return { isShiftActive: false, day: newDay, gameOver: 'lose' as const };
-    }
-    // Show Divine Council prophecy at start of new day
-    return { isShiftActive: false, day: newDay, showProphecy: true };
-  }),
+  endShift: () => {
+    const { consumeChoice } = get();
+    set({ isShiftActive: false });
+    consumeChoice();
+  },
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
 
   gameOver: null,
@@ -202,6 +215,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     items: ['potion_health', 'potion_health', 'soap', 'mirror', 'flower', 'flower'],
     companions: INITIAL_COMPANIONS.map(c => ({ ...c, unlockedSkills: [], claimedThresholds: [] })),
     day: 1,
+    choicesLeft: MAX_CHOICES_PER_DAY,
     customersServed: 0,
     isShiftActive: false,
     currentCustomer: null,
@@ -226,6 +240,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         claimedThresholds: data.claimedThresholds?.[c.id] || []
       })),
       day: data.day || 1,
+      choicesLeft: data.choicesLeft !== undefined ? data.choicesLeft : MAX_CHOICES_PER_DAY,
       vampireDefeated: data.vampireDefeated || false,
       gameOver: data.gameOver || null,
     });

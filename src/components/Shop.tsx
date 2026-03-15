@@ -53,7 +53,7 @@ export default function Shop() {
   const { 
     gold, addGold, spendGold, addItem, items, removeItem, 
     currentCustomer, setCustomer, companions, addBond,
-    day, customersServed, isShiftActive, startShift, endShift, incrementServed,
+    day, choicesLeft, customersServed, isShiftActive, startShift, endShift, incrementServed,
     setDialogue
   } = useGameStore();
   
