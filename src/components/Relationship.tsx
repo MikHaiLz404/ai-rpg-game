@@ -76,6 +76,7 @@ export default function Relationship() {
     const companion = companions.find(c => c.id === id);
     if (!companion) return;
 
+    // Prevention for message sending
     if (message && choicesLeft <= 0) {
       setDialogue({
         speaker: 'Minju',
@@ -129,13 +130,16 @@ export default function Relationship() {
           });
         }, 500);
 
-        // Bond gain: 40% chance for +1, lower chance at higher bond
-        const bondChance = Math.max(0.15, 0.4 - companion.bond * 0.02);
-        if (Math.random() < bondChance) {
-          addBond(id, 1);
-          setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +1` }]);
-          // Check skill unlock after bond increase
-          setTimeout(() => checkAutoSkillUnlock(id), 100);
+        // Bond gain logic: Only if day is active (choices > 0) OR if this is not a message (greeting)
+        // Actually, let's make it simple: No bond gain if choicesLeft <= 0
+        if (choicesLeft > 0) {
+          const bondChance = Math.max(0.15, 0.4 - companion.bond * 0.02);
+          if (Math.random() < bondChance) {
+            addBond(id, 1);
+            setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +1` }]);
+            // Check skill unlock after bond increase
+            setTimeout(() => checkAutoSkillUnlock(id), 100);
+          }
         }
       }
     } catch (err) {

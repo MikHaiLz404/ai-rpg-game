@@ -28,7 +28,7 @@ const PhaserGame = dynamic(() => import('@/game/PhaserGame'), {
 export default function Home() {
   const {
     phase, setPhase, gold, items, companions, loadSaveData, resetGame,
-    day, choicesLeft, setDialogue, gameOver
+    day, choicesLeft, setDialogue, gameOver, isShiftActive, endDay
   } = useGameStore();
   const { initializeSave, currentSaveData, saveGame, autoSaveEnabled, deleteAllSaves } = useSaveStore();
 
@@ -184,12 +184,24 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start relative">
         {/* Main View */}
         <div className="lg:col-span-8 space-y-6">
           <div className="relative isolate group rounded-xl md:rounded-3xl overflow-hidden border-2 md:border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3] w-full max-w-full">
             <PhaserGame />
             <DialogueOverlay />
+            
+            {/* Global End Day Prompt */}
+            {choicesLeft <= 0 && !isShiftActive && (
+              <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-700">
+                <button
+                  onClick={() => endDay()}
+                  className="px-10 py-5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-2xl uppercase tracking-widest shadow-2xl shadow-indigo-500/40 animate-pulse transition-all hover:scale-105 active:scale-95 border-2 border-indigo-400/30"
+                >
+                  💤 แต้มหมดแล้ว ไปพักผ่อนเพื่อเริ่มวันใหม่
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Save/Reset buttons — desktop */}

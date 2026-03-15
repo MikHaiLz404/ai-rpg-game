@@ -78,15 +78,21 @@ function getFallback(godId: string, gameState: GameState): string {
 async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: string; text: string }[] | null> {
   const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL;
   const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN;
-  if (!gatewayUrl || !gatewayToken) return null;
+  
+  console.log('[Prophecy] Gateway Config:', { url: gatewayUrl, hasToken: !!gatewayToken });
+  if (!gatewayUrl || !gatewayToken) {
+    console.warn('[Prophecy] Missing Gateway configuration');
+    return null;
+  }
 
   try {
     const client = getGameClient();
+    console.log('[Prophecy] Attempting to connect to Gateway...');
+    
     if (!client.isConnected()) {
       await client.connect();
     }
-
-    console.log('[Prophecy] Using OpenClaw Gateway for Divine Council');
+    console.log('[Prophecy] Connected to OpenClaw Gateway');
 
     // Send prompts to all 3 agents in parallel
     const results = await Promise.allSettled(
@@ -95,10 +101,12 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
         const sessionKey = `agent:main:mission-control-${agentName}`;
 
         try {
+          console.log(`[Prophecy] Requesting from agent: ${agentName}...`);
           const response = await client.sendChatAndWait(sessionKey, prompt, 20000);
+          console.log(`[Prophecy] Agent ${agentName} responded successfully.`);
           return { godId, text: response };
         } catch (err) {
-          console.warn(`[Prophecy] OpenClaw agent ${agentName} failed:`, err);
+          console.warn(`[Prophecy] OpenClaw agent ${agentName} failed:`, err instanceof Error ? err.message : err);
           return { godId, text: getFallback(godId, gameState) };
         }
       })
@@ -106,7 +114,7 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
 
     return results.map(r => r.status === 'fulfilled' ? r.value : { godId: 'unknown', text: '"..."' });
   } catch (err) {
-    console.warn('[Prophecy] OpenClaw Gateway unavailable:', err);
+    console.error('[Prophecy] OpenClaw Gateway error:', err instanceof Error ? err.message : err);
     return null;
   }
 }
