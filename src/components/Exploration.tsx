@@ -48,7 +48,7 @@ const TILE_MAPPINGS: Record<string, string> = {
   'village': '/images/backgrounds/village/exterior/bg_village_exterior.png',
 };
 
-const PLAYER_ANIM_FRAMES = [
+const PLAYER_SPRITES = [
   '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
   '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
   '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
@@ -211,17 +211,9 @@ export default function Exploration() {
             ))}
           </div>
           
-          {/* D-Pad */}
+          {/* D-Pad - Removed for mobile optimization as requested */}
           <div style={{ marginTop: '20px', textAlign: 'center' }}>
             <p style={{ color: '#9ca3af', marginBottom: '10px', fontSize: '0.85rem' }}>🎮 ลูกศร / WASD | ESC = เมนู</p>
-            <div style={{ display: 'inline-grid', gridTemplateColumns: 'repeat(3, 44px)', gap: '4px' }}>
-              <div />
-              <button onClick={() => handleMove(0, -1)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>↑</button>
-              <div />
-              <button onClick={() => handleMove(-1, 0)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>←</button>
-              <button onClick={() => handleMove(0, 1)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>↓</button>
-              <button onClick={() => handleMove(1, 0)} style={{ width: 44, height: 44, background: '#374151', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer', fontSize: '20px' }}>→</button>
-            </div>
           </div>
         </>
       )}
