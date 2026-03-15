@@ -72,6 +72,9 @@ interface GameStore {
   defeatVampire: () => void;
   setGameOver: (result: 'win' | 'lose' | null) => void;
 
+  showProphecy: boolean;
+  setShowProphecy: (show: boolean) => void;
+
   dialogue: Dialogue | null;
   setDialogue: (dialogue: Dialogue | null) => void;
 
@@ -177,7 +180,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (newDay > MAX_TURNS && !state.vampireDefeated) {
       return { isShiftActive: false, day: newDay, gameOver: 'lose' as const };
     }
-    return { isShiftActive: false, day: newDay };
+    // Show Divine Council prophecy at start of new day
+    return { isShiftActive: false, day: newDay, showProphecy: true };
   }),
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
 
@@ -185,6 +189,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   vampireDefeated: false,
   defeatVampire: () => set({ vampireDefeated: true, gameOver: 'win' }),
   setGameOver: (result) => set({ gameOver: result }),
+
+  showProphecy: false,
+  setShowProphecy: (show) => set({ showProphecy: show }),
 
   dialogue: null,
   setDialogue: (dialogue) => set({ dialogue }),
@@ -202,6 +209,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     phase: 'shop' as GamePhase,
     gameOver: null,
     vampireDefeated: false,
+    showProphecy: false,
   }),
 
   loadSaveData: (data) => {

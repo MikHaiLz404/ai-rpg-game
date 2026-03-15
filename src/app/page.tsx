@@ -11,6 +11,7 @@ import Arena from '@/components/Arena';
 import Relationship from '@/components/Relationship';
 import ChampionStatus from '@/components/ChampionStatus';
 import DialogueOverlay from '@/components/DialogueOverlay';
+import ProphecyOverlay from '@/components/ProphecyOverlay';
 
 const PhaserGame = dynamic(() => import('@/game/PhaserGame'), {
   ssr: false,
@@ -74,6 +75,9 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-16 overflow-x-hidden">
+      {/* Divine Council Prophecy */}
+      <ProphecyOverlay />
+
       {/* Game Over / Win Overlay */}
       {gameOver && (
         <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center backdrop-blur-sm">
