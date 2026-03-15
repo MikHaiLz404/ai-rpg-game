@@ -386,7 +386,7 @@ export class MainScene extends Phaser.Scene {
             this.arenaEnemy.destroy();
         }
 
-        this.arenaEnemy = this.add.sprite(170, 154, `${enemyType}_idle`).setScale(1.5).setDepth(40);
+        this.arenaEnemy = this.add.sprite(200, 154, `${enemyType}_idle`).setScale(1.5).setDepth(40);
         this.arenaEnemy.play(`${enemyType}-idle`);
 
         this.enemyBobTween = this.tweens.add({
@@ -497,9 +497,9 @@ export class MainScene extends Phaser.Scene {
             // Kane facing right (toward enemy)
             this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
 
-            // Enemy facing Kane (50px closer: 220→170)
+            // Enemy facing Kane
             this.currentEnemyType = 'slime';
-            this.arenaEnemy = this.add.sprite(170, 154, 'slime_idle').setScale(1.5).setDepth(40);
+            this.arenaEnemy = this.add.sprite(200, 154, 'slime_idle').setScale(1.5).setDepth(40);
             this.arenaEnemy.play('slime-idle', true);
 
             // Subtle idle bob

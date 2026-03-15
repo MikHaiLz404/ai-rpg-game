@@ -99,7 +99,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-20 md:pb-12">
+    <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-16 overflow-x-hidden">
       {/* Desktop Header (A) */}
       <header className="hidden md:block border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -145,15 +145,15 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start">
         {/* Main View (B) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="relative isolate group rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3]">
+          <div className="relative isolate group rounded-xl md:rounded-3xl overflow-hidden border-2 md:border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3] w-full max-w-full">
             <PhaserGame />
             <DialogueOverlay />
           </div>
           
-          <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl flex justify-between items-center backdrop-blur-sm">
+          <div className="hidden md:flex p-4 bg-slate-900/40 border border-slate-800 rounded-2xl justify-between items-center backdrop-blur-sm">
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl shadow-inner border border-slate-700/50">
                   {phase === 'shop' && '🏪'}
@@ -174,7 +174,7 @@ export default function Home() {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => {
                 const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
                 const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
@@ -189,35 +189,24 @@ export default function Home() {
         </div>
         
         {/* Side Panel (C, D, E, F) */}
-        <div className="lg:col-span-4 space-y-6">
-          {/* Status & Navigation (C, D) */}
-          <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic leading-none">DAY {day}</h2>
-                <div className={`text-[10px] font-bold uppercase mt-2 tracking-widest flex items-center gap-2 ${isShiftActive ? 'text-green-500' : 'text-rose-500'}`}>
-                  <div className={`w-2 h-2 rounded-full animate-pulse ${isShiftActive ? 'bg-green-500' : 'bg-rose-500'}`} />
-                  {isShiftActive ? 'Sanctum is Open' : 'Sanctum is Closed'}
+        <div className="lg:col-span-4 space-y-4 md:space-y-6">
+          {/* Status & Navigation - hidden when in shop phase */}
+          {phase !== 'shop' && (
+            <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic leading-none">DAY {day}</h2>
+                  <div className={`text-[10px] font-bold uppercase mt-2 tracking-widest flex items-center gap-2 ${isShiftActive ? 'text-green-500' : 'text-rose-500'}`}>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${isShiftActive ? 'bg-green-500' : 'bg-rose-500'}`} />
+                    {isShiftActive ? 'Sanctum is Open' : 'Sanctum is Closed'}
+                  </div>
                 </div>
               </div>
-              {!isShiftActive && (
-                <button 
-                  onClick={startShift}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 text-[10px] font-black rounded-lg transition-all shadow-lg shadow-amber-500/20 uppercase"
-                >
-                  Open Shop
-                </button>
-              )}
             </div>
+          )}
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <SideNavButton label="อารีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-              <SideNavButton label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
-            </div>
-          </div>
-
-          {/* Phase-specific content (Inventory, Restock, etc) */}
-          <div className="min-h-[400px]">
+          {/* Phase-specific content */}
+          <div className="min-h-[200px] md:min-h-[400px]">
             {phase === 'shop' && <Shop />}
             {phase === 'arena' && <Arena />}
             {phase === 'exploration' && <ExplorationUI />}
@@ -226,8 +215,8 @@ export default function Home() {
           </div>
         </div>
       </div>
-      {/* Mobile Bottom Nav (M) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md">
+      {/* Bottom Nav - always visible */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md">
         <div className="grid grid-cols-4 gap-0">
           <MobileNavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
           <MobileNavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
@@ -269,17 +258,3 @@ function NavTab({ label, active, onClick }: { label: string, active: boolean, on
   );
 }
 
-function SideNavButton({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
-  return (
-    <button 
-      onClick={onClick}
-      className={`p-3 rounded-xl border flex flex-col items-center transition-all ${
-        active 
-          ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' 
-          : 'bg-slate-800/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-      }`}
-    >
-      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-    </button>
-  );
-}

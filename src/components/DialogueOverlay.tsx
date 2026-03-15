@@ -22,39 +22,33 @@ export default function DialogueOverlay() {
   }
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-[100] animate-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-slate-900/95 border-2 border-amber-500/50 rounded-xl p-4 shadow-2xl flex gap-4 items-end">
+    <div className="absolute bottom-2 left-2 right-2 md:bottom-4 md:left-4 md:right-4 z-[100] animate-in slide-in-from-bottom-4 duration-300">
+      <div className="bg-slate-900/95 border border-amber-500/50 md:border-2 rounded-lg md:rounded-xl p-2 md:p-4 shadow-2xl flex gap-2 md:gap-4 items-end">
         {/* Portrait Slot */}
-        <div className="w-24 h-24 bg-slate-800 rounded-lg border border-amber-500/30 flex-shrink-0 overflow-hidden relative">
+        <div className="w-12 h-12 md:w-24 md:h-24 bg-slate-800 rounded-md md:rounded-lg border border-amber-500/30 flex-shrink-0 overflow-hidden relative">
           {portraitSrc && (
-            <img 
-              src={portraitSrc} 
-              alt={dialogue.speaker} 
-              className="w-full h-full object-contain image-pixelated scale-110 translate-y-1" 
+            <img
+              src={portraitSrc}
+              alt={dialogue.speaker}
+              className="w-full h-full object-contain image-pixelated scale-110 translate-y-1"
             />
           )}
         </div>
 
         {/* Text Area */}
-        <div className="flex-1 min-w-0 pb-2">
-          <div className="text-amber-500 font-black uppercase text-xs tracking-widest mb-1 flex justify-between items-center">
+        <div className="flex-1 min-w-0 pb-1 md:pb-2">
+          <div className="text-amber-500 font-black uppercase text-[10px] md:text-xs tracking-widest mb-0.5 md:mb-1 flex justify-between items-center">
             <span>{dialogue.speaker}</span>
-            <button 
+            <button
               onClick={() => setDialogue(null)}
-              className="text-slate-500 hover:text-white transition-colors"
+              className="text-slate-500 hover:text-white transition-colors text-[10px]"
             >
-              [ESC]
+              ✕
             </button>
           </div>
-          <div className="text-slate-100 text-sm leading-relaxed font-medium">
+          <div className="text-slate-100 text-xs md:text-sm leading-relaxed font-medium line-clamp-3 md:line-clamp-none">
             {dialogue.text}
           </div>
-        </div>
-
-        {/* Enter Prompt */}
-        <div className="absolute bottom-3 right-6 flex items-center gap-2">
-           <span className="text-[8px] font-bold text-slate-500 animate-pulse uppercase tracking-tighter">Press Enter to continue</span>
-           <div className="w-2 h-2 bg-amber-500 rounded-full animate-bounce" />
         </div>
       </div>
     </div>

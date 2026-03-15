@@ -7,11 +7,12 @@
   --foreground: #f8fafc;
 }
 
-body {
+html, body {
   color: var(--foreground);
   background: var(--background);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  max-width: 100vw;
 }
 
 /* Custom Scrollbar for game feel */
