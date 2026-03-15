@@ -33,7 +33,9 @@ export class OpenClawGameClient {
 
     return new Promise((resolve, reject) => {
       const wsUrl = new URL(this.url);
-      if (this.token) wsUrl.searchParams.set('token', this.token);
+      // Removed: wsUrl.searchParams.set('token', this.token); 
+      // Many gateways return 404 if query params are present during upgrade.
+      // Authentication is handled in the 'connect' message body.
 
       this.ws = new WS(wsUrl.toString());
 
