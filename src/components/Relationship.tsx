@@ -1,23 +1,13 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
-
-function makeFrames(basePath: string) {
-  // Generate 12 frame paths: frame_0_0 through frame_3_2 (4 rows x 3 cols)
-  const frames: string[] = [];
-  for (let row = 0; row < 4; row++) {
-    for (let col = 0; col < 3; col++) {
-      frames.push(`${basePath}/frame_${row}_${col}.png`);
-    }
-  }
-  return frames;
-}
+import { EventBus } from '@/game/EventBus';
 
 const NPC_METADATA = {
-  leo: { emoji: '⚔️', desc: 'เทพสงคราม — ดุดัน เด็ดขาด พูดตรง', theme: 'War & Physical Strength', sprites: makeFrames('/images/characters/npcs/leo/idle') },
-  arena: { emoji: '👑', desc: 'ราชินีแห่งวิหาร — สง่างาม อ่อนโยน ลึกลับ', theme: 'Royal Protection & Light', sprites: makeFrames('/images/characters/npcs/arena/idle') },
-  draco: { emoji: '🐉', desc: 'มังกรบรรพกาล — เฒ่าแก่ ปราดเปรื่อง พูดน้อยแต่ได้ใจความ', theme: 'Ancient Fire & Magic', sprites: makeFrames('/images/characters/npcs/draco/idle') },
-  kane: { emoji: '🏹', desc: 'ผู้พิทักษ์ (Your Champion)', theme: 'Agility & Archery', sprites: [] },
+  leo: { emoji: '⚔️', desc: 'เทพสงคราม — ดุดัน เด็ดขาด พูดตรง', theme: 'War & Physical Strength', facial: '/images/characters/npcs/facial/leo.png' },
+  arena: { emoji: '👑', desc: 'ราชินีแห่งวิหาร — สง่างาม อ่อนโยน ลึกลับ', theme: 'Royal Protection & Light', facial: '/images/characters/npcs/arena/facial/arena.png' },
+  draco: { emoji: '🐉', desc: 'มังกรบรรพกาล — เฒ่าแก่ ปราดเปรื่อง พูดน้อยแต่ได้ใจความ', theme: 'Ancient Fire & Magic', facial: '/images/characters/npcs/draco/facial/draco.png' },
+  kane: { emoji: '🏹', desc: 'ผู้พิทักษ์ (Your Champion)', theme: 'Agility & Archery', facial: '' },
 };
 
 interface ChatMessage {
@@ -30,16 +20,10 @@ export default function Relationship() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [userInput, setUserMessage] = useState('');
-  const [frameIndex, setFrameIndex] = useState(0);
   const [isTalking, setIsTalking] = useState(false);
   const [isGeneratingSkill, setIsGeneratingSkill] = useState(false);
-  
-  const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const interval = setInterval(() => setFrameIndex(f => (f + 1) % 12), 200);
-    return () => clearInterval(interval);
-  }, []);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -155,7 +139,6 @@ export default function Relationship() {
   
   const selectedCompanion = companions.find(c => c.id === selectedId);
   const metadata = selectedId ? NPC_METADATA[selectedId as keyof typeof NPC_METADATA] : null;
-  const currentFrame = (metadata && metadata.sprites.length > 0) ? metadata.sprites[frameIndex] : null;
   
   return (
     <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col h-[600px]">
@@ -174,9 +157,9 @@ export default function Relationship() {
       {selectedCompanion && metadata ? (
         <div className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="bg-slate-800/30 p-4 rounded-2xl border border-white/5 flex items-center gap-4 relative overflow-hidden">
-            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0">
-              {currentFrame ? (
-                <img src={currentFrame} alt={selectedCompanion.name} className="w-12 h-12 object-contain image-pixelated" />
+            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0 overflow-hidden">
+              {metadata.facial ? (
+                <img src={metadata.facial} alt={selectedCompanion.name} className="w-full h-full object-cover image-pixelated" />
               ) : (
                 <span className="text-2xl">{metadata.emoji}</span>
               )}
@@ -259,19 +242,22 @@ export default function Relationship() {
           {companions.map((comp) => {
             const meta = NPC_METADATA[comp.id as keyof typeof NPC_METADATA];
             return (comp.id !== 'kane' && (
-              <button 
-                key={comp.id} 
-                onClick={() => handleTalk(comp.id)} 
+              <button
+                key={comp.id}
+                onClick={() => {
+                  EventBus.emit('village-walk-to-npc', { npcId: comp.id });
+                  handleTalk(comp.id);
+                }}
                 className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden h-48"
               >
                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                   <span className="text-4xl font-black">{comp.level}</span>
                 </div>
-                <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-4xl shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">
-                  {meta?.sprites.length ? (
-                    <img src={meta.sprites[frameIndex]} alt={comp.name} className="w-12 h-12 object-contain image-pixelated" />
+                <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">
+                  {meta?.facial ? (
+                    <img src={meta.facial} alt={comp.name} className="w-full h-full object-cover image-pixelated" />
                   ) : (
-                    <span>{meta?.emoji || '👤'}</span>
+                    <span className="text-4xl">{meta?.emoji || '👤'}</span>
                   )}
                 </div>
                 <div className="text-center">

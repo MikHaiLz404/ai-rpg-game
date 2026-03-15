@@ -57,6 +57,10 @@ export class MainScene extends Phaser.Scene {
     kaneBobTween: Phaser.Tweens.Tween | null = null;
     enemyBobTween: Phaser.Tweens.Tween | null = null;
 
+    // Village NPCs
+    villageNPCs: Phaser.GameObjects.Sprite[] = [];
+    walkTween: Phaser.Tweens.Tween | null = null;
+
     // Debug
     debugMode = false;
     debugGraphics!: Phaser.GameObjects.Graphics;
@@ -73,8 +77,8 @@ export class MainScene extends Phaser.Scene {
             console.error(`[MainScene] Failed to load: ${file.key} (${file.url})`);
         });
 
-        // Player (Fallback to leo's spritesheet if minju's is missing)
-        this.load.spritesheet('player', '/images/characters/npcs/leo/character_2/character_2_frame32x32.png', {
+        // Player (Minju)
+        this.load.spritesheet('player', '/images/characters/player/minju/minju_frame32x32.png', {
             frameWidth: 32,
             frameHeight: 32
         });
@@ -285,6 +289,11 @@ export class MainScene extends Phaser.Scene {
             this.resetArenaIdle();
         });
 
+        // Village: walk player to NPC
+        EventBus.on('village-walk-to-npc', (data: { npcId: string }) => {
+            this.walkToVillageNPC(data.npcId);
+        });
+
         // Debug Grid
         this.debugGraphics = this.add.graphics();
         this.debugGraphics.lineStyle(1, 0x00ff00, 0.2);
@@ -409,6 +418,37 @@ export class MainScene extends Phaser.Scene {
         this.arenaEnemy.play(`${this.currentEnemyType}-death`);
     }
 
+    walkToVillageNPC(npcId: string) {
+        if (this.currentRoom !== 'village') return;
+        const target = this.villageNPCs.find(n => n.getData('npcId') === npcId);
+        if (!target) return;
+
+        if (this.walkTween) this.walkTween.stop();
+
+        const dx = target.x - this.player.x;
+        const dy = (target.y + 30) - this.player.y; // stop slightly below NPC
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const duration = Math.max(400, dist * 8);
+
+        // Pick walk direction
+        const anim = Math.abs(dx) > Math.abs(dy)
+            ? (dx > 0 ? 'player-right' : 'player-left')
+            : (dy > 0 ? 'player-down' : 'player-up');
+        this.player.anims.play(anim, true);
+
+        this.walkTween = this.tweens.add({
+            targets: this.player,
+            x: target.x,
+            y: target.y + 30,
+            duration,
+            onComplete: () => {
+                this.player.anims.play('player-up', true);
+                this.player.anims.stop();
+                this.player.setFrame(9); // face up toward NPC
+            }
+        });
+    }
+
     resetArenaIdle() {
         if (this.currentRoom !== 'arena') return;
         // Reset enemy to default slime
@@ -475,6 +515,9 @@ export class MainScene extends Phaser.Scene {
         if (this.arenaEnemy) this.arenaEnemy.destroy();
         if (this.kaneBobTween) this.kaneBobTween.stop();
         if (this.enemyBobTween) this.enemyBobTween.stop();
+        if (this.walkTween) this.walkTween.stop();
+        this.villageNPCs.forEach(n => n.destroy());
+        this.villageNPCs = [];
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
@@ -519,8 +562,26 @@ export class MainScene extends Phaser.Scene {
             });
 
         } else if (roomName === 'village') {
-            this.player.setPosition(180, 143);
+            this.player.setPosition(192, 220);
             this.player.anims.play('player-down', true);
+
+            // Spawn NPCs scattered around the village
+            const villageNPCList = [
+                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 80, y: 160 },
+                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 192, y: 120 },
+                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 310, y: 170 },
+            ];
+            for (const npc of villageNPCList) {
+                const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);
+                sprite.anims.play(`${npc.anim}-down`, true);
+                sprite.setData('npcId', npc.id);
+                sprite.setInteractive({ useHandCursor: true });
+                sprite.on('pointerdown', () => {
+                    EventBus.emit('village-npc-clicked', { npcId: npc.id });
+                    this.walkToVillageNPC(npc.id);
+                });
+                this.villageNPCs.push(sprite);
+            }
         } else {
             this.player.setPosition(195, 143);
             this.player.anims.play('player-down', true);
