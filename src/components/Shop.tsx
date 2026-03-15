@@ -136,7 +136,7 @@ export default function Shop() {
       // Minju is happy with the sale
       setDialogue({
         speaker: 'Minju',
-        text: `Wonderful! That's ${currentCustomer.offeredGold} gold for our collection. Pleasure doing business!`,
+        text: `ขายได้แล้ว! ได้ ${currentCustomer.offeredGold} ทองมาเพิ่ม ขอบคุณที่อุดหนุนนะคะ~`,
         portrait: 'happy'
       });
 
@@ -150,7 +150,7 @@ export default function Shop() {
           endShift();
           setDialogue({
             speaker: 'Minju',
-            text: `Whew! What a day. Time to close up and count our earnings.`,
+            text: `เฮ้อ! เป็นวันที่วุ่นวายจริงๆ ได้เวลาปิดร้านแล้วมานับเงินกันเถอะค่ะ`,
             portrait: 'work'
           });
         }, 2000);
@@ -159,7 +159,7 @@ export default function Shop() {
       // Don't have the item
       setDialogue({
         speaker: 'Minju',
-        text: `Oh no! We're actually out of stock for that. My apologies!`,
+        text: `แย่แล้ว! ของชิ้นนั้นหมดสต็อกพอดีเลยค่ะ ขอโทษด้วยนะคะ!`,
         portrait: 'shock'
       });
     }
@@ -168,7 +168,7 @@ export default function Shop() {
   const handleDecline = () => {
     setDialogue({
       speaker: 'Minju',
-      text: `I'm sorry, but I cannot accept that offer. Perhaps next time!`,
+      text: `ขอโทษด้วยนะคะ แต่ฉันรับข้อเสนอนี้ไม่ได้จริงๆ ไว้โอกาสหน้านะคะ!`,
       portrait: 'angry'
     });
 
@@ -190,14 +190,14 @@ export default function Shop() {
         addItem(item.id);
         setDialogue({
           speaker: 'Minju',
-          text: `Restocked ${item.name}. Our shelves are looking better already!`,
+          text: `เติมของ ${item.name} เรียบร้อย! ชั้นวางดูดีขึ้นเยอะเลยค่ะ`,
           portrait: 'work'
         });
       }
     } else {
       setDialogue({
         speaker: 'Minju',
-        text: `We don't have enough gold for that! We need at least ${wholesalePrice}.`,
+        text: `ทองไม่พอค่ะ! เราต้องมีอย่างน้อย ${wholesalePrice} ทองนะคะ`,
         portrait: 'shock'
       });
     }

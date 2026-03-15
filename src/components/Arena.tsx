@@ -39,7 +39,7 @@ export default function Arena() {
     setEnemyHp(enemy.hp);
     setPlayerHp(100);
     setResult(null);
-    setCombatLog([`⚔️ Battle Started: Kane vs ${enemy.name}`]);
+    setCombatLog([`⚔️ เริ่มการต่อสู้: Kane ปะทะ ${enemy.name}`]);
     setInCombat(true);
 
     // Update Phaser scene enemy sprite
@@ -47,7 +47,7 @@ export default function Arena() {
 
     setDialogue({
       speaker: 'Minju',
-      text: `Kane, focus! This ${enemy.name} looks dangerous. Use your divine skills if you have to!`,
+      text: `เคน ตั้งสมาธินะ! ${enemy.name} ตัวนี้ดูอันตรายมาก ถ้าจำเป็นก็ใช้พลังเทพช่วยเลย!`,
       portrait: 'work'
     });
   };
@@ -80,7 +80,7 @@ export default function Arena() {
         })
       });
       const data = await res.json();
-      const narrative = data.narrative || `Kane hits for ${playerDmg}!`;
+      const narrative = data.narrative || `Kane โจมตีใส่ ${playerDmg}!`;
       setCombatLog(prev => [`🏹 ${narrative}`, ...prev]);
       
       if (skill) {
@@ -90,12 +90,12 @@ export default function Arena() {
         }
         setDialogue({
           speaker: 'Minju',
-          text: `Yes! That ${skill.name} was perfect! Keep it up!`,
+          text: `เยี่ยมมาก! ${skill.name} เมื่อกี้สมบูรณ์แบบที่สุด ลุยต่อเลย!`,
           portrait: 'happy'
         });
       }
     } catch (err) {
-      setCombatLog(prev => [`🏹 Kane hits for ${playerDmg}!`, ...prev]);
+      setCombatLog(prev => [`🏹 Kane โจมตีใส่ ${playerDmg}!`, ...prev]);
     }
     
     if (newEnemyHp <= 0) {
@@ -111,13 +111,13 @@ export default function Arena() {
         defeatVampire();
         setDialogue({
           speaker: 'Minju',
-          text: `We... we actually defeated the Vampire Lord! The gods' blessings made this possible!`,
+          text: `เรา... เราล้มเจ้าแห่งแวมไพร์ได้จริงๆ ด้วย! พรของเหล่าเทพช่วยเราไว้แท้ๆ เลย!`,
           portrait: 'happy'
         });
       } else {
         setDialogue({
           speaker: 'Minju',
-          text: `Victory is ours! You did it, Kane! The ${selectedEnemy.reward} gold will help our shop greatly.`,
+          text: `ชัยชนะเป็นของเรา! ทำได้ดีมากเคน! ทอง ${selectedEnemy.reward} เหรียญนี้จะช่วยร้านเราได้เยอะเลย`,
           portrait: 'happy'
         });
       }
@@ -137,13 +137,13 @@ export default function Arena() {
         setResult('lose');
         setDialogue({
           speaker: 'Minju',
-          text: `Kane! No! We need to retreat and recover. Don't push yourself too hard!`,
+          text: `เคน! ไม่นะ! เรารีบถอยไปพักผ่อนกันก่อนเถอะ อย่าฝืนตัวเองเกินไปนะ!`,
           portrait: 'shock'
         });
       } else if (enemyDmg > 15) {
         setDialogue({
           speaker: 'Minju',
-          text: `Watch out! That hit looked like it hurt!`,
+          text: `ระวัง! โดนเข้าไปเมื่อกี้ดูเจ็บน่าดูเลย!`,
           portrait: 'shock'
         });
       }
@@ -201,7 +201,7 @@ export default function Arena() {
             disabled={isAttacking || !!result}
             className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50 transition-all"
           >
-            Standard Shot
+            ยิงธรรมดา
           </button>
           {availableSkills.map((skill, i) => (
             <button 
@@ -222,7 +222,7 @@ export default function Arena() {
               ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
             `}
           >
-            {result === 'win' ? 'Claim Victory' : 'Retreat to Shop'}
+            {result === 'win' ? 'รับชัยชนะ' : 'ถอยกลับร้าน'}
           </button>
         )}
 
@@ -238,7 +238,7 @@ export default function Arena() {
 
   return (
     <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-2xl">
-      <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-6 italic font-serif">Divine Arena</h2>
+      <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-6 italic font-serif">สนามประลองเทพ</h2>
       <div className="space-y-3">
         {ENEMIES.map((enemy) => (
           <button
@@ -261,10 +261,10 @@ export default function Arena() {
               </div>
               <div className="text-left">
                 <div className="font-black text-white uppercase tracking-tight">{enemy.name}</div>
-                <div className="text-[9px] font-black text-amber-500/70 uppercase">Reward: {enemy.reward} gold</div>
+                <div className="text-[9px] font-black text-amber-500/70 uppercase">รางวัล: {enemy.reward} ทอง</div>
               </div>
             </div>
-            <div className="text-[10px] font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Fight ⚔️</div>
+            <div className="text-[10px] font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">สู้ ⚔️</div>
           </button>
         ))}
       </div>

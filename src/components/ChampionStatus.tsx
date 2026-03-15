@@ -26,25 +26,25 @@ export default function ChampionStatus() {
           />
         </div>
         <div>
-          <h2 className="text-3xl font-black text-white uppercase tracking-tight italic">Kane <span className="text-blue-500 text-lg not-italic">the Champion</span></h2>
+          <h2 className="text-3xl font-black text-white uppercase tracking-tight italic">Kane <span className="text-blue-500 text-lg not-italic">ผู้พิทักษ์</span></h2>
           <div className="flex items-center gap-2 mt-1">
-            <span className="bg-blue-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded uppercase">Level {kane.level}</span>
-            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">Skills: {kane.unlockedSkills.length}</span>
+            <span className="bg-blue-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded uppercase">เลเวล {kane.level}</span>
+            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">สกิล: {kane.unlockedSkills.length}</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-black/40 p-4 rounded-xl border border-white/5">
-          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Combat Stats</div>
+          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">ค่าพลังการต่อสู้</div>
           <div className="space-y-3">
-            <StatRow label="Attack" value={15 + bonuses.atk} bonus={bonuses.atk} color="text-red-400" />
-            <StatRow label="Defense" value={10 + bonuses.def} bonus={bonuses.def} color="text-blue-400" />
-            <StatRow label="Speed" value={12} bonus={0} color="text-green-400" />
+            <StatRow label="โจมตี" value={15 + bonuses.atk} bonus={bonuses.atk} color="text-red-400" />
+            <StatRow label="ป้องกัน" value={10 + bonuses.def} bonus={bonuses.def} color="text-blue-400" />
+            <StatRow label="ความเร็ว" value={12} bonus={0} color="text-green-400" />
           </div>
         </div>
         <div className="bg-black/40 p-4 rounded-xl border border-white/5">
-          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Divine Bonds</div>
+          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">สายสัมพันธ์เทพ</div>
           <div className="space-y-2">
             {gods.map(god => {
               const config = NPC_CONFIGS[god.id];
@@ -68,7 +68,7 @@ export default function ChampionStatus() {
       </div>
 
       <div>
-        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">Divine Skills</div>
+        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 px-1">ทักษะเทพเจ้า</div>
         <div className="space-y-4 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
           {gods.map(god => {
             const config = NPC_CONFIGS[god.id];
@@ -79,7 +79,7 @@ export default function ChampionStatus() {
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-sm">{config?.emoji || '👤'}</span>
                   <span className="text-[10px] font-black text-white uppercase tracking-widest">{god.name}</span>
-                  <span className="text-[8px] text-slate-500">Bond Lvl {god.level}</span>
+                  <span className="text-[8px] text-slate-500">ความสนิท {god.level}</span>
                 </div>
                 <div className="space-y-2 pl-6">
                   {godSkills.map((skill, i) => (
@@ -92,7 +92,7 @@ export default function ChampionStatus() {
                         <div className="text-[9px] text-slate-400 italic mt-0.5 line-clamp-1">{skill.description}</div>
                       </div>
                       <div className="text-[10px] font-black text-white bg-slate-900 px-2 py-1 rounded border border-white/5 shrink-0">
-                        x{skill.multiplier.toFixed(1)} DMG
+                        x{skill.multiplier.toFixed(1)} ดาเมจ
                       </div>
                     </div>
                   ))}
@@ -102,7 +102,7 @@ export default function ChampionStatus() {
           })}
           {kane.unlockedSkills.length === 0 && (
             <div className="text-center py-8 bg-black/20 rounded-xl border border-dashed border-slate-800">
-              <p className="text-[10px] text-slate-600 italic">No divine skills earned yet. Visit the Sanctuary to bond with Gods.</p>
+              <p className="text-[10px] text-slate-600 italic">ยังไม่มีทักษะเทพเจ้า ไปที่วิหารเพื่อสร้างความสัมพันธ์กับเหล่าเทพ</p>
             </div>
           )}
         </div>

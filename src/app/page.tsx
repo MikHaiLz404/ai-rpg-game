@@ -19,7 +19,7 @@ const PhaserGame = dynamic(() => import('@/game/PhaserGame'), {
     <div className="aspect-[4/3] w-full bg-slate-900 flex items-center justify-center rounded-xl border-4 border-amber-500/30">
       <div className="text-center">
         <div className="text-4xl mb-4 animate-bounce">⚔️</div>
-        <div className="text-amber-500 font-bold tracking-widest">LOADING DIVINE WORLD...</div>
+        <div className="text-amber-500 font-bold tracking-widest">กำลังโหลดโลกแห่งทวยเทพ...</div>
       </div>
     </div>
   )
@@ -85,20 +85,20 @@ export default function Home() {
             <div className="text-6xl">{gameOver === 'win' ? '🏆' : '💀'}</div>
             <h2 className="text-4xl font-black uppercase tracking-tight">
               {gameOver === 'win' ? (
-                <span className="text-amber-500">VICTORY!</span>
+                <span className="text-amber-500">ชัยชนะ!</span>
               ) : (
-                <span className="text-red-500">GAME OVER</span>
+                <span className="text-red-500">จบเกม</span>
               )}
             </h2>
             <p className="text-slate-300 text-sm leading-relaxed">
               {gameOver === 'win'
-                ? 'The Vampire Lord has fallen! Through the power of divine bonds and unwavering determination, Kane has emerged victorious. The gods smile upon you.'
-                : `${MAX_TURNS} days have passed, and the Vampire Lord still reigns. The gods grow restless... Perhaps next time, forge stronger bonds and prepare better.`
+                ? 'เจ้าแห่งแวมไพร์พ่ายแพ้แล้ว! ด้วยพลังแห่งสายสัมพันธ์และปณิธานที่แน่วแน่ เคนจึงได้รับชัยชนะ เหล่าเทพต่างยิ้มรับให้แก่คุณ'
+                : `เวลาผ่านไป ${MAX_TURNS} วันแล้ว แต่เจ้าแห่งแวมไพร์ยังคงครอบงำอยู่... เหล่าเทพเริ่มกระสับกระส่าย บางทีครั้งหน้า คุณควรสร้างสายสัมพันธ์ให้แน่นแฟ้นและเตรียมตัวให้ดีกว่านี้`
               }
             </p>
             <div className="flex flex-col gap-3 pt-4">
               <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
-                Completed in {day} days | Gold: {gold} | Skills: {companions.find(c => c.id === 'kane')?.unlockedSkills.length || 0}
+                สำเร็จใน {day} วัน | ทอง: {gold} | สกิล: {companions.find(c => c.id === 'kane')?.unlockedSkills.length || 0}
               </div>
               <button
                 onClick={() => {
@@ -107,7 +107,7 @@ export default function Home() {
                 }}
                 className="px-8 py-4 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black rounded-xl uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-amber-500/20"
               >
-                Play Again
+                เล่นอีกครั้ง
               </button>
             </div>
           </div>
@@ -126,15 +126,15 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <NavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
-            <NavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-            <NavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
-            <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
+            <NavTab label="ร้านค้า" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
+            <NavTab label="อารีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+            <NavTab label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
+            <NavTab label="สถานะ" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
           </div>
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Day</span>
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">วันที</span>
               <div className={`font-black text-xl leading-none ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
                 {day} <span className="text-sm opacity-50">/ {MAX_TURNS}</span>
               </div>
@@ -153,7 +153,7 @@ export default function Home() {
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <span className={`text-[10px] font-black uppercase ${isUrgent ? 'text-red-400' : 'text-slate-500'}`}>
-              Day {day}/{MAX_TURNS}
+              วันที่ {day}/{MAX_TURNS}
             </span>
             <div className="w-px h-4 bg-slate-700" />
             <div className="flex items-center gap-1.5 text-amber-400 font-black text-base">
@@ -162,11 +162,11 @@ export default function Home() {
             </div>
           </div>
           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            {phase === 'shop' && 'Celestial Emporium'}
-            {phase === 'arena' && 'The Grand Arena'}
-            {phase === 'exploration' && 'Wilderness'}
-            {phase === 'relationship' && 'Divine Village'}
-            {(phase as any) === 'status' && 'Status'}
+            {phase === 'shop' && 'ร้านค้าสวรรค์'}
+            {phase === 'arena' && 'มหาอารีน่า'}
+            {phase === 'exploration' && 'ป่าเถื่อน'}
+            {phase === 'relationship' && 'หมู่บ้านเทพ'}
+            {(phase as any) === 'status' && 'สถานะ'}
           </div>
         </div>
       </header>
@@ -186,22 +186,22 @@ export default function Home() {
                 const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
                 const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
                 saveGame(gold, null, saveItems as any, relationships, 0, true);
-                alert('Divine Progress Saved!');
+                alert('บันทึกความคืบหน้าแล้ว!');
               }}
               className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
             >
-              💾 Save
+              💾 บันทึก (Save)
             </button>
             <button
               onClick={() => {
-                if (confirm('Reset all game data? This cannot be undone.')) {
+                if (confirm('รีเซ็ตข้อมูลเกมทั้งหมด? การดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
                   deleteAllSaves();
                   resetGame();
                 }
               }}
               className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 text-red-400"
             >
-              🗑 Reset
+              🗑 เริ่มใหม่ (Reset)
             </button>
           </div>
         </div>
@@ -220,10 +220,10 @@ export default function Home() {
       {/* Bottom Nav — mobile only */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md md:hidden">
         <div className="grid grid-cols-4 gap-0">
-          <MobileNavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
-          <MobileNavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-          <MobileNavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
-          <MobileNavTab label="Status" active={(phase as any) === 'status'} onClick={() => setPhase('status' as any)} />
+          <MobileNavTab label="ร้านค้า" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
+          <MobileNavTab label="อารีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+          <MobileNavTab label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
+          <MobileNavTab label="สถานะ" active={(phase as any) === 'status'} onClick={() => setPhase('status' as any)} />
         </div>
       </nav>
     </main>

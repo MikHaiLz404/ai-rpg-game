@@ -59,8 +59,9 @@ export default function ProphecyOverlay() {
         setProphecies([
           { godId: 'leo', godName: 'เลโอ', emoji: '⚔️', text: '"เทพไม่ตอบรับในตอนนี้..."' },
           { godId: 'arena', godName: 'อารีน่า', emoji: '👑', text: '"สายลมกระซิบว่ายังไม่ถึงเวลา..."' },
-          { godId: 'draco', godName: 'ดราโก้', emoji: '🐉', text: '"ฮึ่ม... ข้ารู้สึกถึงการรบกวนบางอย่าง"' },
+          { godId: 'draco', godName: 'อารีน่า', emoji: '🐉', text: '"ฮึ่ม... ข้ารู้สึกถึงการรบกวนบางอย่าง"' },
         ]);
+        setSource('fallback');
         setRevealed(3);
       } finally {
         setLoading(false);
@@ -69,6 +70,16 @@ export default function ProphecyOverlay() {
 
     fetchProphecies();
   }, [showProphecy]);
+
+  // Color mapping for source
+  const getSourceColor = (src: string) => {
+    switch (src) {
+      case 'openclaw': return 'text-orange-500';
+      case 'openrouter': return 'text-blue-500';
+      case 'fallback': return 'text-slate-500';
+      default: return 'text-slate-500';
+    }
+  };
 
   if (!showProphecy) return null;
 
@@ -79,9 +90,9 @@ export default function ProphecyOverlay() {
         <div className="bg-gradient-to-r from-amber-900/50 to-amber-800/30 px-6 py-4 border-b border-amber-500/20">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-black text-amber-500 uppercase tracking-widest">Divine Council</h2>
+              <h2 className="text-lg font-black text-amber-500 uppercase tracking-widest">สภาแห่งทวยเทพ</h2>
               <div className="text-[9px] text-amber-500/50 font-bold uppercase tracking-widest mt-0.5">
-                Day {day} Prophecy — {MAX_TURNS - day + 1} turns remaining
+                คำทำนายวันที่ {day} — เหลือเวลาอีก {MAX_TURNS - day + 1} วัน
               </div>
             </div>
             <div className="text-3xl opacity-50">📜</div>
@@ -94,7 +105,7 @@ export default function ProphecyOverlay() {
             <div className="text-center py-8">
               <div className="text-4xl mb-3 animate-pulse">🔮</div>
               <div className="text-amber-500/70 text-xs font-black uppercase tracking-widest animate-pulse">
-                The gods are convening...
+                เหล่าเทพกำลังร่วมประชุมกัน...
               </div>
             </div>
           )}
@@ -118,7 +129,12 @@ export default function ProphecyOverlay() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[10px] font-black text-amber-500/70 uppercase tracking-widest mb-1">{p.godName}</div>
-                    <div className="text-sm text-slate-200 leading-relaxed italic">{p.text}</div>
+                    <div className="text-sm text-slate-200 leading-relaxed italic">
+                      {p.text}
+                      <span className={`ml-2 text-[8px] font-bold uppercase ${getSourceColor(source)}`}>
+                        [{source}]
+                      </span>
+                    </div>
                     {source === 'openclaw' && p.agentName && (
                       <div className="text-[9px] text-cyan-400/60 mt-1 font-mono">
                         via agent: {p.agentName}
@@ -138,7 +154,7 @@ export default function ProphecyOverlay() {
             disabled={loading && prophecies.length === 0}
             className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-900 font-black rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95"
           >
-            Begin Day {day}
+            เริ่มวันที่ {day}
           </button>
         </div>
       </div>

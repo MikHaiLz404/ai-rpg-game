@@ -41,7 +41,7 @@ export default function Relationship() {
     if (!unclaimedThreshold) return;
 
     setIsGeneratingSkill(true);
-    setChatLog(prev => [...prev, { sender: 'system', text: `🌟 Bond Level ${unclaimedThreshold} reached! ${freshCompanion.name} is granting a new skill...` }]);
+    setChatLog(prev => [...prev, { sender: 'system', text: `🌟 ระดับความสัมพันธ์ถึง ${unclaimedThreshold} แล้ว! ${freshCompanion.name} กำลังมอบสกิลใหม่ให้...` }]);
 
     try {
       const res = await fetch('/api/narrate', {
@@ -60,7 +60,7 @@ export default function Relationship() {
       unlockSkill(id, { ...skillData, godId: id });
       markThresholdClaimed(id, unclaimedThreshold);
 
-      setChatLog(prev => [...prev, { sender: 'system', text: `✨ NEW SKILL: ${skillData.name}! (x${skillData.multiplier} DMG)` }]);
+      setChatLog(prev => [...prev, { sender: 'system', text: `✨ สกิลใหม่: ${skillData.name}! (พลังโจมตี x${skillData.multiplier})` }]);
       setDialogue({
         speaker: freshCompanion.name,
         text: `รับพลังนี้ไป... ${skillData.name} เป็นของเจ้าแล้ว`,
@@ -123,13 +123,13 @@ export default function Relationship() {
         const bondChance = Math.max(0.15, 0.4 - companion.bond * 0.02);
         if (Math.random() < bondChance) {
           addBond(id, 1);
-          setChatLog(prev => [...prev, { sender: 'system', text: `💗 Bond +1` }]);
+          setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +1` }]);
           // Check skill unlock after bond increase
           setTimeout(() => checkAutoSkillUnlock(id), 100);
         }
       }
     } catch (err) {
-      const fallback = config?.greeting || `${companion.name} nods in approval.`;
+      const fallback = config?.greeting || `${companion.name} พยักหน้าตอบรับด้วยความพึงพอใจ`;
       setChatLog(prev => [...prev, { sender: 'npc', text: fallback }]);
       setDialogue({
         speaker: companion.name,
@@ -151,13 +151,13 @@ export default function Relationship() {
   return (
     <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col h-[600px]">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic">Divine Connections</h2>
+        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic">สายสัมพันธ์แห่งเทพ</h2>
         {selectedId && (
           <button
             onClick={() => {setSelectedId(null); setChatLog([]);}}
             className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
           >
-            ← Back
+            ← กลับ
           </button>
         )}
       </div>
@@ -190,9 +190,9 @@ export default function Relationship() {
                     })()}
                   </div>
                   <div className="flex justify-between mt-0.5">
-                    <span className="text-[8px] text-slate-500">Bond: {selectedCompanion.bond}</span>
+                    <span className="text-[8px] text-slate-500">ค่าความสนิท: {selectedCompanion.bond}</span>
                     {getNextThreshold(selectedCompanion) && (
-                      <span className="text-[8px] text-amber-500/70">Next skill: {getNextThreshold(selectedCompanion)}</span>
+                      <span className="text-[8px] text-amber-500/70">สกิลถัดไป: {getNextThreshold(selectedCompanion)}</span>
                     )}
                   </div>
                 </div>
@@ -203,7 +203,7 @@ export default function Relationship() {
 
           {isGeneratingSkill && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse">
-              <span className="text-amber-500 text-xs font-black uppercase tracking-widest">Channeling Divine Power...</span>
+              <span className="text-amber-500 text-xs font-black uppercase tracking-widest">กำลังรวบรวมพลังเทพ...</span>
             </div>
           )}
 
@@ -212,7 +212,7 @@ export default function Relationship() {
             className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800"
           >
             {chatLog.length === 0 && (
-              <div className="text-center text-slate-600 italic text-xs py-8">Seek audience to begin your conversation...</div>
+              <div className="text-center text-slate-600 italic text-xs py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>
             )}
             {chatLog.map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}>
@@ -230,7 +230,7 @@ export default function Relationship() {
             {isTalking && (
               <div className="flex justify-start">
                 <div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs">
-                  Thinking...
+                  กำลังคิด...
                 </div>
               </div>
             )}
@@ -247,7 +247,7 @@ export default function Relationship() {
               type="text"
               value={userInput}
               onChange={(e) => setUserMessage(e.target.value)}
-              placeholder="Type your message to the god..."
+              placeholder="พิมพ์ข้อความคุยกับเทพ..."
               className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors"
             />
             <button
@@ -255,7 +255,7 @@ export default function Relationship() {
               disabled={isTalking || !userInput.trim()}
               className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
             >
-              Send
+              ส่ง
             </button>
           </form>
         </div>
@@ -291,7 +291,7 @@ export default function Relationship() {
                 <div className="text-center">
                   <div className="font-black text-white uppercase tracking-tight">{comp.name}</div>
                   <div className="text-[9px] text-pink-500/70 font-black uppercase mt-1">
-                    Bond {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' MAX'}
+                    ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}
                   </div>
                 </div>
               </button>
