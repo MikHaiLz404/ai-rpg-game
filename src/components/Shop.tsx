@@ -76,18 +76,19 @@ export default function Shop() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'talk',
+            action: 'shop_talk',
             playerName: 'Minju',
             npcName: npc.name,
-            npcMood: isGod ? 'divine' : 'curious',
-            lastMessage: `I am looking for a ${wantedItem.name}.`
+            npcMood: isGod ? 'เทพผู้สง่างาม มาซื้อของด้วยท่าทีเหนือมนุษย์' : 'ชาวบ้านธรรมดา อัธยาศัยดี',
+            wantedItem: wantedItem.name,
+            offeredGold
           })
         });
         const data = await res.json();
         setCustomer({
           id: npc.id,
           name: npc.name,
-          request: data.narrative || `I need a ${wantedItem.name}.`,
+          request: data.narrative || `สวัสดีค่ะ มี ${wantedItem.name} มั้ยคะ?`,
           offeredGold,
           wantedItemId: wantedItem.id,
           isGod
@@ -96,7 +97,7 @@ export default function Shop() {
         setCustomer({
           id: npc.id,
           name: npc.name,
-          request: `Greetings! Do you have a ${wantedItem.name}?`,
+          request: `สวัสดี! มี ${wantedItem.name} ขายมั้ย? จ่ายได้ ${offeredGold} gold เลยนะ`,
           offeredGold,
           wantedItemId: wantedItem.id,
           isGod
