@@ -118,8 +118,12 @@ export default function Home() {
             <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
           </div>
 
-          <div className="flex flex-col items-end">
-            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Divine Wealth</span>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Day</span>
+              <div className="text-amber-400 font-black text-xl leading-none">{day}</div>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
             <div className="flex items-center gap-2 text-amber-400 font-black text-xl">
               <span className="text-sm opacity-70">💰</span>
               <span>{gold.toLocaleString()}</span>
@@ -131,9 +135,13 @@ export default function Home() {
       {/* Mobile Header (H) */}
       <header className="md:hidden border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="px-4 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-2 text-amber-400 font-black text-lg">
-            <span className="text-sm opacity-70">💰</span>
-            <span>{gold.toLocaleString()}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-slate-500 font-black uppercase">Day {day}</span>
+            <div className="w-px h-4 bg-slate-700" />
+            <div className="flex items-center gap-1.5 text-amber-400 font-black text-base">
+              <span className="text-xs opacity-70">💰</span>
+              <span>{gold.toLocaleString()}</span>
+            </div>
           </div>
           <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
             {phase === 'shop' && 'Celestial Emporium'}
@@ -188,24 +196,8 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Side Panel (C, D, E, F) */}
+        {/* Side Panel */}
         <div className="lg:col-span-4 space-y-4 md:space-y-6">
-          {/* Status & Navigation - hidden when in shop phase */}
-          {phase !== 'shop' && (
-            <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic leading-none">DAY {day}</h2>
-                  <div className={`text-[10px] font-bold uppercase mt-2 tracking-widest flex items-center gap-2 ${isShiftActive ? 'text-green-500' : 'text-rose-500'}`}>
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${isShiftActive ? 'bg-green-500' : 'bg-rose-500'}`} />
-                    {isShiftActive ? 'Sanctum is Open' : 'Sanctum is Closed'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Phase-specific content */}
           <div className="min-h-[200px] md:min-h-[400px]">
             {phase === 'shop' && <Shop />}
             {phase === 'arena' && <Arena />}

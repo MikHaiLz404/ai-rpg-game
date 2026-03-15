@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 
-const ITEM_SPRITES: Record<string, string> = {
-  potion_health: '/images/items/potion_health/sprite/potion_health.png',
-  potion_mana: '/images/items/potion_mana/sprite/potion_mana.png',
-  basket: '/images/items/basket/sprite/basket.png',
-  cloth: '/images/items/cloth/sprite/cloth.png',
-  sword: '/images/items/sword/sprite/sword.png',
-  shield: '/images/items/shield/sprite/shd_0108_v01.png',
+const ITEM_SPRITES: Record<string, { src: string, fw: number, fh: number, sw: number, sh: number }> = {
+  potion_health: { src: '/images/items/potion_health/sprite/potion_health.png', fw: 16, fh: 16, sw: 336, sh: 240 },
+  potion_mana: { src: '/images/items/potion_mana/sprite/potion_mana.png', fw: 16, fh: 16, sw: 704, sh: 272 },
+  basket: { src: '/images/items/basket/sprite/basket.png', fw: 32, fh: 32, sw: 128, sh: 96 },
+  cloth: { src: '/images/items/cloth/sprite/cloth.png', fw: 16, fh: 16, sw: 144, sh: 304 },
+  sword: { src: '/images/items/sword/sprite/sword.png', fw: 32, fh: 32, sw: 128, sh: 144 },
+  shield: { src: '/images/items/shield/sprite/shd_0108_v01.png', fw: 32, fh: 32, sw: 256, sh: 256 },
 };
 
 const ITEMS = [
@@ -29,9 +29,22 @@ const ITEMS = [
 
 function ItemIcon({ item, size = 'md' }: { item: typeof ITEMS[number], size?: 'sm' | 'md' }) {
   const sprite = ITEM_SPRITES[item.id];
-  const px = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  const displaySize = size === 'sm' ? 24 : 32;
   if (sprite) {
-    return <img src={sprite} alt={item.name} className={`${px} object-contain image-pixelated`} />;
+    const scale = displaySize / sprite.fw;
+    return (
+      <div
+        className="image-pixelated flex-shrink-0"
+        style={{
+          width: displaySize,
+          height: displaySize,
+          backgroundImage: `url(${sprite.src})`,
+          backgroundPosition: '0 0',
+          backgroundSize: `${sprite.sw * scale}px ${sprite.sh * scale}px`,
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
+    );
   }
   return <span className={size === 'sm' ? 'text-base' : 'text-xl'}>{item.emoji}</span>;
 }
@@ -191,7 +204,23 @@ export default function Shop() {
 
   return (
     <div className="space-y-6">
-      {/* Shift Control Section (Matching J) */}
+      {/* Open Shop Button */}
+      {!isShiftActive && (
+        <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl text-center space-y-3">
+          <div className="text-[10px] font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2">
+            <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" />
+            Sanctum is Closed
+          </div>
+          <button
+            onClick={startShift}
+            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest"
+          >
+            Open Shop
+          </button>
+        </div>
+      )}
+
+      {/* Customer Interaction */}
       {currentCustomer && isShiftActive && (
         <div className="bg-slate-900/95 p-6 rounded-2xl border-2 border-amber-500/30 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center gap-4 mb-4">
