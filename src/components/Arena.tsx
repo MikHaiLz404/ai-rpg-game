@@ -25,7 +25,13 @@ export default function Arena() {
   const [selectedEnemy, setSelectedEnemy] = useState<typeof ENEMIES[0] | null>(null);
   const [inCombat, setInCombat] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
-  
+  const [enemyFrame, setEnemyFrame] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setEnemyFrame(f => (f + 1) % 6), 200);
+    return () => clearInterval(interval);
+  }, []);
+
   const availableSkills = companions.flatMap(c => c.unlockedSkills);
 
   const startCombat = (enemy: typeof ENEMIES[0]) => {
@@ -156,8 +162,8 @@ export default function Arena() {
                     className="w-8 h-8 image-pixelated scale-[2.5]"
                     style={{
                       backgroundImage: `url(${selectedEnemy.image})`,
-                      backgroundSize: `${selectedEnemy.frames * 100}% 100%`,
-                      animation: `play-enemy-idle 0.6s steps(${selectedEnemy.frames}) infinite`
+                      backgroundSize: 'auto 100%',
+                      backgroundPosition: `-${(enemyFrame % selectedEnemy.frames) * 32}px 0`
                     }}
                   />
                 ) : <span className="text-3xl">{selectedEnemy.emoji}</span>}
@@ -208,7 +214,6 @@ export default function Arena() {
 
         <style jsx>{`
           @keyframes play-attack { from { background-position: 0% 0%; } to { background-position: 700% 0%; } }
-          @keyframes play-enemy-idle { from { background-position: 0% 0%; } to { background-position: 100% 0%; } }
         `}</style>
       </div>
     );
@@ -231,8 +236,8 @@ export default function Arena() {
                     className="w-8 h-8 image-pixelated"
                     style={{
                       backgroundImage: `url(${enemy.image})`,
-                      backgroundSize: `${enemy.frames * 100}% 100%`,
-                      animation: `play-enemy-idle 0.6s steps(${enemy.frames}) infinite`
+                      backgroundSize: 'auto 100%',
+                      backgroundPosition: `-${(enemyFrame % enemy.frames) * 32}px 0`
                     }}
                   />
                 ) : enemy.emoji}
@@ -246,9 +251,6 @@ export default function Arena() {
           </button>
         ))}
       </div>
-      <style jsx>{`
-        @keyframes play-enemy-idle { from { background-position: 0% 0%; } to { background-position: 100% 0%; } }
-      `}</style>
     </div>
   );
 }

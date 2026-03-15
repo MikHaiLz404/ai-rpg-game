@@ -72,6 +72,7 @@ export default function Home() {
   useEffect(() => {
     const handlePhaseChange = (newPhase: any) => {
       setPhase(newPhase);
+      setDialogue(null);
     };
 
     EventBus.on('phase-change', handlePhaseChange);
@@ -113,6 +114,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <NavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
             <NavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+            <NavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
             <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
           </div>
 
@@ -146,7 +148,7 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Main View (B) */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="relative group rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3]">
+          <div className="relative isolate group rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3]">
             <PhaserGame />
             <DialogueOverlay />
           </div>
