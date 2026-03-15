@@ -342,52 +342,8 @@ export class MainScene extends Phaser.Scene {
     }
 
     update() {
-        if (!this.player || !this.cursors || !this.wasdKeys) return;
-
-        const speed = 160;
-        this.player.setVelocity(0);
-
-        let vx = 0;
-        let vy = 0;
-
-        if (this.cursors.left.isDown || this.wasdKeys.A.isDown) vx = -speed;
-        else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) vx = speed;
-
-        if (this.cursors.up.isDown || this.wasdKeys.W.isDown) vy = -speed;
-        else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) vy = speed;
-
-        // Normalize speed for diagonal movement
-        if (vx !== 0 && vy !== 0) {
-            vx *= 0.7071;
-            vy *= 0.7071;
-        }
-
-        this.player.setVelocity(vx, vy);
-
-        // Animations
-        if (vx < 0) this.player.anims.play('player-left', true);
-        else if (vx > 0) this.player.anims.play('player-right', true);
-        else if (vy < 0) this.player.anims.play('player-up', true);
-        else if (vy > 0) this.player.anims.play('player-down', true);
-        else this.player.anims.stop();
-
-        // Room transitions based on position
-        const room = WORLD[this.currentRoom];
-        if (room && room.exits) {
-            if (room.exits.right && this.player.x > 380) {
-                this.loadRoom(room.exits.right);
-                this.player.x = 20;
-            } else if (room.exits.left && this.player.x < 4) {
-                this.loadRoom(room.exits.left);
-                this.player.x = 364;
-            } else if (room.exits.down && this.player.y > 284) {
-                this.loadRoom(room.exits.down);
-                this.player.y = 20;
-            } else if (room.exits.up && this.player.y < 4) {
-                this.loadRoom(room.exits.up);
-                this.player.y = 268;
-            }
-        }
+        // Character movement disabled as requested. 
+        // Logic remains declared for system use but interaction is removed.
 
         if (this.debugMode) {
             this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`);

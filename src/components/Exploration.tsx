@@ -82,37 +82,6 @@ export default function Exploration() {
     return () => clearInterval(timer);
   }, []);
   
-  const handleMove = useCallback((dx: number, dy: number) => {
-    setPlayerX(x => {
-      const nx = x + dx;
-      if (nx < 1 || nx > GRID_COLS - 2) return x;
-      return nx;
-    });
-    setPlayerY(y => {
-      const ny = y + dy;
-      if (ny < 1 || ny > GRID_ROWS - 2) return y;
-      return ny;
-    });
-  }, []);
-  
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (showMenu) {
-        if (e.key === 'Escape') setShowMenu(false);
-        return;
-      }
-      switch (e.key) {
-        case 'ArrowUp': case 'w': case 'W': handleMove(0, -1); break;
-        case 'ArrowDown': case 's': case 'S': handleMove(0, 1); break;
-        case 'ArrowLeft': case 'a': case 'A': handleMove(-1, 0); break;
-        case 'ArrowRight': case 'd': case 'D': handleMove(1, 0); break;
-        case 'Escape': setShowMenu(true); break;
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [handleMove, showMenu]);
-  
   const currentMap = ROOM_MAPS[room as keyof typeof ROOM_MAPS];
   const tileBase = TILE_MAPPINGS[room] || TILE_MAPPINGS['shop'];
   const exits = MAP_EXITS[room];
@@ -129,7 +98,6 @@ export default function Exploration() {
       {showMenu ? (
         <div style={{ background: '#16213e', padding: '20px', borderRadius: '8px' }}>
           <h3 style={{ marginBottom: '15px' }}>📋 เมนู</h3>
-          <p style={{ color: '#9ca3af', marginBottom: '10px' }}>กด ESC เพื่อกลับ</p>
           <div style={{ display: 'grid', gap: '10px' }}>
             <button onClick={() => { setRoom('shop'); setShowMenu(false); }} style={{ padding: '15px', background: '#92400e', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>🏪 ร้านค้า</button>
             <button onClick={() => { setRoom('arena'); setShowMenu(false); }} style={{ padding: '15px', background: '#dc2626', border: 'none', borderRadius: '8px', color: '#fff', cursor: 'pointer' }}>⚔️ Arena</button>
@@ -139,7 +107,7 @@ export default function Exploration() {
         </div>
       ) : (
         <>
-          <div style={{ marginBottom: '10px', color: '#9ca3af', fontSize: '0.9rem' }}>📍 {ROOM_NAMES[room]} | ตำแหน่ง: ({playerX}, {playerY})</div>
+          <div style={{ marginBottom: '10px', color: '#9ca3af', fontSize: '0.9rem' }}>📍 {ROOM_NAMES[room]}</div>
           
           {/* Game Container */}
           <div style={{ 
@@ -209,11 +177,6 @@ export default function Exploration() {
                  ROOM_NAMES[target] + ' ↓'}
               </button>
             ))}
-          </div>
-          
-          {/* D-Pad - Removed for mobile optimization as requested */}
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <p style={{ color: '#9ca3af', marginBottom: '10px', fontSize: '0.85rem' }}>🎮 ลูกศร / WASD | ESC = เมนู</p>
           </div>
         </>
       )}
