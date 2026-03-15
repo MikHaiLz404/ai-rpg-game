@@ -2,10 +2,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 
-'use client';
-import { useState, useEffect, useRef } from 'react';
-import { useGameStore, DivineSkill } from '@/store/gameStore';
-
 function makeFrames(base: string, count: number) {
   // Since we don't have frame_X_Y files anymore, we just return an array of the base image 
   // or handle animations differently. For now, we'll just use the single image.
@@ -25,7 +21,7 @@ interface ChatMessage {
 }
 
 export default function Relationship() {
-  const { companions, addBond, unlockSkill } = useGameStore();
+  const { companions, addBond, unlockSkill, setDialogue } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [userInput, setUserMessage] = useState('');
@@ -56,6 +52,13 @@ export default function Relationship() {
     if (message) {
       setChatLog(prev => [...prev, { sender: 'player', text: message }]);
       setUserMessage('');
+      
+      // Also show player dialogue in overlay
+      setDialogue({
+        speaker: 'Minju',
+        text: message,
+        portrait: 'happy' // Standard talking expression
+      });
     }
     
     try {
@@ -74,10 +77,24 @@ export default function Relationship() {
       const data = await res.json();
       if (data.narrative) {
         setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]);
+        
+        // Show NPC dialogue in overlay too
+        setTimeout(() => {
+          setDialogue({
+            speaker: companion.name,
+            text: data.narrative
+          });
+        }, 500);
+
         addBond(id, 1);
       }
     } catch (err) {
-      setChatLog(prev => [...prev, { sender: 'npc', text: `${companion.name} nods in approval.` }]);
+      const fallback = `${companion.name} nods in approval.`;
+      setChatLog(prev => [...prev, { sender: 'npc', text: fallback }]);
+      setDialogue({
+        speaker: companion.name,
+        text: fallback
+      });
     } finally {
       setIsTalking(false);
     }
@@ -88,6 +105,13 @@ export default function Relationship() {
     if (!companion || isGeneratingSkill) return;
 
     setIsGeneratingSkill(true);
+    
+    setDialogue({
+      speaker: 'Minju',
+      text: `O Divine ${companion.name}, please grant us a fragment of your power!`,
+      portrait: 'work'
+    });
+
     try {
       const res = await fetch('/api/narrate', {
         method: 'POST',
@@ -103,9 +127,22 @@ export default function Relationship() {
       const skillData: DivineSkill = typeof data.narrative === 'string' ? JSON.parse(data.narrative) : data.narrative;
       
       unlockSkill(id, { ...skillData, godId: id });
-      setChatLog(prev => [...prev, { sender: 'system', text: `✨ UNLOCKED NEW SKILL: ${skillData.name}!` }]);
+      
+      const successText = `✨ UNLOCKED NEW SKILL: ${skillData.name}!`;
+      setChatLog(prev => [...prev, { sender: 'system', text: successText }]);
+      
+      setDialogue({
+        speaker: companion.name,
+        text: `It is done. Use this power wisely, mortal. ${skillData.name} is now yours.`,
+      });
+
     } catch (err) {
       console.error('Skill gen error:', err);
+      setDialogue({
+        speaker: 'Minju',
+        text: `The connection was severed! We must try again later.`,
+        portrait: 'shock'
+      });
     } finally {
       setIsGeneratingSkill(false);
     }

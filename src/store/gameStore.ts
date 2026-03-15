@@ -33,6 +33,12 @@ interface Customer {
   isGod: boolean;
 }
 
+interface Dialogue {
+  speaker: string;
+  text: string;
+  portrait?: string; // URL to the facial expression image
+}
+
 interface GameStore {
   phase: GamePhase;
   setPhase: (phase: GamePhase) => void;
@@ -57,6 +63,9 @@ interface GameStore {
   endShift: () => void;
   incrementServed: () => void;
   
+  dialogue: Dialogue | null;
+  setDialogue: (dialogue: Dialogue | null) => void;
+
   loadSaveData: (data: any) => void;
 }
 
@@ -149,6 +158,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   startShift: () => set({ isShiftActive: true, customersServed: 0 }),
   endShift: () => set((state) => ({ isShiftActive: false, day: state.day + 1 })),
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
+
+  dialogue: null,
+  setDialogue: (dialogue) => set({ dialogue }),
 
   loadSaveData: (data) => {
     if (!data) return;

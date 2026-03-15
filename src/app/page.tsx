@@ -10,11 +10,12 @@ import Shop from '@/components/Shop';
 import Arena from '@/components/Arena';
 import Relationship from '@/components/Relationship';
 import ChampionStatus from '@/components/ChampionStatus';
+import DialogueOverlay from '@/components/DialogueOverlay';
 
 const PhaserGame = dynamic(() => import('@/game/PhaserGame'), { 
   ssr: false,
   loading: () => (
-    <div className="aspect-[4/3] max-w-[384px] mx-auto bg-slate-900 flex items-center justify-center rounded-xl border-4 border-amber-500/30">
+    <div className="aspect-[4/3] w-full bg-slate-900 flex items-center justify-center rounded-xl border-4 border-amber-500/30">
       <div className="text-center">
         <div className="text-4xl mb-4 animate-bounce">⚔️</div>
         <div className="text-amber-500 font-bold tracking-widest">LOADING DIVINE WORLD...</div>
@@ -40,7 +41,10 @@ const ExplorationUI = () => (
 );
 
 export default function Home() {
-  const { phase, setPhase, gold, items, companions, loadSaveData } = useGameStore();
+  const { 
+    phase, setPhase, gold, items, companions, loadSaveData, 
+    day, isShiftActive, startShift, setDialogue 
+  } = useGameStore();
   const { initializeSave, currentSaveData, saveGame, autoSaveEnabled } = useSaveStore();
 
   useEffect(() => {
@@ -76,53 +80,64 @@ export default function Home() {
     };
   }, [setPhase]);
 
+  // Test dialogue on load for demonstration (optional)
+  /*
+  useEffect(() => {
+    setTimeout(() => {
+      setDialogue({
+        speaker: 'Minju',
+        text: 'Welcome to the Gods\' Arena! I am Minju, your humble shopkeeper. How can I help you today?',
+        portrait: 'happy'
+      });
+    }, 2000);
+  }, []);
+  */
+
   const changeRoom = (room: string) => {
     EventBus.emit('change-room', room);
   };
 
   return (
     <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-12">
+      {/* Header (A) */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <span className="text-3xl drop-shadow-lg">🏛️</span>
             <div>
-              <h1 className="text-xl font-black tracking-tighter text-amber-500 uppercase leading-none">Gods' Arena</h1>
+              <h1 className="text-xl font-black tracking-tighter text-amber-500 uppercase leading-none italic">Gods' Arena</h1>
               <div className="text-[9px] text-slate-500 font-bold tracking-[0.25em] uppercase mt-1">วิหารแห่งเทพ</div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <NavButton label="Shop" icon="🏪" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
-            <NavButton label="Arena" icon="🏟️" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-            <NavButton label="Village" icon="🏘️" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
-            <NavButton label="Status" icon="👤" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
+          <div className="hidden md:flex items-center gap-2">
+            <NavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
+            <NavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+            <NavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
+            <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
           </div>
 
-          <div className="flex items-center gap-4 md:gap-8">
-            <div className="hidden md:flex flex-col items-end">
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Divine Wealth</span>
-              <div className="flex items-center gap-2 text-amber-400 font-black text-xl">
-                <span>💰</span>
-                <span>{gold.toLocaleString()}</span>
-              </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">Divine Wealth</span>
+            <div className="flex items-center gap-2 text-amber-400 font-black text-xl">
+              <span className="text-sm opacity-70">💰</span>
+              <span>{gold.toLocaleString()}</span>
             </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-7 space-y-4">
-          <div className="relative group rounded-2xl overflow-hidden">
-            <div className="absolute -inset-1 bg-gradient-to-r from-amber-500/20 to-red-600/20 blur opacity-75"></div>
-            <div className="relative bg-slate-900 border-4 border-slate-800 rounded-2xl">
-              <PhaserGame />
-            </div>
+      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Main View (B) */}
+        <div className="lg:col-span-8 space-y-6">
+          <div className="relative group rounded-3xl overflow-hidden border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3]">
+            <PhaserGame />
+            <DialogueOverlay />
           </div>
           
-          <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-xl flex justify-between items-center">
+          <div className="p-4 bg-slate-900/40 border border-slate-800 rounded-2xl flex justify-between items-center backdrop-blur-sm">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center text-2xl shadow-inner border border-slate-700/50">
+              <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-xl shadow-inner border border-slate-700/50">
                   {phase === 'shop' && '🏪'}
                   {phase === 'arena' && '🏟️'}
                   {phase === 'exploration' && '🌲'}
@@ -130,8 +145,8 @@ export default function Home() {
                   {(phase as any) === 'status' && '👤'}
               </div>
               <div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Current Sanctum</div>
-                <div className="text-sm font-black text-amber-500 uppercase tracking-tight">
+                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-0.5 opacity-70">Current Sanctum</div>
+                <div className="text-xs font-black text-amber-500 uppercase tracking-tight">
                   {phase === 'shop' && 'Celestial Emporium'}
                   {phase === 'arena' && 'The Grand Arena'}
                   {phase === 'exploration' && 'Wilderness Borders'}
@@ -148,15 +163,43 @@ export default function Home() {
                 saveGame(gold, null, saveItems as any, relationships, 0, true);
                 alert('Divine Progress Saved!');
               }}
-              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all"
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
             >
               💾 Save
             </button>
           </div>
         </div>
         
-        <div className="lg:col-span-5 space-y-6">
-          <div className="min-h-[500px]">
+        {/* Side Panel (C, D, E, F) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* Status & Navigation (C, D) */}
+          <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-6 shadow-xl space-y-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic leading-none">DAY {day}</h2>
+                <div className={`text-[10px] font-bold uppercase mt-2 tracking-widest flex items-center gap-2 ${isShiftActive ? 'text-green-500' : 'text-rose-500'}`}>
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${isShiftActive ? 'bg-green-500' : 'bg-rose-500'}`} />
+                  {isShiftActive ? 'Sanctum is Open' : 'Sanctum is Closed'}
+                </div>
+              </div>
+              {!isShiftActive && (
+                <button 
+                  onClick={startShift}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 text-[10px] font-black rounded-lg transition-all shadow-lg shadow-amber-500/20 uppercase"
+                >
+                  Open Shop
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <SideNavButton label="อาชีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+              <SideNavButton label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
+            </div>
+          </div>
+
+          {/* Phase-specific content (Inventory, Restock, etc) */}
+          <div className="min-h-[400px]">
             {phase === 'shop' && <Shop />}
             {phase === 'arena' && <Arena />}
             {phase === 'exploration' && <ExplorationUI />}
@@ -169,18 +212,32 @@ export default function Home() {
   );
 }
 
-function NavButton({ label, icon, active, onClick }: { label: string, icon: string, active: boolean, onClick: () => void }) {
+function NavTab({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
   return (
     <button 
       onClick={onClick}
-      className={`px-3 py-2 rounded-lg flex flex-col items-center min-w-[60px] transition-all ${
+      className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
         active 
-          ? 'bg-amber-500/10 border border-amber-500/50 text-amber-500' 
-          : 'bg-slate-800/50 border border-slate-700 text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+          ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20' 
+          : 'text-slate-500 hover:text-white hover:bg-slate-800/50'
       }`}
     >
-      <span className="text-lg">{icon}</span>
-      <span className="text-[8px] font-black uppercase tracking-widest mt-1">{label}</span>
+      {label}
+    </button>
+  );
+}
+
+function SideNavButton({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
+  return (
+    <button 
+      onClick={onClick}
+      className={`p-3 rounded-xl border flex flex-col items-center transition-all ${
+        active 
+          ? 'bg-amber-500/10 border-amber-500/50 text-amber-500' 
+          : 'bg-slate-800/30 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+      }`}
+    >
+      <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
     </button>
   );
 }

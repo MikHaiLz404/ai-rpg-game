@@ -17,7 +17,7 @@ const CHAMPION = {
 };
 
 export default function Arena() {
-  const { gold, addGold, companions, getBondBonus } = useGameStore();
+  const { gold, addGold, companions, getBondBonus, setDialogue } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
@@ -35,6 +35,12 @@ export default function Arena() {
     setResult(null);
     setCombatLog([`⚔️ Battle Started: Kane vs ${enemy.name}`]);
     setInCombat(true);
+
+    setDialogue({
+      speaker: 'Minju',
+      text: `Kane, focus! This ${enemy.name} looks dangerous. Use your divine skills if you have to!`,
+      portrait: 'work'
+    });
   };
   
   const executeAttack = async (skill?: DivineSkill) => {
@@ -65,7 +71,16 @@ export default function Arena() {
         })
       });
       const data = await res.json();
-      setCombatLog(prev => [`🏹 ${data.narrative || `Kane hits for ${playerDmg}!`}`, ...prev]);
+      const narrative = data.narrative || `Kane hits for ${playerDmg}!`;
+      setCombatLog(prev => [`🏹 ${narrative}`, ...prev]);
+      
+      if (skill) {
+        setDialogue({
+          speaker: 'Minju',
+          text: `Yes! That ${skill.name} was perfect! Keep it up!`,
+          portrait: 'happy'
+        });
+      }
     } catch (err) {
       setCombatLog(prev => [`🏹 Kane hits for ${playerDmg}!`, ...prev]);
     }
@@ -74,6 +89,12 @@ export default function Arena() {
       setResult('win');
       addGold(selectedEnemy.reward);
       setIsAttacking(false);
+
+      setDialogue({
+        speaker: 'Minju',
+        text: `Victory is ours! You did it, Kane! The ${selectedEnemy.reward} gold will help our shop greatly.`,
+        portrait: 'happy'
+      });
       return;
     }
     
@@ -86,7 +107,21 @@ export default function Arena() {
       // Play counter attack effect in Phaser
       EventBus.emit('arena-attack', { target: 'player' });
 
-      if (newPlayerHp <= 0) setResult('lose');
+      if (newPlayerHp <= 0) {
+        setResult('lose');
+        setDialogue({
+          speaker: 'Minju',
+          text: `Kane! No! We need to retreat and recover. Don't push yourself too hard!`,
+          portrait: 'shock'
+        });
+      } else if (enemyDmg > 15) {
+        setDialogue({
+          speaker: 'Minju',
+          text: `Watch out! That hit looked like it hurt!`,
+          portrait: 'shock'
+        });
+      }
+
       setIsAttacking(false);
     }, 800);
   };
@@ -96,7 +131,7 @@ export default function Arena() {
       <div className="bg-slate-900/90 p-6 rounded-xl border border-red-500/20 shadow-2xl">
         <div className="flex justify-around items-center mb-12">
            <div className="text-center">
-              <div className="w-20 h-20 bg-blue-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2">
+              <div className="w-20 h-20 bg-blue-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
                 <div 
                     className="w-8 h-8 image-pixelated scale-[2.5]"
                     style={{
@@ -108,21 +143,21 @@ export default function Arena() {
               </div>
               <div className="text-[10px] font-black text-blue-400 uppercase">{CHAMPION.name}</div>
               <div className="w-24 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                <div className="h-full bg-blue-500" style={{ width: `${playerHp}%` }} />
+                <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${playerHp}%` }} />
               </div>
            </div>
 
-           <div className="text-2xl font-black text-white italic opacity-20">VS</div>
+           <div className="text-2xl font-black text-white italic opacity-20 animate-pulse">VS</div>
 
            <div className="text-center">
-              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-red-500/30 overflow-hidden flex items-center justify-center mb-2">
+              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-red-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
                 {selectedEnemy.image ? (
                   <img src={selectedEnemy.image} className="w-12 h-12 object-contain image-pixelated animate-bounce" />
                 ) : <span className="text-3xl">{selectedEnemy.emoji}</span>}
               </div>
               <div className="text-[10px] font-black text-red-400 uppercase">{selectedEnemy.name}</div>
-              <div className="w-24 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                <div className="h-full bg-red-500" style={{ width: `${(enemyHp / selectedEnemy.hp) * 100}%` }} />
+              <div className="text-left w-full h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${(enemyHp / selectedEnemy.hp) * 100}%` }} />
               </div>
            </div>
         </div>
@@ -131,7 +166,7 @@ export default function Arena() {
           <button 
             onClick={() => executeAttack()}
             disabled={isAttacking || !!result}
-            className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50"
+            className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50 transition-all"
           >
             Standard Shot
           </button>
@@ -140,7 +175,7 @@ export default function Arena() {
               key={i}
               onClick={() => executeAttack(skill)}
               disabled={isAttacking || !!result}
-              className="py-3 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] tracking-widest disabled:opacity-50 border border-amber-400/20"
+              className="py-3 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] tracking-widest disabled:opacity-50 border border-amber-400/20 transition-all"
             >
               ✨ {skill.name}
             </button>
@@ -150,13 +185,15 @@ export default function Arena() {
         {result && (
           <button 
             onClick={() => setInCombat(false)}
-            className="w-full py-4 bg-white text-slate-900 font-black rounded-xl mb-4 uppercase tracking-widest"
+            className={`w-full py-4 font-black rounded-xl mb-4 uppercase tracking-widest transition-all scale-100 hover:scale-105 active:scale-95
+              ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
+            `}
           >
             {result === 'win' ? 'Claim Victory' : 'Retreat to Shop'}
           </button>
         )}
 
-        <div className="bg-black/50 p-4 rounded-xl h-24 overflow-y-auto font-mono text-[10px] leading-relaxed">
+        <div className="bg-black/50 p-4 rounded-xl h-24 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
           {combatLog.map((log, i) => (
             <div key={i} className={i === 0 ? 'text-white font-bold' : 'text-slate-500'}>{log}</div>
           ))}
@@ -170,7 +207,7 @@ export default function Arena() {
   }
 
   return (
-    <div className="bg-slate-900/90 p-6 rounded-2xl border border-white/5 shadow-2xl">
+    <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-2xl">
       <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-6 italic font-serif">Divine Arena</h2>
       <div className="space-y-3">
         {ENEMIES.map((enemy) => (
@@ -180,7 +217,7 @@ export default function Arena() {
             className="w-full group p-4 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-red-500/30 rounded-2xl transition-all flex items-center justify-between"
           >
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">
+              <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden shadow-inner">
                 {enemy.image ? <img src={enemy.image} className="w-8 h-8 object-contain image-pixelated" /> : enemy.emoji}
               </div>
               <div className="text-left">
