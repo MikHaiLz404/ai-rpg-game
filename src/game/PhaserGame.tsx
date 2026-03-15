@@ -9,7 +9,6 @@ import { useGameStore } from '@/store/gameStore';
 export default function PhaserGame() {
   const gameRef = useRef<Phaser.Game | null>(null);
   const [ready, setReady] = useState(false);
-  const store = useGameStore();
 
   useEffect(() => {
     if (gameRef.current) return;

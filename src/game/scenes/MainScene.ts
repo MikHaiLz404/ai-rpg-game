@@ -65,8 +65,13 @@ export class MainScene extends Phaser.Scene {
     }
 
     preload() {
-        // Player
-        this.load.spritesheet('player', '/images/characters/player/minju/character_26/character_26_frame32x32.png', {
+        // Log loading errors to console
+        this.load.on('loaderror', (file: Phaser.Loader.File) => {
+            console.error(`[MainScene] Failed to load: ${file.key} (${file.url})`);
+        });
+
+        // Player (Fallback to leo's spritesheet if minju's is missing)
+        this.load.spritesheet('player', '/images/characters/npcs/leo/character_2/character_2_frame32x32.png', {
             frameWidth: 32,
             frameHeight: 32
         });
@@ -100,30 +105,38 @@ export class MainScene extends Phaser.Scene {
     }
 
     createCharAnims(key: string, texture: string) {
-        this.anims.create({
-            key: `${key}-down`,
-            frames: this.anims.generateFrameNumbers(texture, { start: 0, end: 2 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: `${key}-left`,
-            frames: this.anims.generateFrameNumbers(texture, { start: 3, end: 5 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: `${key}-right`,
-            frames: this.anims.generateFrameNumbers(texture, { start: 6, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        });
-        this.anims.create({
-            key: `${key}-up`,
-            frames: this.anims.generateFrameNumbers(texture, { start: 9, end: 11 }),
-            frameRate: 10,
-            repeat: -1
-        });
+        if (!this.anims.exists(`${key}-down`)) {
+            this.anims.create({
+                key: `${key}-down`,
+                frames: this.anims.generateFrameNumbers(texture, { start: 0, end: 2 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+        if (!this.anims.exists(`${key}-left`)) {
+            this.anims.create({
+                key: `${key}-left`,
+                frames: this.anims.generateFrameNumbers(texture, { start: 3, end: 5 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+        if (!this.anims.exists(`${key}-right`)) {
+            this.anims.create({
+                key: `${key}-right`,
+                frames: this.anims.generateFrameNumbers(texture, { start: 6, end: 8 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+        if (!this.anims.exists(`${key}-up`)) {
+            this.anims.create({
+                key: `${key}-up`,
+                frames: this.anims.generateFrameNumbers(texture, { start: 9, end: 11 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
     }
 
     create() {
@@ -300,11 +313,14 @@ export class MainScene extends Phaser.Scene {
         this.roomText.setText(room.name);
         if (room.phase) EventBus.emit('phase-change', room.phase);
 
-        if (room.bgImage) {
+        if (room.bgImage && this.textures.exists(room.bgImage)) {
             this.bgSprite = this.add.image(192, 144, room.bgImage);
+
             const scaleX = 384 / this.bgSprite.width;
             const scaleY = 288 / this.bgSprite.height;
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
+        } else if (room.bgImage) {
+            console.warn(`[MainScene] Texture not found: ${room.bgImage}`);
         }
 
         if (roomName === 'arena') {

@@ -3,6 +3,15 @@ import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 
+const ITEM_SPRITES: Record<string, string> = {
+  potion_health: '/images/items/potion_health/sprite/potion_health.png',
+  potion_mana: '/images/items/potion_mana/sprite/potion_mana.png',
+  basket: '/images/items/basket/sprite/basket.png',
+  cloth: '/images/items/cloth/sprite/cloth.png',
+  sword: '/images/items/sword/sprite/sword.png',
+  shield: '/images/items/shield/sprite/shd_0108_v01.png',
+};
+
 const ITEMS = [
   { id: 'potion_health', name: 'Health Potion', emoji: '❤️', price: 50, desc: 'ฟื้นฟูพลังชีวิต' },
   { id: 'potion_mana', name: 'Mana Potion', emoji: '💙', price: 50, desc: 'ฟื้นฟูมานา' },
@@ -17,6 +26,15 @@ const ITEMS = [
   { id: 'bow', name: 'Bow', emoji: '🏹', price: 180, desc: 'ธนูไม้สน' },
   { id: 'olympian_coin', name: 'Olympian Coin', emoji: '🪙', price: 500, desc: 'เหรียญโอลิมเปียหายาก' },
 ];
+
+function ItemIcon({ item, size = 'md' }: { item: typeof ITEMS[number], size?: 'sm' | 'md' }) {
+  const sprite = ITEM_SPRITES[item.id];
+  const px = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  if (sprite) {
+    return <img src={sprite} alt={item.name} className={`${px} object-contain image-rendering-pixelated`} style={{ imageRendering: 'pixelated' }} />;
+  }
+  return <span className={size === 'sm' ? 'text-base' : 'text-xl'}>{item.emoji}</span>;
+}
 
 export default function Shop() {
   const { 
@@ -191,8 +209,7 @@ export default function Shop() {
           <div className="flex justify-between items-center bg-black/30 p-3 rounded-xl border border-white/5 mb-4">
             <div className="text-[10px] font-bold text-slate-500 uppercase">Request</div>
             <div className="flex items-center gap-2">
-              <span className="text-xl">{ITEMS.find(i => i.id === currentCustomer.wantedItemId)?.emoji}</span>
-              <span className="font-bold text-slate-200">{ITEMS.find(i => i.id === currentCustomer.wantedItemId)?.name}</span>
+              {(() => { const found = ITEMS.find(i => i.id === currentCustomer.wantedItemId); return found ? <><ItemIcon item={found} /><span className="font-bold text-slate-200">{found.name}</span></> : null; })()}
             </div>
           </div>
           <div className="flex gap-3">
@@ -220,24 +237,25 @@ export default function Shop() {
       {/* Inventory Section (E) */}
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center">
-          <span>Current Inventory</span>
+          <span>Inventory</span>
           <span className="text-amber-500/50 font-bold">{items.length} Units</span>
         </h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-[120px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+        <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
           {ITEMS.map(itemType => {
             const count = items.filter(id => id === itemType.id).length;
             if (count === 0) return null;
             return (
-              <div key={itemType.id} className="bg-slate-800/50 p-2.5 rounded-xl border border-white/5 flex items-center gap-3">
-                <span className="text-xl">{itemType.emoji}</span>
-                <div>
-                  <div className="text-[9px] font-black text-white uppercase leading-none">{itemType.name}</div>
-                  <div className="text-[8px] font-bold text-amber-500 mt-1">x{count}</div>
+              <div key={itemType.id} className="bg-slate-800/50 px-3 py-2 rounded-lg border border-white/5 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <ItemIcon item={itemType} size="sm" />
+                  <span className="text-[10px] font-bold text-slate-200 uppercase">{itemType.name}</span>
+                  <span className="text-[9px] font-bold text-slate-500">(x{count})</span>
                 </div>
+                <span className="text-[9px] font-bold text-amber-500">{itemType.price}</span>
               </div>
             );
           })}
-          {items.length === 0 && <div className="col-span-full py-4 text-center text-[10px] text-slate-600 italic">Inventory is empty. Use Restock below.</div>}
+          {items.length === 0 && <div className="py-4 text-center text-[10px] text-slate-600 italic">Inventory is empty. Use Restock below.</div>}
         </div>
       </div>
 
@@ -246,22 +264,28 @@ export default function Shop() {
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
           Stockroom & Restock
         </h3>
-        <div className="grid grid-cols-2 gap-2 max-h-[250px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map((item) => (
-            <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">{item.emoji}</span>
-                <div className="text-[9px] font-black text-slate-200 uppercase leading-tight truncate">{item.name}</div>
+        <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+          {ITEMS.map((item) => {
+            const count = items.filter(id => id === item.id).length;
+            return (
+              <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <ItemIcon item={item} size="sm" />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[9px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div>
+                    <div className="text-[8px] text-slate-500">(x{count})</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleRestock(item)}
+                  disabled={gold < Math.floor(item.price * 0.6)}
+                  className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] font-bold rounded-lg transition-all border border-slate-600"
+                >
+                  สั่งซื้อ (Restock)
+                </button>
               </div>
-              <button
-                onClick={() => handleRestock(item)}
-                disabled={gold < Math.floor(item.price * 0.6)}
-                className="w-full py-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:grayscale text-slate-900 text-[8px] font-black rounded-lg transition-all shadow-sm uppercase tracking-wider"
-              >
-                Buy ({Math.floor(item.price * 0.6)}💰)
-              </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

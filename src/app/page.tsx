@@ -98,22 +98,21 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-12">
-      {/* Header (A) */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+    <main className="min-h-screen bg-[#020617] text-slate-50 selection:bg-amber-500/30 pb-20 md:pb-12">
+      {/* Desktop Header (A) */}
+      <header className="hidden md:block border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <span className="text-3xl drop-shadow-lg">🏛️</span>
             <div>
-              <h1 className="text-xl font-black tracking-tighter text-amber-500 uppercase leading-none italic">Gods' Arena</h1>
+              <h1 className="text-xl font-black tracking-tighter text-amber-500 uppercase leading-none italic">Gods&apos; Arena</h1>
               <div className="text-[9px] text-slate-500 font-bold tracking-[0.25em] uppercase mt-1">วิหารแห่งเทพ</div>
             </div>
           </div>
-          
-          <div className="hidden md:flex items-center gap-2">
+
+          <div className="flex items-center gap-2">
             <NavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
             <NavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-            <NavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
             <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
           </div>
 
@@ -123,6 +122,23 @@ export default function Home() {
               <span className="text-sm opacity-70">💰</span>
               <span>{gold.toLocaleString()}</span>
             </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Header (H) */}
+      <header className="md:hidden border-b border-slate-800 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-2 text-amber-400 font-black text-lg">
+            <span className="text-sm opacity-70">💰</span>
+            <span>{gold.toLocaleString()}</span>
+          </div>
+          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            {phase === 'shop' && 'Celestial Emporium'}
+            {phase === 'arena' && 'The Grand Arena'}
+            {phase === 'exploration' && 'Wilderness'}
+            {phase === 'relationship' && 'Divine Village'}
+            {(phase as any) === 'status' && 'Status'}
           </div>
         </div>
       </header>
@@ -193,7 +209,7 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2">
-              <SideNavButton label="อาชีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+              <SideNavButton label="อารีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
               <SideNavButton label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
             </div>
           </div>
@@ -208,7 +224,31 @@ export default function Home() {
           </div>
         </div>
       </div>
+      {/* Mobile Bottom Nav (M) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md">
+        <div className="grid grid-cols-4 gap-0">
+          <MobileNavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
+          <MobileNavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+          <MobileNavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
+          <MobileNavTab label="Status" active={(phase as any) === 'status'} onClick={() => setPhase('status' as any)} />
+        </div>
+      </nav>
     </main>
+  );
+}
+
+function MobileNavTab({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`py-3 text-[10px] font-black uppercase tracking-widest transition-all border-t-2 ${
+        active
+          ? 'text-amber-500 border-amber-500 bg-amber-500/5'
+          : 'text-slate-500 border-transparent hover:text-slate-300'
+      }`}
+    >
+      {label}
+    </button>
   );
 }
 
