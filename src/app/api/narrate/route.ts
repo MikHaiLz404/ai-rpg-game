@@ -15,44 +15,40 @@ export async function POST(request: NextRequest) {
       talk: 'engages in conversation',
     };
 
-    let prompt = '';
+    let systemPrompt = '';
+    let userPrompt = '';
 
     if (action === 'generate_skill') {
-      prompt = `Act as a game designer for a fantasy RPG. Create a unique, powerful combat skill for a champion named Kane.
-      The skill is granted by the God ${npcName} who has the theme: ${godTheme}.
-      This is for Bond Level ${level}.
+      systemPrompt = `คุณคือเกมดีไซเนอร์ของเกม RPG แฟนตาซี "Gods' Arena" ออกแบบสกิลการต่อสู้ที่เป็นเอกลักษณ์`;
+      userPrompt = `สร้างสกิลต่อสู้ใหม่สำหรับ Kane (แชมเปี้ยนนักธนู) ที่ได้รับจากเทพ ${npcName}
+ธีมของเทพ: ${godTheme}
+Bond Level: ${level}
 
-      Output exactly in this JSON format:
-      {
-        "name": "Skill Name",
-        "description": "Short epic description",
-        "multiplier": number between 1.5 and 3.0,
-        "type": "physical" or "magical"
-      }`;
+ตอบเป็น JSON เท่านั้น ห้ามมีข้อความอื่น:
+{
+  "name": "ชื่อสกิล (ภาษาไทยหรืออังกฤษ)",
+  "description": "คำอธิบายสั้นๆ สไตล์มหากาพย์",
+  "multiplier": ตัวเลขระหว่าง 1.5 ถึง 3.0,
+  "type": "physical" หรือ "magical"
+}`;
     } else if (action === 'talk') {
-      if (userMessage) {
-        prompt = `Act as ${npcName}, a God in a fantasy RPG. Personality: ${npcMood}.
-        The player (${playerName}) says: "${userMessage}"
-        
-        Respond to the player in character. Keep it short (1-2 sentences). 
-        You can be mysterious, arrogant, kind, or wise depending on your personality.
-        Format: Just the dialogue. Language: Thai or English (Match the language of the player).`;
-      } else {
-        prompt = `Act as ${npcName}, a God in a fantasy RPG. Personality: ${npcMood}.
-        The player (${playerName}) wants to bond with you.
+      systemPrompt = `คุณคือ ${npcName} เทพในเกม RPG "Gods' Arena (วิหารแห่งเทพ)"
+บุคลิก: ${npcMood}
 
-        Provide a short, meaningful monologue (2 sentences) that asks the player for their opinion on a divine matter or shares a secret prophecy. 
-        Format: Just the dialogue. Language: Thai or English.`;
+กฎการตอบ:
+- ตอบสั้นๆ 1-2 ประโยค เป็นบทสนทนาเท่านั้น ห้ามมีคำนำหน้า
+- พูดให้เข้ากับบุคลิกของเทพ — ลึกลับ สง่างาม หรือดุดัน ตามแต่ตัวละคร
+- ตอบภาษาเดียวกับที่ผู้เล่นพูด (ถ้าพูดไทยก็ตอบไทย ถ้าพูดอังกฤษก็ตอบอังกฤษ)
+- ห้ามออกจากบทบาท ห้ามพูดถึงตัวเองว่าเป็น AI`;
+      if (userMessage) {
+        userPrompt = `ผู้เล่น ${playerName} พูดว่า: "${userMessage}"`;
+      } else {
+        userPrompt = `ผู้เล่น ${playerName} เข้ามาหาคุณเพื่อสร้างสายสัมพันธ์ พูดทักทายหรือแบ่งปันคำทำนายสั้นๆ ที่น่าสนใจ`;
       }
     } else {
-      prompt = `Write a short, dramatic narrative (1-2 sentences) about a turn-based RPG battle.
-        
-Context:
-- ${playerName} ${actionDescriptions[action] || 'performs an action'}
-- Enemy is ${enemyName || 'a mysterious foe'}
-- Damage dealt: ${damage || 0}
-
-Keep it exciting and descriptive. Format: Just the narrative text. Language: Thai or English.`;
+      systemPrompt = `คุณเป็นผู้บรรยายการต่อสู้ในเกม RPG "Gods' Arena" บรรยายสั้น กระชับ ดราม่า 1-2 ประโยค เป็นภาษาไทย`;
+      userPrompt = `${playerName} ${actionDescriptions[action] || 'ลงมือ'} ใส่ ${enemyName || 'ศัตรูปริศนา'} สร้างดาเมจ ${damage || 0}
+บรรยายฉากนี้ให้ตื่นเต้น`;
     }
 
     // If no API key, return a fallback message immediately to avoid 500 error
@@ -74,9 +70,13 @@ Keep it exciting and descriptive. Format: Just the narrative text. Language: Tha
         'X-Title': 'AI RPG Game',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-3b-instruct:free',
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: 150,
+        model: 'google/gemini-2.0-flash-001',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_tokens: 200,
+        temperature: 0.8,
       }),
     });
 

@@ -92,7 +92,10 @@ export class MainScene extends Phaser.Scene {
 
         // Fighters
         this.load.image('kane_idle', '/images/characters/npcs/kane/idle/hero_idle_DOWN.png');
-        this.load.image('slime_idle', '/images/enemies/slime/idle/enemies-slime1_idle.png');
+        this.load.spritesheet('slime_idle', '/images/enemies/slime/idle/enemies-slime1_idle.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
 
         // Combat Effects
         this.load.image('attack_effect', '/images/effects/combat/attack/effect_kane_attack.png');
@@ -145,6 +148,16 @@ export class MainScene extends Phaser.Scene {
         this.createCharAnims('leo', 'npc_leo');
         this.createCharAnims('arena', 'npc_arena');
         this.createCharAnims('draco', 'npc_draco');
+
+        // Enemy idle animations
+        if (!this.anims.exists('slime-idle')) {
+            this.anims.create({
+                key: 'slime-idle',
+                frames: this.anims.generateFrameNumbers('slime_idle', { start: 0, end: 2 }),
+                frameRate: 6,
+                repeat: -1
+            });
+        }
 
         // Attack Animation (Fallback to static image if sprite not found)
         this.anims.create({
@@ -329,7 +342,8 @@ export class MainScene extends Phaser.Scene {
             
             // Scaled up slightly
             this.kaneFighter = this.add.sprite(152, 144, 'kane_idle').setScale(1.3).setDepth(40);
-            this.slimeEnemy = this.add.sprite(232, 144, 'slime_idle').setScale(0.45).setDepth(40);
+            this.slimeEnemy = this.add.sprite(232, 144, 'slime_idle').setScale(1.5).setDepth(40);
+            this.slimeEnemy.anims.play('slime-idle', true);
             
             this.tweens.add({
                 targets: this.kaneFighter,

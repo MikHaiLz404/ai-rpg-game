@@ -4,9 +4,9 @@ import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 
 const ENEMIES = [
-  { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/enemies-slime1_idle.png' },
-  { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png' },
-  { id: 'demon', name: 'Demon', emoji: '🧛', hp: 120, atk: 25, reward: 150, image: '/images/enemies/demon/idle/enemies-vampire_idle.png' },
+  { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/enemies-slime1_idle.png', frames: 3 },
+  { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png', frames: 6 },
+  { id: 'demon', name: 'Demon', emoji: '🧛', hp: 120, atk: 25, reward: 150, image: '/images/enemies/demon/idle/enemies-vampire_idle.png', frames: 6 },
 ];
 
 const CHAMPION = {
@@ -152,7 +152,14 @@ export default function Arena() {
            <div className="text-center">
               <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-red-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
                 {selectedEnemy.image ? (
-                  <img src={selectedEnemy.image} className="w-12 h-12 object-contain image-pixelated animate-bounce" />
+                  <div
+                    className="w-8 h-8 image-pixelated scale-[2.5]"
+                    style={{
+                      backgroundImage: `url(${selectedEnemy.image})`,
+                      backgroundSize: `${selectedEnemy.frames * 100}% 100%`,
+                      animation: `play-enemy-idle 0.6s steps(${selectedEnemy.frames}) infinite`
+                    }}
+                  />
                 ) : <span className="text-3xl">{selectedEnemy.emoji}</span>}
               </div>
               <div className="text-[10px] font-black text-red-400 uppercase">{selectedEnemy.name}</div>
@@ -201,6 +208,7 @@ export default function Arena() {
 
         <style jsx>{`
           @keyframes play-attack { from { background-position: 0% 0%; } to { background-position: 700% 0%; } }
+          @keyframes play-enemy-idle { from { background-position: 0% 0%; } to { background-position: 100% 0%; } }
         `}</style>
       </div>
     );
@@ -218,7 +226,16 @@ export default function Arena() {
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden shadow-inner">
-                {enemy.image ? <img src={enemy.image} className="w-8 h-8 object-contain image-pixelated" /> : enemy.emoji}
+                {enemy.image ? (
+                  <div
+                    className="w-8 h-8 image-pixelated"
+                    style={{
+                      backgroundImage: `url(${enemy.image})`,
+                      backgroundSize: `${enemy.frames * 100}% 100%`,
+                      animation: `play-enemy-idle 0.6s steps(${enemy.frames}) infinite`
+                    }}
+                  />
+                ) : enemy.emoji}
               </div>
               <div className="text-left">
                 <div className="font-black text-white uppercase tracking-tight">{enemy.name}</div>
@@ -229,6 +246,9 @@ export default function Arena() {
           </button>
         ))}
       </div>
+      <style jsx>{`
+        @keyframes play-enemy-idle { from { background-position: 0% 0%; } to { background-position: 100% 0%; } }
+      `}</style>
     </div>
   );
 }

@@ -2,16 +2,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 
-function makeFrames(base: string, count: number) {
-  // Since we don't have frame_X_Y files anymore, we just return an array of the base image 
-  // or handle animations differently. For now, we'll just use the single image.
-  return Array(count).fill(base);
+function makeFrames(basePath: string) {
+  // Generate 12 frame paths: frame_0_0 through frame_3_2 (4 rows x 3 cols)
+  const frames: string[] = [];
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 3; col++) {
+      frames.push(`${basePath}/frame_${row}_${col}.png`);
+    }
+  }
+  return frames;
 }
 
 const NPC_METADATA = {
-  leo: { emoji: '⚔️', desc: 'เทพสงคราม', theme: 'War & Physical Strength', sprites: makeFrames('/images/characters/npcs/leo/idle/hero_idle_DOWN.png', 12) },
-  arena: { emoji: '👑', desc: 'ราชินีแห่งวิหาร', theme: 'Royal Protection & Light', sprites: makeFrames('/images/characters/npcs/arena/idle/hero_idle_DOWN.png', 12) },
-  draco: { emoji: '🐉', desc: 'มังกรบรรพกาล', theme: 'Ancient Fire & Magic', sprites: makeFrames('/images/characters/npcs/draco/idle/hero_idle_DOWN.png', 12) },
+  leo: { emoji: '⚔️', desc: 'เทพสงคราม — ดุดัน เด็ดขาด พูดตรง', theme: 'War & Physical Strength', sprites: makeFrames('/images/characters/npcs/leo/idle') },
+  arena: { emoji: '👑', desc: 'ราชินีแห่งวิหาร — สง่างาม อ่อนโยน ลึกลับ', theme: 'Royal Protection & Light', sprites: makeFrames('/images/characters/npcs/arena/idle') },
+  draco: { emoji: '🐉', desc: 'มังกรบรรพกาล — เฒ่าแก่ ปราดเปรื่อง พูดน้อยแต่ได้ใจความ', theme: 'Ancient Fire & Magic', sprites: makeFrames('/images/characters/npcs/draco/idle') },
   kane: { emoji: '🏹', desc: 'ผู้พิทักษ์ (Your Champion)', theme: 'Agility & Archery', sprites: [] },
 };
 
@@ -262,8 +267,12 @@ export default function Relationship() {
                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                   <span className="text-4xl font-black">{comp.level}</span>
                 </div>
-                <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-4xl shadow-xl border border-white/5 group-hover:scale-110 transition-transform">
-                  {meta?.emoji || '👤'}
+                <div className="w-16 h-16 bg-slate-900 rounded-2xl flex items-center justify-center text-4xl shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">
+                  {meta?.sprites.length ? (
+                    <img src={meta.sprites[frameIndex]} alt={comp.name} className="w-12 h-12 object-contain image-pixelated" />
+                  ) : (
+                    <span>{meta?.emoji || '👤'}</span>
+                  )}
                 </div>
                 <div className="text-center">
                   <div className="font-black text-white uppercase tracking-tight">{comp.name}</div>
