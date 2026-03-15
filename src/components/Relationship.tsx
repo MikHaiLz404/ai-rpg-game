@@ -118,10 +118,14 @@ export default function Relationship() {
           });
         }, 500);
 
-        addBond(id, 1);
-
-        // Check skill unlock after bond increase (use timeout to let state update)
-        setTimeout(() => checkAutoSkillUnlock(id), 100);
+        // Bond gain: 40% chance for +1, lower chance at higher bond
+        const bondChance = Math.max(0.15, 0.4 - companion.bond * 0.02);
+        if (Math.random() < bondChance) {
+          addBond(id, 1);
+          setChatLog(prev => [...prev, { sender: 'system', text: `💗 Bond +1` }]);
+          // Check skill unlock after bond increase
+          setTimeout(() => checkAutoSkillUnlock(id), 100);
+        }
       }
     } catch (err) {
       const fallback = config?.greeting || `${companion.name} nods in approval.`;
@@ -263,8 +267,13 @@ export default function Relationship() {
               <button
                 key={comp.id}
                 onClick={() => {
+                  setSelectedId(comp.id);
                   EventBus.emit('village-walk-to-npc', { npcId: comp.id });
-                  handleTalk(comp.id);
+                  const onArrival = () => {
+                    EventBus.off('village-walk-complete', onArrival);
+                    handleTalk(comp.id);
+                  };
+                  EventBus.on('village-walk-complete', onArrival);
                 }}
                 className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden h-48"
               >

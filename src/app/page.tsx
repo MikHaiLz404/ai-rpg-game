@@ -41,11 +41,11 @@ const ExplorationUI = () => (
 );
 
 export default function Home() {
-  const { 
-    phase, setPhase, gold, items, companions, loadSaveData, 
-    day, isShiftActive, startShift, setDialogue 
+  const {
+    phase, setPhase, gold, items, companions, loadSaveData, resetGame,
+    day, isShiftActive, startShift, setDialogue
   } = useGameStore();
-  const { initializeSave, currentSaveData, saveGame, autoSaveEnabled } = useSaveStore();
+  const { initializeSave, currentSaveData, saveGame, autoSaveEnabled, deleteAllSaves } = useSaveStore();
 
   useEffect(() => {
     initializeSave();
@@ -182,17 +182,31 @@ export default function Home() {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
-                const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
-                saveGame(gold, null, saveItems as any, relationships, 0, true);
-                alert('Divine Progress Saved!');
-              }}
-              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
-            >
-              💾 Save
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
+                  const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
+                  saveGame(gold, null, saveItems as any, relationships, 0, true);
+                  alert('Divine Progress Saved!');
+                }}
+                className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
+              >
+                💾 Save
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('Reset all game data? This cannot be undone.')) {
+                    deleteAllSaves();
+                    resetGame();
+                    alert('Game data cleared!');
+                  }
+                }}
+                className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 text-red-400"
+              >
+                🗑 Reset
+              </button>
+            </div>
           </div>
         </div>
         

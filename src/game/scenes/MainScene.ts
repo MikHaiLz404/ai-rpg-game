@@ -426,9 +426,9 @@ export class MainScene extends Phaser.Scene {
         if (this.walkTween) this.walkTween.stop();
 
         // Waypoint paths from Minju spawn (155, 200) along village roads
-        const ROAD_X = 155; // vertical road x
-        const ROAD_TOP_Y = 55; // top horizontal road y
-        const ROAD_MID_Y = 158; // mid horizontal road y
+        const ROAD_X = 185; // vertical road x
+        const ROAD_TOP_Y = 85; // top horizontal road y
+        const ROAD_MID_Y = 188; // mid horizontal road y
 
         const waypoints: { x: number; y: number }[] = [];
 
@@ -457,6 +457,7 @@ export class MainScene extends Phaser.Scene {
             this.player.anims.play('player-up', true);
             this.player.anims.stop();
             this.player.setFrame(9); // face up toward NPC
+            EventBus.emit('village-walk-complete');
             return;
         }
 
@@ -596,14 +597,14 @@ export class MainScene extends Phaser.Scene {
             });
 
         } else if (roomName === 'village') {
-            this.player.setPosition(155, 200);
+            this.player.setPosition(185, 230);
             this.player.anims.play('player-down', true);
 
             // Spawn NPCs scattered around the village (positions from guide)
             const villageNPCList = [
-                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 84, y: 35 },
-                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 127, y: 35 },
-                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 276, y: 158 },
+                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 114, y: 65 },
+                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 157, y: 65 },
+                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 306, y: 188 },
             ];
             for (const npc of villageNPCList) {
                 const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);

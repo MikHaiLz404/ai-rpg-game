@@ -69,6 +69,7 @@ interface GameStore {
   setDialogue: (dialogue: Dialogue | null) => void;
 
   loadSaveData: (data: any) => void;
+  resetGame: () => void;
 }
 
 const INITIAL_COMPANIONS: Companion[] = [
@@ -171,6 +172,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   dialogue: null,
   setDialogue: (dialogue) => set({ dialogue }),
+
+  resetGame: () => set({
+    gold: 500,
+    player: { gold: 500, hp: 100, maxHp: 100 },
+    items: ['potion_health', 'potion_health', 'soap', 'mirror', 'flower', 'flower'],
+    companions: INITIAL_COMPANIONS.map(c => ({ ...c })),
+    day: 1,
+    customersServed: 0,
+    isShiftActive: false,
+    currentCustomer: null,
+    dialogue: null,
+    phase: 'shop' as GamePhase,
+  }),
 
   loadSaveData: (data) => {
     if (!data) return;

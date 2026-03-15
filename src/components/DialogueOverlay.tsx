@@ -9,6 +9,12 @@ const FACIAL_EXPRESSIONS: Record<string, string> = {
   default: '/images/characters/player/minju/facial/work/work.png',
 };
 
+const NPC_PORTRAITS: Record<string, string> = {
+  'เลโอ': '/images/characters/npcs/facial/leo.png',
+  'อารีน่า': '/images/characters/npcs/arena/facial/arena.png',
+  'ดราโก้': '/images/characters/npcs/draco/facial/draco.png',
+};
+
 export default function DialogueOverlay() {
   const { dialogue, setDialogue, phase } = useGameStore();
 
@@ -16,11 +22,12 @@ export default function DialogueOverlay() {
 
   const isTop = phase === 'shop';
 
-  // Determine portrait - only Minju has facial expressions for now
-  let portraitSrc = dialogue.portrait;
+  // Determine portrait
+  let portraitSrc: string | undefined;
   if (dialogue.speaker.toLowerCase() === 'minju' || dialogue.speaker === 'เคน' || dialogue.speaker === 'Kane') {
-     // If it's Minju/Player, map the expression key to the URL
      portraitSrc = FACIAL_EXPRESSIONS[dialogue.portrait || 'default'] || FACIAL_EXPRESSIONS.default;
+  } else if (NPC_PORTRAITS[dialogue.speaker]) {
+     portraitSrc = NPC_PORTRAITS[dialogue.speaker];
   }
 
   return (
