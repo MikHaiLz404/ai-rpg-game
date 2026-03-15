@@ -245,9 +245,8 @@ export class MainScene extends Phaser.Scene {
         this.player.setScale(1.5).setDepth(50);
         this.player.anims.play('player-down', true);
 
-        // Initialize keyboard controls
-        this.cursors = this.input.keyboard!.createCursorKeys();
-        this.wasdKeys = this.input.keyboard!.addKeys('W,A,S,D') as any;
+        // Disable Phaser keyboard capture so HTML inputs work
+        this.input.keyboard!.disableGlobalCapture();
 
         this.loadRoom('shop');
 
@@ -426,9 +425,9 @@ export class MainScene extends Phaser.Scene {
         if (this.walkTween) this.walkTween.stop();
 
         // Waypoint paths from Minju spawn (155, 200) along village roads
-        const ROAD_X = 185; // vertical road x
-        const ROAD_TOP_Y = 85; // top horizontal road y
-        const ROAD_MID_Y = 188; // mid horizontal road y
+        const ROAD_X = 205; // vertical road x
+        const ROAD_TOP_Y = 105; // top horizontal road y
+        const ROAD_MID_Y = 208; // mid horizontal road y
 
         const waypoints: { x: number; y: number }[] = [];
 
@@ -597,14 +596,14 @@ export class MainScene extends Phaser.Scene {
             });
 
         } else if (roomName === 'village') {
-            this.player.setPosition(185, 230);
+            this.player.setPosition(205, 250);
             this.player.anims.play('player-down', true);
 
             // Spawn NPCs scattered around the village (positions from guide)
             const villageNPCList = [
-                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 114, y: 65 },
-                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 157, y: 65 },
-                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 306, y: 188 },
+                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 134, y: 85 },
+                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 177, y: 85 },
+                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 326, y: 208 },
             ];
             for (const npc of villageNPCList) {
                 const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);

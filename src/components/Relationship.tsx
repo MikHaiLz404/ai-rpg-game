@@ -25,22 +25,23 @@ export default function Relationship() {
     }
   }, [chatLog]);
 
-  // Check for auto-skill unlock when bond changes
+  // Check for auto-skill unlock when bond changes (reads fresh state)
   const checkAutoSkillUnlock = async (id: string) => {
-    const companion = companions.find(c => c.id === id);
-    if (!companion || isGeneratingSkill) return;
+    // Read fresh state from store to avoid stale closure
+    const freshCompanion = useGameStore.getState().companions.find(c => c.id === id);
+    if (!freshCompanion || isGeneratingSkill) return;
 
     const config = NPC_CONFIGS[id];
     if (!config) return;
 
     const unclaimedThreshold = SKILL_THRESHOLDS.find(
-      t => companion.bond >= t && !companion.claimedThresholds.includes(t)
+      t => freshCompanion.bond >= t && !freshCompanion.claimedThresholds.includes(t)
     );
 
     if (!unclaimedThreshold) return;
 
     setIsGeneratingSkill(true);
-    setChatLog(prev => [...prev, { sender: 'system', text: `🌟 Bond Level ${unclaimedThreshold} reached! ${companion.name} is granting a new skill...` }]);
+    setChatLog(prev => [...prev, { sender: 'system', text: `🌟 Bond Level ${unclaimedThreshold} reached! ${freshCompanion.name} is granting a new skill...` }]);
 
     try {
       const res = await fetch('/api/narrate', {
@@ -48,9 +49,9 @@ export default function Relationship() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'generate_skill',
-          npcName: companion.name,
+          npcName: freshCompanion.name,
           godTheme: config.theme,
-          level: companion.level
+          level: freshCompanion.level
         })
       });
       const data = await res.json();
@@ -61,7 +62,7 @@ export default function Relationship() {
 
       setChatLog(prev => [...prev, { sender: 'system', text: `✨ NEW SKILL: ${skillData.name}! (x${skillData.multiplier} DMG)` }]);
       setDialogue({
-        speaker: companion.name,
+        speaker: freshCompanion.name,
         text: `รับพลังนี้ไป... ${skillData.name} เป็นของเจ้าแล้ว`,
       });
     } catch (err) {

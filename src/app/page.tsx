@@ -112,10 +112,10 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            <NavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
-            <NavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-            <NavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
-            <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
+            <NavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} disabled={false} />
+            <NavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} disabled={isShiftActive} />
+            <NavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} disabled={isShiftActive} />
+            <NavTab label="Status" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} disabled={false} />
           </div>
 
           <div className="flex items-center gap-4">
@@ -224,22 +224,25 @@ export default function Home() {
       {/* Bottom Nav - always visible */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md">
         <div className="grid grid-cols-4 gap-0">
-          <MobileNavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
-          <MobileNavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
-          <MobileNavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
-          <MobileNavTab label="Status" active={(phase as any) === 'status'} onClick={() => setPhase('status' as any)} />
+          <MobileNavTab label="Shop" active={phase === 'shop'} onClick={() => changeRoom('shop')} disabled={false} />
+          <MobileNavTab label="Arena" active={phase === 'arena'} onClick={() => changeRoom('arena')} disabled={isShiftActive} />
+          <MobileNavTab label="Village" active={phase === 'relationship'} onClick={() => changeRoom('village')} disabled={isShiftActive} />
+          <MobileNavTab label="Status" active={(phase as any) === 'status'} onClick={() => setPhase('status' as any)} disabled={false} />
         </div>
       </nav>
     </main>
   );
 }
 
-function MobileNavTab({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
+function MobileNavTab({ label, active, onClick, disabled }: { label: string, active: boolean, onClick: () => void, disabled?: boolean }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={`py-3 text-[10px] font-black uppercase tracking-widest transition-all border-t-2 ${
-        active
+        disabled
+          ? 'text-slate-700 border-transparent cursor-not-allowed'
+          : active
           ? 'text-amber-500 border-amber-500 bg-amber-500/5'
           : 'text-slate-500 border-transparent hover:text-slate-300'
       }`}
@@ -249,13 +252,16 @@ function MobileNavTab({ label, active, onClick }: { label: string, active: boole
   );
 }
 
-function NavTab({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
+function NavTab({ label, active, onClick, disabled }: { label: string, active: boolean, onClick: () => void, disabled?: boolean }) {
   return (
-    <button 
+    <button
       onClick={onClick}
+      disabled={disabled}
       className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-        active 
-          ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20' 
+        disabled
+          ? 'text-slate-700 cursor-not-allowed'
+          : active
+          ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20'
           : 'text-slate-500 hover:text-white hover:bg-slate-800/50'
       }`}
     >
