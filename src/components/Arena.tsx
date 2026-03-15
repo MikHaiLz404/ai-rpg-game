@@ -12,7 +12,7 @@ const ENEMIES = [
 const CHAMPION = {
   id: 'kane',
   name: 'Kane',
-  idleImage: '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
+  idleImage: '/images/characters/npcs/kane/idle/hero_idle_RIGHT.png',
   attackImage: '/images/characters/npcs/kane/attack/hero_bow_RIGHT.png'
 };
 
@@ -41,6 +41,9 @@ export default function Arena() {
     setResult(null);
     setCombatLog([`⚔️ Battle Started: Kane vs ${enemy.name}`]);
     setInCombat(true);
+
+    // Update Phaser scene enemy sprite
+    EventBus.emit('arena-enemy-change', { enemyType: enemy.id });
 
     setDialogue({
       speaker: 'Minju',
@@ -95,6 +98,9 @@ export default function Arena() {
       setResult('win');
       addGold(selectedEnemy.reward);
       setIsAttacking(false);
+
+      // Play death animation in Phaser
+      EventBus.emit('arena-enemy-death');
 
       setDialogue({
         speaker: 'Minju',
@@ -196,8 +202,8 @@ export default function Arena() {
         </div>
 
         {result && (
-          <button 
-            onClick={() => setInCombat(false)}
+          <button
+            onClick={() => { setInCombat(false); EventBus.emit('arena-combat-end'); }}
             className={`w-full py-4 font-black rounded-xl mb-4 uppercase tracking-widest transition-all scale-100 hover:scale-105 active:scale-95
               ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
             `}

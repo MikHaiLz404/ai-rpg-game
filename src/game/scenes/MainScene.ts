@@ -52,7 +52,10 @@ export class MainScene extends Phaser.Scene {
     
     // Arena Fighters
     kaneFighter: Phaser.GameObjects.Sprite | null = null;
-    slimeEnemy: Phaser.GameObjects.Sprite | null = null;
+    arenaEnemy: Phaser.GameObjects.Sprite | null = null;
+    currentEnemyType: string = 'slime';
+    kaneBobTween: Phaser.Tweens.Tween | null = null;
+    enemyBobTween: Phaser.Tweens.Tween | null = null;
 
     // Debug
     debugMode = false;
@@ -90,17 +93,60 @@ export class MainScene extends Phaser.Scene {
             frameHeight: 32
         });
 
-        // Fighters
-        this.load.image('kane_idle', '/images/characters/npcs/kane/idle/hero_idle_DOWN.png');
-        this.load.spritesheet('slime_idle', '/images/enemies/slime/idle/enemies-slime1_idle.png', {
-            frameWidth: 32,
-            frameHeight: 32
+        // Kane sprites
+        this.load.image('kane_idle', '/images/characters/npcs/kane/idle/hero_idle_RIGHT.png');
+        this.load.spritesheet('kane_attack', '/images/characters/npcs/kane/attack/hero_bow_RIGHT.png', {
+            frameWidth: 32, frameHeight: 32
         });
 
-        // Combat Effects (480x32 = 15 frames)
+        // Enemy sprites - Slime
+        this.load.spritesheet('slime_idle', '/images/enemies/slime/idle/enemies-slime1_idle.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('slime_attack', '/images/enemies/slime/attack/enemies-slime1_attack.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('slime_damage', '/images/enemies/slime/damaged/enemies-slime1_take_damage.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('slime_death', '/images/enemies/slime/death/enemies-slime1_death.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+
+        // Enemy sprites - Skeleton
+        this.load.spritesheet('skeleton_idle', '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('skeleton_attack', '/images/enemies/skeleton/attack/enemies-skeleton2_attack.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('skeleton_damage', '/images/enemies/skeleton/damaged/enemies-skeleton2_take_damage.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('skeleton_death', '/images/enemies/skeleton/death/enemies-skeleton2_death.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+
+        // Enemy sprites - Demon
+        this.load.spritesheet('demon_idle', '/images/enemies/demon/idle/enemies-vampire_idle.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('demon_attack', '/images/enemies/demon/attack/enemies-vampire_attack.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('demon_damage', '/images/enemies/demon/damaged/enemies-vampire_take_damage.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('demon_death', '/images/enemies/demon/death/enemies-vamenemies-skeleton2_death.png', {
+            frameWidth: 32, frameHeight: 32
+        });
+
+        // Combat Effects
         this.load.spritesheet('attack_effect', '/images/effects/combat/attack/effect_kane_attack.png', {
-            frameWidth: 32,
-            frameHeight: 32
+            frameWidth: 32, frameHeight: 32
+        });
+        this.load.spritesheet('enemy_attack_effect', '/images/effects/combat/attack/effect_enemy_attack.png', {
+            frameWidth: 64, frameHeight: 64
         });
         
         // Backgrounds
@@ -145,6 +191,12 @@ export class MainScene extends Phaser.Scene {
         }
     }
 
+    createAnimIfNeeded(key: string, texture: string, start: number, end: number, frameRate: number, repeat: number, hideOnComplete = false) {
+        if (!this.anims.exists(key)) {
+            this.anims.create({ key, frames: this.anims.generateFrameNumbers(texture, { start, end }), frameRate, repeat, hideOnComplete });
+        }
+    }
+
     create() {
         // Create animations
         this.createCharAnims('player', 'player');
@@ -152,24 +204,30 @@ export class MainScene extends Phaser.Scene {
         this.createCharAnims('arena', 'npc_arena');
         this.createCharAnims('draco', 'npc_draco');
 
-        // Enemy idle animations
-        if (!this.anims.exists('slime-idle')) {
-            this.anims.create({
-                key: 'slime-idle',
-                frames: this.anims.generateFrameNumbers('slime_idle', { start: 0, end: 2 }),
-                frameRate: 6,
-                repeat: -1
-            });
-        }
+        // Kane animations
+        this.createAnimIfNeeded('kane-attack', 'kane_attack', 0, 6, 12, 0);
 
-        // Attack Animation (15 frames from spritesheet)
-        this.anims.create({
-            key: 'hit_effect',
-            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 14 }),
-            frameRate: 30,
-            repeat: 0,
-            hideOnComplete: true
-        });
+        // Enemy animations - Slime
+        this.createAnimIfNeeded('slime-idle', 'slime_idle', 0, 2, 6, -1);
+        this.createAnimIfNeeded('slime-attack', 'slime_attack', 0, 2, 10, 0);
+        this.createAnimIfNeeded('slime-damage', 'slime_damage', 0, 2, 10, 0);
+        this.createAnimIfNeeded('slime-death', 'slime_death', 0, 9, 10, 0);
+
+        // Enemy animations - Skeleton
+        this.createAnimIfNeeded('skeleton-idle', 'skeleton_idle', 0, 5, 6, -1);
+        this.createAnimIfNeeded('skeleton-attack', 'skeleton_attack', 0, 14, 15, 0);
+        this.createAnimIfNeeded('skeleton-damage', 'skeleton_damage', 0, 4, 10, 0);
+        this.createAnimIfNeeded('skeleton-death', 'skeleton_death', 0, 14, 10, 0);
+
+        // Enemy animations - Demon
+        this.createAnimIfNeeded('demon-idle', 'demon_idle', 0, 5, 6, -1);
+        this.createAnimIfNeeded('demon-attack', 'demon_attack', 0, 15, 15, 0);
+        this.createAnimIfNeeded('demon-damage', 'demon_damage', 0, 4, 10, 0);
+        this.createAnimIfNeeded('demon-death', 'demon_death', 0, 14, 10, 0);
+
+        // Hit effect animations
+        this.createAnimIfNeeded('hit_effect', 'attack_effect', 0, 14, 30, 0, true);
+        this.createAnimIfNeeded('enemy_hit_effect', 'enemy_attack_effect', 0, 10, 20, 0, true);
 
         this.roomText = this.add.text(192, 20, '', {
             fontSize: '18px',
@@ -210,9 +268,21 @@ export class MainScene extends Phaser.Scene {
             this.loadRoom(roomName);
         });
 
-        // Listen for combat attacks
+        // Listen for combat events
         EventBus.on('arena-attack', (data: { target: 'player' | 'enemy' }) => {
             this.playAttackEffect(data.target);
+        });
+
+        EventBus.on('arena-enemy-change', (data: { enemyType: string }) => {
+            this.spawnArenaEnemy(data.enemyType);
+        });
+
+        EventBus.on('arena-enemy-death', () => {
+            this.playEnemyDeath();
+        });
+
+        EventBus.on('arena-combat-end', () => {
+            this.resetArenaIdle();
         });
 
         // Debug Grid
@@ -247,25 +317,104 @@ export class MainScene extends Phaser.Scene {
     }
 
     playAttackEffect(target: 'player' | 'enemy') {
-        const x = target === 'enemy' ? (this.slimeEnemy?.x || 232) : (this.kaneFighter?.x || 152);
-        const y = target === 'enemy' ? (this.slimeEnemy?.y || 144) : (this.kaneFighter?.y || 144);
-        
-        const effect = this.add.sprite(x, y, 'attack_effect').setDepth(100);
-        effect.play('hit_effect');
-        effect.on('animationcomplete', () => {
-            effect.destroy();
+        const enemySprite = this.arenaEnemy;
+        const targetSprite = target === 'enemy' ? enemySprite : this.kaneFighter;
+        const x = targetSprite?.x || 192;
+        const y = targetSprite?.y || 154;
+
+        // Attacker plays attack animation
+        if (target === 'enemy' && this.kaneFighter) {
+            // Kane attacks enemy
+            this.kaneFighter.setTexture('kane_attack');
+            this.kaneFighter.play('kane-attack');
+            this.kaneFighter.once('animationcomplete', () => {
+                this.kaneFighter?.setTexture('kane_idle');
+            });
+            // Enemy takes damage
+            if (enemySprite) {
+                this.time.delayedCall(300, () => {
+                    enemySprite.play(`${this.currentEnemyType}-damage`);
+                    enemySprite.once('animationcomplete', () => {
+                        enemySprite.play(`${this.currentEnemyType}-idle`);
+                    });
+                });
+            }
+        } else if (target === 'player') {
+            // Enemy attacks Kane
+            if (enemySprite) {
+                enemySprite.play(`${this.currentEnemyType}-attack`);
+                enemySprite.once('animationcomplete', () => {
+                    enemySprite.play(`${this.currentEnemyType}-idle`);
+                });
+            }
+        }
+
+        // Hit effect on target — Kane uses kane effect, enemy uses enemy effect
+        if (target === 'enemy') {
+            this.time.delayedCall(300, () => {
+                const effect = this.add.sprite(x, y, 'attack_effect').setDepth(100);
+                effect.play('hit_effect');
+                effect.on('animationcomplete', () => effect.destroy());
+            });
+        } else {
+            const effect = this.add.sprite(x, y, 'enemy_attack_effect').setScale(0.8).setDepth(100);
+            effect.play('enemy_hit_effect');
+            effect.on('animationcomplete', () => effect.destroy());
+        }
+
+        // Shake effect on target
+        if (targetSprite) {
+            const shakeDelay = target === 'enemy' ? 300 : 0;
+            this.time.delayedCall(shakeDelay, () => {
+                this.tweens.add({
+                    targets: targetSprite,
+                    x: targetSprite.x + (target === 'enemy' ? 5 : -5),
+                    duration: 50,
+                    yoyo: true,
+                    repeat: 3
+                });
+            });
+        }
+    }
+
+    spawnArenaEnemy(enemyType: string) {
+        if (this.currentRoom !== 'arena') return;
+        this.currentEnemyType = enemyType;
+
+        if (this.arenaEnemy) {
+            if (this.enemyBobTween) this.enemyBobTween.stop();
+            this.arenaEnemy.destroy();
+        }
+
+        this.arenaEnemy = this.add.sprite(170, 154, `${enemyType}_idle`).setScale(1.5).setDepth(40);
+        this.arenaEnemy.play(`${enemyType}-idle`);
+
+        this.enemyBobTween = this.tweens.add({
+            targets: this.arenaEnemy,
+            y: 152,
+            duration: 800,
+            yoyo: true,
+            repeat: -1
         });
 
-        // Shake effect
-        const targetSprite = target === 'enemy' ? this.slimeEnemy : this.kaneFighter;
-        if (targetSprite) {
-            this.tweens.add({
-                targets: targetSprite,
-                x: targetSprite.x + (target === 'enemy' ? 5 : -5),
-                duration: 50,
-                yoyo: true,
-                repeat: 3
-            });
+        // Reset Kane to idle
+        if (this.kaneFighter) {
+            this.kaneFighter.setTexture('kane_idle');
+        }
+    }
+
+    playEnemyDeath() {
+        if (!this.arenaEnemy) return;
+        if (this.enemyBobTween) this.enemyBobTween.stop();
+        this.arenaEnemy.play(`${this.currentEnemyType}-death`);
+    }
+
+    resetArenaIdle() {
+        if (this.currentRoom !== 'arena') return;
+        // Reset enemy to default slime
+        this.spawnArenaEnemy('slime');
+        if (this.kaneFighter) {
+            this.kaneFighter.setTexture('kane_idle');
         }
     }
 
@@ -323,7 +472,9 @@ export class MainScene extends Phaser.Scene {
         if (this.bgSprite) this.bgSprite.destroy();
         
         if (this.kaneFighter) this.kaneFighter.destroy();
-        if (this.slimeEnemy) this.slimeEnemy.destroy();
+        if (this.arenaEnemy) this.arenaEnemy.destroy();
+        if (this.kaneBobTween) this.kaneBobTween.stop();
+        if (this.enemyBobTween) this.enemyBobTween.stop();
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
@@ -343,22 +494,25 @@ export class MainScene extends Phaser.Scene {
             this.player.setPosition(120, 240);
             this.player.anims.play('player-down', true);
 
-            // Kane and enemy facing each other
-            this.kaneFighter = this.add.sprite(165, 144, 'kane_idle').setScale(1.5).setDepth(40);
-            this.slimeEnemy = this.add.sprite(220, 144, 'slime_idle').setScale(1.5).setDepth(40);
-            this.slimeEnemy.anims.play('slime-idle', true);
+            // Kane facing right (toward enemy)
+            this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
+
+            // Enemy facing Kane (50px closer: 220→170)
+            this.currentEnemyType = 'slime';
+            this.arenaEnemy = this.add.sprite(170, 154, 'slime_idle').setScale(1.5).setDepth(40);
+            this.arenaEnemy.play('slime-idle', true);
 
             // Subtle idle bob
-            this.tweens.add({
+            this.kaneBobTween = this.tweens.add({
                 targets: this.kaneFighter,
-                y: 142,
+                y: 152,
                 duration: 1000,
                 yoyo: true,
                 repeat: -1
             });
-            this.tweens.add({
-                targets: this.slimeEnemy,
-                y: 142,
+            this.enemyBobTween = this.tweens.add({
+                targets: this.arenaEnemy,
+                y: 152,
                 duration: 800,
                 yoyo: true,
                 repeat: -1
