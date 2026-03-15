@@ -86,9 +86,22 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
         if (action === 'shop_talk') {
             fallback = `สวัสดี ${playerName}! ข้ามาหา ${wantedItem} น่ะ มีของชิ้นนี้อยู่มั้ย? ยินดีจ่าย ${offeredGold} gold เลย`;
         } else if (action === 'talk') {
-            fallback = userMessage
-                ? `${npcName} พิจารณาคำพูดของเจ้าอย่างลึกซึ้ง แล้วพยักหน้ารับ`
-                : `${npcName} ยิ้มให้เจ้าอย่างอบอุ่น "ยินดีที่ได้พบ ${playerName} วันนี้อากาศดีนะ"`;
+            const talkFallbacks: Record<string, { greet: string; reply: string }> = {
+                'เลโอ': {
+                    greet: `"เจ้ามาอีกแล้วหรือ? ดี — ข้าเริ่มเบื่อที่นี่พอดี"`,
+                    reply: `"ฮึ... ก็พอฟังได้ เล่าต่อเถอะ"`,
+                },
+                'อารีน่า': {
+                    greet: `"ยินดีต้อนรับ ผู้มาเยือน... ลมวันนี้พัดพาเรื่องราวน่าสนใจมาให้ข้า"`,
+                    reply: `"น่าสนใจ... เจ้ามีความคิดที่ลึกซึ้งกว่าที่ข้าคาดไว้"`,
+                },
+                'ดราโก้': {
+                    greet: `"ฮึ่ม... เจ้ามาถึงแล้วหรือ นั่งลงเถิด ข้ามีเรื่องจะเล่า"`,
+                    reply: `"ฮึ่ม... ข้าเคยเห็นเรื่องคล้ายกันเมื่อหมื่นปีก่อน"`,
+                },
+            };
+            const npcFallback = talkFallbacks[npcName] || { greet: `"..."`, reply: `"..."` };
+            fallback = userMessage ? npcFallback.reply : npcFallback.greet;
         } else if (action === 'generate_skill') {
             fallback = JSON.stringify({ name: 'Divine Strike', description: 'พลังศักดิ์สิทธิ์จากเทพ', multiplier: 1.8, type: 'magical' });
         } else {
