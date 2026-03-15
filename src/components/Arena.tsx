@@ -6,7 +6,7 @@ import { EventBus } from '@/game/EventBus';
 const ENEMIES = [
   { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/enemies-slime1_idle.png', frames: 3 },
   { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png', frames: 6 },
-  { id: 'demon', name: 'Demon', emoji: '🧛', hp: 120, atk: 25, reward: 150, image: '/images/enemies/demon/idle/enemies-vampire_idle.png', frames: 6 },
+  { id: 'demon', name: 'Vampire Lord', emoji: '🧛', hp: 250, atk: 45, reward: 500, image: '/images/enemies/demon/idle/enemies-vampire_idle.png', frames: 6 },
 ];
 
 const CHAMPION = {
@@ -17,7 +17,7 @@ const CHAMPION = {
 };
 
 export default function Arena() {
-  const { gold, addGold, companions, getBondBonus, addBond, setDialogue } = useGameStore();
+  const { gold, addGold, companions, getBondBonus, addBond, setDialogue, defeatVampire, gameOver } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
@@ -106,11 +106,21 @@ export default function Arena() {
       // Play death animation in Phaser
       EventBus.emit('arena-enemy-death');
 
-      setDialogue({
-        speaker: 'Minju',
-        text: `Victory is ours! You did it, Kane! The ${selectedEnemy.reward} gold will help our shop greatly.`,
-        portrait: 'happy'
-      });
+      // Check if vampire lord defeated
+      if (selectedEnemy.id === 'demon') {
+        defeatVampire();
+        setDialogue({
+          speaker: 'Minju',
+          text: `We... we actually defeated the Vampire Lord! The gods' blessings made this possible!`,
+          portrait: 'happy'
+        });
+      } else {
+        setDialogue({
+          speaker: 'Minju',
+          text: `Victory is ours! You did it, Kane! The ${selectedEnemy.reward} gold will help our shop greatly.`,
+          portrait: 'happy'
+        });
+      }
       return;
     }
     

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 
 export type GamePhase = 'shop' | 'arena' | 'exploration' | 'relationship';
 
+export const MAX_TURNS = 20;
+
 interface Player {
   gold: number;
   hp: number;
@@ -37,7 +39,7 @@ interface Customer {
 interface Dialogue {
   speaker: string;
   text: string;
-  portrait?: string; // URL to the facial expression image
+  portrait?: string;
 }
 
 interface GameStore {
@@ -57,14 +59,19 @@ interface GameStore {
   getBondBonus: (id: string) => { atk: number; def: number };
   currentCustomer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
-  
+
   day: number;
   customersServed: number;
   isShiftActive: boolean;
   startShift: () => void;
   endShift: () => void;
   incrementServed: () => void;
-  
+
+  gameOver: 'win' | 'lose' | null;
+  vampireDefeated: boolean;
+  defeatVampire: () => void;
+  setGameOver: (result: 'win' | 'lose' | null) => void;
+
   dialogue: Dialogue | null;
   setDialogue: (dialogue: Dialogue | null) => void;
 
@@ -82,17 +89,17 @@ const INITIAL_COMPANIONS: Companion[] = [
 export const useGameStore = create<GameStore>((set, get) => ({
   phase: 'shop',
   setPhase: (phase) => set({ phase }),
-  
+
   player: { gold: 500, hp: 100, maxHp: 100 },
   gold: 500,
-  addGold: (amount) => set((state) => ({ 
+  addGold: (amount) => set((state) => ({
     gold: state.gold + amount,
     player: { ...state.player, gold: state.player.gold + amount }
   })),
   spendGold: (amount) => {
     const state = get();
     if (state.gold >= amount) {
-      set({ 
+      set({
         gold: state.gold - amount,
         player: { ...state.player, gold: state.player.gold - amount }
       });
@@ -100,7 +107,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     return false;
   },
-  
+
   items: ['potion_health', 'potion_health', 'soap', 'mirror', 'flower', 'flower'],
   addItem: (item) => set((state) => ({ items: [...state.items, item] })),
   removeItem: (item) => set((state) => {
@@ -112,9 +119,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     return state;
   }),
-  
+
   companions: INITIAL_COMPANIONS,
-  
+
   addBond: (id, amount) => set((state) => ({
     companions: state.companions.map(c => {
       if (c.id === id) {
@@ -128,13 +135,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   unlockSkill: (godId, skill) => set((state) => ({
     companions: state.companions.map(c => {
-      // Add to the God who granted it
       if (c.id === godId) {
         return { ...c, unlockedSkills: [...c.unlockedSkills, skill] };
       }
-      // ALSO add to Kane (the Champion) so he can use it in battle
       if (c.id === 'kane') {
-        // Prevent duplicate skills
         const hasSkill = c.unlockedSkills.some(s => s.name === skill.name);
         if (hasSkill) return c;
         return { ...c, unlockedSkills: [...c.unlockedSkills, skill] };
@@ -167,8 +171,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
   customersServed: 0,
   isShiftActive: false,
   startShift: () => set({ isShiftActive: true, customersServed: 0 }),
-  endShift: () => set((state) => ({ isShiftActive: false, day: state.day + 1 })),
+  endShift: () => set((state) => {
+    const newDay = state.day + 1;
+    // Check if exceeded max turns without defeating vampire
+    if (newDay > MAX_TURNS && !state.vampireDefeated) {
+      return { isShiftActive: false, day: newDay, gameOver: 'lose' as const };
+    }
+    return { isShiftActive: false, day: newDay };
+  }),
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
+
+  gameOver: null,
+  vampireDefeated: false,
+  defeatVampire: () => set({ vampireDefeated: true, gameOver: 'win' }),
+  setGameOver: (result) => set({ gameOver: result }),
 
   dialogue: null,
   setDialogue: (dialogue) => set({ dialogue }),
@@ -177,13 +193,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     gold: 500,
     player: { gold: 500, hp: 100, maxHp: 100 },
     items: ['potion_health', 'potion_health', 'soap', 'mirror', 'flower', 'flower'],
-    companions: INITIAL_COMPANIONS.map(c => ({ ...c })),
+    companions: INITIAL_COMPANIONS.map(c => ({ ...c, unlockedSkills: [], claimedThresholds: [] })),
     day: 1,
     customersServed: 0,
     isShiftActive: false,
     currentCustomer: null,
     dialogue: null,
     phase: 'shop' as GamePhase,
+    gameOver: null,
+    vampireDefeated: false,
   }),
 
   loadSaveData: (data) => {
@@ -199,7 +217,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         unlockedSkills: data.unlockedSkills?.[c.id] || [],
         claimedThresholds: data.claimedThresholds?.[c.id] || []
       })),
-      day: data.day || 1
+      day: data.day || 1,
+      vampireDefeated: data.vampireDefeated || false,
+      gameOver: data.gameOver || null,
     });
   },
 }));
