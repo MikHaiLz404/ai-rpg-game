@@ -31,7 +31,7 @@ function ItemIcon({ item, size = 'md' }: { item: typeof ITEMS[number], size?: 's
   const sprite = ITEM_SPRITES[item.id];
   const px = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
   if (sprite) {
-    return <img src={sprite} alt={item.name} className={`${px} object-contain image-rendering-pixelated`} style={{ imageRendering: 'pixelated' }} />;
+    return <img src={sprite} alt={item.name} className={`${px} object-contain image-pixelated`} />;
   }
   return <span className={size === 'sm' ? 'text-base' : 'text-xl'}>{item.emoji}</span>;
 }

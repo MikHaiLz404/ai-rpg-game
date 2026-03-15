@@ -97,8 +97,11 @@ export class MainScene extends Phaser.Scene {
             frameHeight: 32
         });
 
-        // Combat Effects
-        this.load.image('attack_effect', '/images/effects/combat/attack/effect_kane_attack.png');
+        // Combat Effects (480x32 = 15 frames)
+        this.load.spritesheet('attack_effect', '/images/effects/combat/attack/effect_kane_attack.png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
         
         // Backgrounds
         this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
@@ -159,11 +162,11 @@ export class MainScene extends Phaser.Scene {
             });
         }
 
-        // Attack Animation (Fallback to static image if sprite not found)
+        // Attack Animation (15 frames from spritesheet)
         this.anims.create({
             key: 'hit_effect',
-            frames: [{ key: 'attack_effect' }],
-            frameRate: 20,
+            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 14 }),
+            frameRate: 30,
             repeat: 0,
             hideOnComplete: true
         });
@@ -339,12 +342,13 @@ export class MainScene extends Phaser.Scene {
         if (roomName === 'arena') {
             this.player.setPosition(120, 240);
             this.player.anims.play('player-down', true);
-            
-            // Scaled up slightly
-            this.kaneFighter = this.add.sprite(152, 144, 'kane_idle').setScale(1.3).setDepth(40);
-            this.slimeEnemy = this.add.sprite(232, 144, 'slime_idle').setScale(1.5).setDepth(40);
+
+            // Kane and enemy facing each other
+            this.kaneFighter = this.add.sprite(165, 144, 'kane_idle').setScale(1.5).setDepth(40);
+            this.slimeEnemy = this.add.sprite(220, 144, 'slime_idle').setScale(1.5).setDepth(40);
             this.slimeEnemy.anims.play('slime-idle', true);
-            
+
+            // Subtle idle bob
             this.tweens.add({
                 targets: this.kaneFighter,
                 y: 142,
@@ -354,12 +358,15 @@ export class MainScene extends Phaser.Scene {
             });
             this.tweens.add({
                 targets: this.slimeEnemy,
-                scale: 0.48,
+                y: 142,
                 duration: 800,
                 yoyo: true,
                 repeat: -1
             });
 
+        } else if (roomName === 'village') {
+            this.player.setPosition(190, 143);
+            this.player.anims.play('player-down', true);
         } else {
             this.player.setPosition(195, 143);
             this.player.anims.play('player-down', true);

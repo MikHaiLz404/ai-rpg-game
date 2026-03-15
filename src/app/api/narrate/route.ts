@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Using OpenRouter for free AI access
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
-
 export async function POST(request: NextRequest) {
+  const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+
   try {
     const { action, playerName, npcName, npcMood, godTheme, level, userMessage, enemyName, damage } = await request.json();
 

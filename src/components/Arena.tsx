@@ -25,10 +25,10 @@ export default function Arena() {
   const [selectedEnemy, setSelectedEnemy] = useState<typeof ENEMIES[0] | null>(null);
   const [inCombat, setInCombat] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
-  const [enemyFrame, setEnemyFrame] = useState(0);
+  const [spriteFrame, setSpriteFrame] = useState(0);
 
   useEffect(() => {
-    const interval = setInterval(() => setEnemyFrame(f => (f + 1) % 6), 200);
+    const interval = setInterval(() => setSpriteFrame(f => f + 1), 150);
     return () => clearInterval(interval);
   }, []);
 
@@ -138,12 +138,12 @@ export default function Arena() {
         <div className="flex justify-around items-center mb-12">
            <div className="text-center">
               <div className="w-20 h-20 bg-blue-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
-                <div 
+                <div
                     className="w-8 h-8 image-pixelated scale-[2.5]"
                     style={{
                       backgroundImage: `url(${isAttacking ? CHAMPION.attackImage : CHAMPION.idleImage})`,
-                      backgroundSize: isAttacking ? '700% 100%' : '100% 100%',
-                      animation: isAttacking ? 'play-attack 0.8s steps(7) infinite' : 'none'
+                      backgroundSize: 'auto 100%',
+                      backgroundPosition: isAttacking ? `-${(spriteFrame % 7) * 32}px 0` : '0 0'
                     }}
                   />
               </div>
@@ -163,7 +163,7 @@ export default function Arena() {
                     style={{
                       backgroundImage: `url(${selectedEnemy.image})`,
                       backgroundSize: 'auto 100%',
-                      backgroundPosition: `-${(enemyFrame % selectedEnemy.frames) * 32}px 0`
+                      backgroundPosition: `-${(spriteFrame % selectedEnemy.frames) * 32}px 0`
                     }}
                   />
                 ) : <span className="text-3xl">{selectedEnemy.emoji}</span>}
@@ -212,9 +212,6 @@ export default function Arena() {
           ))}
         </div>
 
-        <style jsx>{`
-          @keyframes play-attack { from { background-position: 0% 0%; } to { background-position: 700% 0%; } }
-        `}</style>
       </div>
     );
   }
@@ -237,7 +234,7 @@ export default function Arena() {
                     style={{
                       backgroundImage: `url(${enemy.image})`,
                       backgroundSize: 'auto 100%',
-                      backgroundPosition: `-${(enemyFrame % enemy.frames) * 32}px 0`
+                      backgroundPosition: `-${(spriteFrame % enemy.frames) * 32}px 0`
                     }}
                   />
                 ) : enemy.emoji}
