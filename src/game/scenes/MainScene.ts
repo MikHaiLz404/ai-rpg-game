@@ -23,7 +23,7 @@ const WORLD: Record<string, RoomConfig> = {
     village: {
         name: 'Divine Village',
         phase: 'relationship',
-        bgImage: 'bg_shop', 
+        bgImage: 'bg_village', 
         exits: { up: 'shop', right: 'cave_entrance' }
     },
     cave_entrance: {
@@ -86,19 +86,17 @@ export class MainScene extends Phaser.Scene {
         });
 
         // Fighters
-        this.load.image('kane_idle', '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png');
-        this.load.image('slime_idle', '/images/enemies/slime/idle/frame_1_0.png');
+        this.load.image('kane_idle', '/images/characters/npcs/kane/idle/hero_idle_DOWN.png');
+        this.load.image('slime_idle', '/images/enemies/slime/idle/enemies-slime1_idle.png');
 
         // Combat Effects
-        this.load.spritesheet('attack_effect', '/images/effects/combat/attack/attack_sprite.png', {
-            frameWidth: 64,
-            frameHeight: 64
-        });
+        this.load.image('attack_effect', '/images/effects/combat/attack/effect_kane_attack.png');
         
         // Backgrounds
         this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
         this.load.image('bg_arena', '/images/backgrounds/arena/interior/bg_arena_interior.png');
         this.load.image('bg_cave', '/images/backgrounds/exploration/cave/bg_cave_interior.png');
+        this.load.image('bg_village', '/images/backgrounds/village/exterior/bg_village_exterior.png');
     }
 
     createCharAnims(key: string, texture: string) {
@@ -135,10 +133,10 @@ export class MainScene extends Phaser.Scene {
         this.createCharAnims('arena', 'npc_arena');
         this.createCharAnims('draco', 'npc_draco');
 
-        // Attack Animation (Using only the first row of 11 frames)
+        // Attack Animation (Fallback to static image if sprite not found)
         this.anims.create({
             key: 'hit_effect',
-            frames: this.anims.generateFrameNumbers('attack_effect', { start: 0, end: 10 }),
+            frames: [{ key: 'attack_effect' }],
             frameRate: 20,
             repeat: 0,
             hideOnComplete: true

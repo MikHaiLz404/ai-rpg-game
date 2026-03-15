@@ -42,18 +42,19 @@ const ROOM_MAPS = {
 };
 
 const TILE_MAPPINGS: Record<string, string> = {
-  'shop': '/images/backgrounds/shop/interior/tileset_B/tile_',
-  'arena': '/images/backgrounds/shop/interior/tileset_B/tile_',
-  'storage': '/images/backgrounds/shop/interior/tileset_C/tile_',
-  'village': '/images/backgrounds/shop/interior/tileset_D/tile_',
+  'shop': '/images/backgrounds/shop/interior/bg_shop_interior.png',
+  'arena': '/images/backgrounds/arena/interior/bg_arena_interior.png',
+  'storage': '/images/backgrounds/shop/interior/bg_shop_interior.png',
+  'village': '/images/backgrounds/village/exterior/bg_village_exterior.png',
 };
 
-const PLAYER_SPRITES = [
-  '/images/characters/player/minju/idle/frame_0_0.png',
-  '/images/characters/player/minju/idle/frame_0_1.png',
-  '/images/characters/player/minju/idle/frame_0_2.png',
-  '/images/characters/player/minju/idle/frame_0_1.png',
+const PLAYER_ANIM_FRAMES = [
+  '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
+  '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
+  '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
+  '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
 ];
+
 
 const MAP_EXITS: Record<string, Record<string, string>> = {
   shop: { right: 'arena', down: 'storage' },

@@ -4,16 +4,16 @@ import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 
 const ENEMIES = [
-  { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/frame_1_0.png' },
-  { id: 'goblin', name: 'Goblin', emoji: '👺', hp: 50, atk: 10, reward: 40, image: null },
-  { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: null },
+  { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/enemies-slime1_idle.png' },
+  { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png' },
+  { id: 'demon', name: 'Demon', emoji: '🧛', hp: 120, atk: 25, reward: 150, image: '/images/enemies/demon/idle/enemies-vampire_idle.png' },
 ];
 
 const CHAMPION = {
   id: 'kane',
   name: 'Kane',
-  idleImage: '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png',
-  attackImage: '/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/bow/hero_bow_RIGHT.png'
+  idleImage: '/images/characters/npcs/kane/idle/hero_idle_DOWN.png',
+  attackImage: '/images/characters/npcs/kane/attack/hero_bow_RIGHT.png'
 };
 
 export default function Arena() {

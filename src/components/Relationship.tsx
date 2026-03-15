@@ -2,18 +2,20 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 
+'use client';
+import { useState, useEffect, useRef } from 'react';
+import { useGameStore, DivineSkill } from '@/store/gameStore';
+
 function makeFrames(base: string, count: number) {
-  const arr = [];
-  for (let i = 0; i < count; i++) {
-    arr.push(base + '/frame_' + Math.floor(i/3) + '_' + (i%3) + '.png');
-  }
-  return arr;
+  // Since we don't have frame_X_Y files anymore, we just return an array of the base image 
+  // or handle animations differently. For now, we'll just use the single image.
+  return Array(count).fill(base);
 }
 
 const NPC_METADATA = {
-  leo: { emoji: '⚔️', desc: 'เทพสงคราม', theme: 'War & Physical Strength', sprites: makeFrames('/images/characters/npcs/leo/idle', 12) },
-  arena: { emoji: '👑', desc: 'ราชินีแห่งวิหาร', theme: 'Royal Protection & Light', sprites: makeFrames('/images/characters/npcs/arena/idle', 12) },
-  draco: { emoji: '🐉', desc: 'มังกรบรรพกาล', theme: 'Ancient Fire & Magic', sprites: makeFrames('/images/characters/npcs/draco/idle', 12) },
+  leo: { emoji: '⚔️', desc: 'เทพสงคราม', theme: 'War & Physical Strength', sprites: makeFrames('/images/characters/npcs/leo/idle/hero_idle_DOWN.png', 12) },
+  arena: { emoji: '👑', desc: 'ราชินีแห่งวิหาร', theme: 'Royal Protection & Light', sprites: makeFrames('/images/characters/npcs/arena/idle/hero_idle_DOWN.png', 12) },
+  draco: { emoji: '🐉', desc: 'มังกรบรรพกาล', theme: 'Ancient Fire & Magic', sprites: makeFrames('/images/characters/npcs/draco/idle/hero_idle_DOWN.png', 12) },
   kane: { emoji: '🏹', desc: 'ผู้พิทักษ์ (Your Champion)', theme: 'Agility & Archery', sprites: [] },
 };
 

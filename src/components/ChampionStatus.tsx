@@ -20,9 +20,9 @@ export default function ChampionStatus() {
       <div className="flex items-center gap-6">
         <div className="w-24 h-24 bg-blue-900/20 rounded-3xl border-2 border-blue-500/30 flex items-center justify-center overflow-hidden shadow-inner">
           <img 
-            src="/images/characters/npcs/kane/hero-pack-free_version/hero/color_1/idle/hero_idle_DOWN.png" 
+            src="/images/characters/npcs/kane/idle/hero_idle_DOWN.png" 
             alt="Kane" 
-            className="w-16 h-16 object-contain image-pixelated scale-[2]"
+            className="w-full h-full object-contain image-pixelated scale-125"
           />
         </div>
         <div>
