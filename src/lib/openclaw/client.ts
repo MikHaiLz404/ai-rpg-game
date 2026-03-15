@@ -6,13 +6,16 @@ import { loadOrCreateDeviceIdentity, signDevicePayload, buildDeviceAuthPayload, 
 const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'ws://127.0.0.1:18789';
 const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
 
+// Use 'ws' package on server side, native WebSocket on client side
+const WS = typeof window === 'undefined' ? require('ws') : WebSocket;
+
 interface PendingRequest {
   resolve: (value: any) => void;
   reject: (error: Error) => void;
 }
 
 export class OpenClawGameClient {
-  private ws: WebSocket | null = null;
+  private ws: any = null;
   private pendingRequests = new Map<string, PendingRequest>();
   private connected = false;
   private deviceIdentity: { deviceId: string; publicKeyPem: string; privateKeyPem: string } | null = null;
@@ -26,37 +29,38 @@ export class OpenClawGameClient {
   }
 
   async connect(): Promise<void> {
-    if (this.connected && this.ws?.readyState === WebSocket.OPEN) return;
+    if (this.connected && (this.ws?.readyState === 1 || this.ws?.readyState === WS.OPEN)) return;
 
     return new Promise((resolve, reject) => {
       const wsUrl = new URL(this.url);
       if (this.token) wsUrl.searchParams.set('token', this.token);
 
-      this.ws = new WebSocket(wsUrl.toString());
+      this.ws = new WS(wsUrl.toString());
 
       const timeout = setTimeout(() => {
-        this.ws?.close();
-        reject(new Error('Connection timeout'));
-      }, 8000);
+        if (typeof this.ws?.close === 'function') this.ws.close();
+        reject(new Error('Connection timeout (15s)'));
+      }, 15000);
 
-      this.ws.onopen = () => {
+      const onOpen = () => {
         console.log('[OpenClaw-Game] Connected, waiting for challenge...');
       };
 
-      this.ws.onerror = () => {
+      const onError = (err: any) => {
         clearTimeout(timeout);
+        console.error('[OpenClaw-Game] WS Error:', err);
         reject(new Error('WebSocket connection failed'));
       };
 
-      this.ws.onclose = () => {
+      const onClose = () => {
         clearTimeout(timeout);
         this.connected = false;
-        if (!this.connected) reject(new Error('Connection closed'));
       };
 
-      this.ws.onmessage = (event: MessageEvent) => {
+      const onMessage = (event: any) => {
         try {
-          const data = JSON.parse(event.data as string);
+          const rawData = typeof event.data === 'string' ? event.data : event;
+          const data = JSON.parse(rawData);
 
           // Handle challenge-response
           if (data.type === 'event' && data.event === 'connect.challenge') {
@@ -93,7 +97,7 @@ export class OpenClawGameClient {
               }
             });
 
-            this.ws!.send(JSON.stringify({
+            this.ws.send(JSON.stringify({
               type: 'req', id: requestId, method: 'connect',
               params: {
                 minProtocol: 3, maxProtocol: 3,
@@ -123,6 +127,18 @@ export class OpenClawGameClient {
           console.error('[OpenClaw-Game] Parse error:', err);
         }
       };
+
+      if (typeof window === 'undefined') {
+        this.ws.on('open', onOpen);
+        this.ws.on('error', onError);
+        this.ws.on('close', onClose);
+        this.ws.on('message', onMessage);
+      } else {
+        this.ws.onopen = onOpen;
+        this.ws.onerror = onError;
+        this.ws.onclose = onClose;
+        this.ws.onmessage = onMessage;
+      }
     });
   }
 

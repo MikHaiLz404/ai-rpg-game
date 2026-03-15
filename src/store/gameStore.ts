@@ -176,25 +176,30 @@ export const useGameStore = create<GameStore>((set, get) => ({
   day: 1,
   choicesLeft: MAX_CHOICES_PER_DAY,
   consumeChoice: () => set((state) => {
-    const nextChoices = state.choicesLeft - 1;
-    if (nextChoices <= 0) {
-      // Day ends
-      const newDay = state.day + 1;
-      if (newDay > MAX_TURNS && !state.vampireDefeated) {
-        return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const };
-      }
-      return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true };
+    return { choicesLeft: Math.max(0, state.choicesLeft - 1) };
+  }),
+  
+  // New action to explicitly end the day
+  endDay: () => set((state) => {
+    const newDay = state.day + 1;
+    if (newDay > MAX_TURNS && !state.vampireDefeated) {
+      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const };
     }
-    return { choicesLeft: nextChoices };
+    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true };
   }),
 
   customersServed: 0,
   isShiftActive: false,
   startShift: () => set({ isShiftActive: true, customersServed: 0 }),
   endShift: () => {
-    const { consumeChoice } = get();
+    const { consumeChoice, endDay } = get();
     set({ isShiftActive: false });
     consumeChoice();
+    
+    // Check if day should end after shop shift
+    if (get().choicesLeft <= 0) {
+      setTimeout(() => endDay(), 2000); // Small delay for Minju's ending dialogue
+    }
   },
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
 

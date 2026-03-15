@@ -17,7 +17,11 @@ const CHAMPION = {
 };
 
 export default function Arena() {
-  const { gold, addGold, companions, getBondBonus, addBond, setDialogue, defeatVampire, gameOver, choicesLeft, consumeChoice } = useGameStore();
+  const { 
+    gold, addGold, companions, getBondBonus, addBond, setDialogue, 
+    defeatVampire, gameOver, choicesLeft, consumeChoice, endDay 
+  } = useGameStore();
+  
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
@@ -186,7 +190,7 @@ export default function Arena() {
            <div className="text-2xl font-black text-white italic opacity-20 animate-pulse">VS</div>
 
            <div className="text-center">
-              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
+              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-red-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
                 {selectedEnemy.image ? (
                   <div
                     className="w-8 h-8 image-pixelated scale-[2.5]"
@@ -226,14 +230,25 @@ export default function Arena() {
         </div>
 
         {result && (
-          <button
-            onClick={() => { setInCombat(false); EventBus.emit('arena-combat-end'); }}
-            className={`w-full py-4 font-black rounded-xl mb-4 uppercase tracking-widest transition-all scale-100 hover:scale-105 active:scale-95
-              ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
-            `}
-          >
-            {result === 'win' ? 'รับชัยชนะ' : 'ถอยกลับร้าน'}
-          </button>
+          <div className="space-y-3 mb-4">
+            <button
+              onClick={() => { setInCombat(false); EventBus.emit('arena-combat-end'); }}
+              className={`w-full py-4 font-black rounded-xl uppercase tracking-widest transition-all scale-100 hover:scale-105 active:scale-95
+                ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
+              `}
+            >
+              {result === 'win' ? 'รับชัยชนะ' : 'ถอยกลับร้าน'}
+            </button>
+            
+            {choicesLeft <= 0 && (
+              <button
+                onClick={() => { setInCombat(false); endDay(); }}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase text-[10px] tracking-widest animate-pulse shadow-lg"
+              >
+                💤 แต้มหมดแล้ว ไปพักผ่อนเพื่อเริ่มวันใหม่
+              </button>
+            )}
+          </div>
         )}
 
         <div className="bg-black/50 p-4 rounded-xl h-24 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
