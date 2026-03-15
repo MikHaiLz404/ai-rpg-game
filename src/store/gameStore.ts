@@ -65,6 +65,8 @@ interface GameStore {
   choicesLeft: number;
   consumeChoice: () => void;
   endDay: () => void;
+  isBusy: boolean;
+  setIsBusy: (busy: boolean) => void;
   customersServed: number;
   isShiftActive: boolean;
   startShift: () => void;
@@ -180,26 +182,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
     return { choicesLeft: Math.max(0, state.choicesLeft - 1) };
   }),
   
-  // New action to explicitly end the day
   endDay: () => set((state) => {
     const newDay = state.day + 1;
     if (newDay > MAX_TURNS && !state.vampireDefeated) {
-      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const };
+      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, isBusy: false };
     }
-    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true };
+    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true, isBusy: false };
   }),
+
+  isBusy: false,
+  setIsBusy: (isBusy) => set({ isBusy }),
 
   customersServed: 0,
   isShiftActive: false,
-  startShift: () => set({ isShiftActive: true, customersServed: 0 }),
+  startShift: () => set({ isShiftActive: true, isBusy: true, customersServed: 0 }),
   endShift: () => {
     const { consumeChoice, endDay } = get();
-    set({ isShiftActive: false });
+    set({ isShiftActive: false, isBusy: false });
     consumeChoice();
     
-    // Check if day should end after shop shift
     if (get().choicesLeft <= 0) {
-      setTimeout(() => endDay(), 2000); // Small delay for Minju's ending dialogue
+      setTimeout(() => endDay(), 2000);
     }
   },
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
@@ -222,6 +225,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     companions: INITIAL_COMPANIONS.map(c => ({ ...c, unlockedSkills: [], claimedThresholds: [] })),
     day: 1,
     choicesLeft: MAX_CHOICES_PER_DAY,
+    isBusy: false,
     customersServed: 0,
     isShiftActive: false,
     currentCustomer: null,
@@ -249,6 +253,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       choicesLeft: data.choicesLeft !== undefined ? data.choicesLeft : MAX_CHOICES_PER_DAY,
       vampireDefeated: data.vampireDefeated || false,
       gameOver: data.gameOver || null,
+      isBusy: false,
     });
   },
 }));

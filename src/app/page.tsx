@@ -28,7 +28,7 @@ const PhaserGame = dynamic(() => import('@/game/PhaserGame'), {
 export default function Home() {
   const {
     phase, setPhase, gold, items, companions, loadSaveData, resetGame,
-    day, choicesLeft, setDialogue, gameOver, isShiftActive, endDay
+    day, choicesLeft, setDialogue, gameOver, isShiftActive, isBusy, endDay
   } = useGameStore();
   const { initializeSave, currentSaveData, saveGame, autoSaveEnabled, deleteAllSaves } = useSaveStore();
 
@@ -191,8 +191,8 @@ export default function Home() {
             <PhaserGame />
             <DialogueOverlay />
             
-            {/* Global End Day Prompt */}
-            {choicesLeft <= 0 && !isShiftActive && (
+            {/* Global End Day Prompt - Only show if not busy */}
+            {choicesLeft <= 0 && !isBusy && (
               <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-700">
                 <button
                   onClick={() => endDay()}

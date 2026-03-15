@@ -19,7 +19,7 @@ const CHAMPION = {
 export default function Arena() {
   const { 
     gold, addGold, companions, getBondBonus, addBond, setDialogue, 
-    defeatVampire, gameOver, choicesLeft, consumeChoice, endDay 
+    defeatVampire, gameOver, choicesLeft, consumeChoice, endDay, setIsBusy 
   } = useGameStore();
   
   const [combatLog, setCombatLog] = useState<string[]>([]);
@@ -54,6 +54,7 @@ export default function Arena() {
     setResult(null);
     setCombatLog([`⚔️ เริ่มการต่อสู้: Kane ปะทะ ${enemy.name}`]);
     setInCombat(true);
+    setIsBusy(true); // Mark as busy when combat starts
     consumeChoice();
 
     // Update Phaser scene enemy sprite
@@ -232,7 +233,11 @@ export default function Arena() {
         {result && (
           <div className="space-y-3 mb-4">
             <button
-              onClick={() => { setInCombat(false); EventBus.emit('arena-combat-end'); }}
+              onClick={() => { 
+                setInCombat(false); 
+                setIsBusy(false); // Clear busy state when returning to list
+                EventBus.emit('arena-combat-end'); 
+              }}
               className={`w-full py-4 font-black rounded-xl uppercase tracking-widest transition-all scale-100 hover:scale-105 active:scale-95
                 ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
               `}
@@ -242,8 +247,8 @@ export default function Arena() {
             
             {choicesLeft <= 0 && (
               <button
-                onClick={() => { setInCombat(false); endDay(); }}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase text-[10px] tracking-widest animate-pulse shadow-lg"
+                onClick={() => { setInCombat(false); setIsBusy(false); endDay(); }}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg"
               >
                 💤 แต้มหมดแล้ว ไปพักผ่อนเพื่อเริ่มวันใหม่
               </button>

@@ -29,19 +29,23 @@ export class OpenClawGameClient {
   }
 
   async connect(): Promise<void> {
-    if (this.connected && (this.ws?.readyState === 1 || this.ws?.readyState === WS.OPEN)) return;
+    if (this.connected && (this.ws?.readyState === 1 || (WS.OPEN && this.ws?.readyState === WS.OPEN))) return;
 
     return new Promise((resolve, reject) => {
       const wsUrl = new URL(this.url);
       
-      // Node.js (Vercel) supports headers in the WS constructor, browsers do not.
       if (typeof window === 'undefined') {
+        // Node.js (Vercel) connection options
+        console.log(`[OpenClaw-Game] Connecting to ${wsUrl.host} with bypass headers...`);
         this.ws = new WS(wsUrl.toString(), {
           headers: {
             'ngrok-skip-browser-warning': 'true',
-            'User-Agent': 'OpenClaw-Game-Client'
+            'User-Agent': 'OpenClaw-Game-Client',
+            'Host': wsUrl.host,
+            'Origin': wsUrl.origin
           },
-          handshakeTimeout: 10000
+          handshakeTimeout: 15000,
+          perMessageDeflate: false // Ngrok often struggles with compression
         });
       } else {
         this.ws = new WS(wsUrl.toString());
@@ -58,7 +62,7 @@ export class OpenClawGameClient {
 
       const onError = (err: any) => {
         clearTimeout(timeout);
-        console.error('[OpenClaw-Game] WS Error:', err);
+        console.error('[OpenClaw-Game] WS Error:', err?.message || err);
         reject(new Error('WebSocket connection failed'));
       };
 
@@ -216,7 +220,8 @@ export class OpenClawGameClient {
   }
 
   isConnected(): boolean {
-    return this.connected && this.ws?.readyState === WebSocket.OPEN;
+    const isReady = this.ws?.readyState === 1 || (typeof WS !== 'undefined' && WS.OPEN && this.ws?.readyState === WS.OPEN);
+    return this.connected && isReady;
   }
 }
 

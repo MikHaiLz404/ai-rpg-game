@@ -10,7 +10,7 @@ interface ChatMessage {
 }
 
 export default function Relationship() {
-  const { companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, choicesLeft, consumeChoice } = useGameStore();
+  const { companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, choicesLeft, consumeChoice, setIsBusy } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [userInput, setUserMessage] = useState('');
@@ -89,6 +89,7 @@ export default function Relationship() {
     const config = NPC_CONFIGS[id];
 
     setIsTalking(true);
+    setIsBusy(true); // Mark as busy when conversation starts
     if (!selectedId) setSelectedId(id);
 
     if (message) {
@@ -130,8 +131,7 @@ export default function Relationship() {
           });
         }, 500);
 
-        // Bond gain logic: Only if day is active (choices > 0) OR if this is not a message (greeting)
-        // Actually, let's make it simple: No bond gain if choicesLeft <= 0
+        // Bond gain logic: Only if day is active (choices > 0)
         if (choicesLeft > 0) {
           const bondChance = Math.max(0.15, 0.4 - companion.bond * 0.02);
           if (Math.random() < bondChance) {
@@ -151,6 +151,8 @@ export default function Relationship() {
       });
     } finally {
       setIsTalking(false);
+      // Wait a bit before clearing busy so the dialogue can be read
+      setTimeout(() => setIsBusy(false), 1000);
     }
   };
 
@@ -168,7 +170,7 @@ export default function Relationship() {
         <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic">สายสัมพันธ์แห่งเทพ</h2>
         {selectedId && (
           <button
-            onClick={() => {setSelectedId(null); setChatLog([]);}}
+            onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false);}}
             className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
           >
             ← กลับ
