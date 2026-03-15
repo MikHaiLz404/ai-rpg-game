@@ -3,7 +3,7 @@ title: Claude
 agent: aide
 topic: ai-rpg-game
 status: active
-version: 1.0.0
+version: 1.1.0
 updated: 2026-03-15
 ---
 
@@ -46,7 +46,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 -   `novel/`: Narrative content, lore, and Thai-language story chapters.
 -   `game-design/`: Comprehensive design documents and mechanics specifications.
 -   `scripts/`: Python and Shell scripts for testing, data generation, and asset processing.
--   `src/app/api/`: API routes for game logic (e.g., `/api/narrate` for AI dialogue).
+-   `public/images/`: Organized hierarchical asset storage.
+
+---
+
+## ✅ Recent Progress (March 2026)
+-   **Security**: Moving hardcoded secrets to environment variables.
+-   **Architecture**: Implemented centralized dialogue system with portrait support.
+-   **UI/UX**: Rebuilt dashboard based on wireframe specifications (right sidebar layout).
+-   **Visuals**: Integrated facial expressions for Minju (Player) mapped to game events.
+-   **World**: Fully implemented room transition logic and environment asset loading.
 
 ---
 
@@ -70,4 +79,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ---
 
 ## 🎯 Current Focus
-The project is in active development, focusing on the integration of the four main phases and the implementation of the AI-driven relationship system. Refer to `game-design/turn-based-rpg/GAME_DESIGN.md` for detailed mechanics.
+-   Refining the **Shop Management** loop with more complex customer requests and restocking mechanics.
+-   Enhancing the **AI-driven Relationship** system to generate more varied divine skills.
+-   Balancing **Arena Combat** difficulty and Kane's progression stats.
+-   Expanding the **Exploration Phase** with interactive tiles and gathering mechanics.

@@ -53,5 +53,18 @@
 
 ---
 
+## ✅ Recent Progress (March 2026)
+-   **Security Hardening**: Removed all hardcoded API keys; moved to environment variable (`GEMINI_API_KEY`) based configuration.
+-   **Asset Reorganization**: Fully restructured `public/images` into a hierarchical system (backgrounds, characters, effects, items, ui).
+-   **Wireframe Implementation**: Redesigned the main dashboard layout with a sticky header, centered game view, and right-aligned functional sidebar.
+-   **Dialogue System**: Implemented a new `DialogueOverlay` component with portrait support.
+-   **Facial Expressions**: Added a facial expression system for Minju (the player character) with mapping for `happy`, `angry`, `shock`, and `work` states across all game phases.
+-   **Phaser Refinement**: Added room transitions, character animations, and support for high-resolution backgrounds (e.g., Divine Village).
+
+---
+
 ## 🎯 Current Focus
-The project is in active development, focusing on the integration of the four main phases and the implementation of the AI-driven relationship system. Refer to `game-design/turn-based-rpg/GAME_DESIGN.md` for detailed mechanics.
+-   Refining the **Shop Management** loop with more complex customer requests and restocking mechanics.
+-   Enhancing the **AI-driven Relationship** system to generate more varied divine skills.
+-   Balancing **Arena Combat** difficulty and Kane's progression stats.
+-   Expanding the **Exploration Phase** with interactive tiles and gathering mechanics.
