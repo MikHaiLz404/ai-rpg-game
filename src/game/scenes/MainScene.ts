@@ -365,7 +365,7 @@ export class MainScene extends Phaser.Scene {
             });
 
         } else if (roomName === 'village') {
-            this.player.setPosition(170, 143);
+            this.player.setPosition(180, 143);
             this.player.anims.play('player-down', true);
         } else {
             this.player.setPosition(195, 143);
