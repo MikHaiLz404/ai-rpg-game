@@ -64,6 +64,7 @@ interface GameStore {
   day: number;
   choicesLeft: number;
   consumeChoice: () => void;
+  endDay: () => void;
   customersServed: number;
   isShiftActive: boolean;
   startShift: () => void;
