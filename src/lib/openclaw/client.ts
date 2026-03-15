@@ -33,11 +33,19 @@ export class OpenClawGameClient {
 
     return new Promise((resolve, reject) => {
       const wsUrl = new URL(this.url);
-      // Removed: wsUrl.searchParams.set('token', this.token); 
-      // Many gateways return 404 if query params are present during upgrade.
-      // Authentication is handled in the 'connect' message body.
-
-      this.ws = new WS(wsUrl.toString());
+      
+      // Node.js (Vercel) supports headers in the WS constructor, browsers do not.
+      if (typeof window === 'undefined') {
+        this.ws = new WS(wsUrl.toString(), {
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+            'User-Agent': 'OpenClaw-Game-Client'
+          },
+          handshakeTimeout: 10000
+        });
+      } else {
+        this.ws = new WS(wsUrl.toString());
+      }
 
       const timeout = setTimeout(() => {
         if (typeof this.ws?.close === 'function') this.ws.close();
