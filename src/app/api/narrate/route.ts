@@ -4,7 +4,7 @@ export async function POST(request: NextRequest) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
   try {
-    const { action, playerName, npcName, npcMood, godTheme, level, userMessage, enemyName, damage, wantedItem, offeredGold } = await request.json();
+    const { action, playerName, npcName, npcMood, godTheme, level, userMessage, enemyName, damage, wantedItem, offeredGold, npcPersonality, npcSpeechStyle, bondLevel } = await request.json();
 
     const actionDescriptions: Record<string, string> = {
       attack: 'attacks fiercely',
@@ -43,20 +43,35 @@ Bond Level: ${level}
 - ห้ามออกจากบทบาท ห้ามพูดถึงตัวเองว่าเป็น AI`;
       userPrompt = `คุณเดินเข้ามาในร้านของ ${playerName} เพื่อซื้อ ${wantedItem} — พูดทักทายและบอกว่าต้องการอะไร`;
     } else if (action === 'talk') {
+      const bondDesc = bondLevel >= 12 ? 'สนิทมาก เปิดใจ พูดคุยเหมือนเพื่อนรัก'
+        : bondLevel >= 8 ? 'ค่อนข้างสนิท เริ่มไว้ใจ แสดงด้านอ่อนโยนบ้าง'
+        : bondLevel >= 5 ? 'รู้จักกันพอสมควร เริ่มเปิดใจ'
+        : 'ยังไม่สนิทนัก ระมัดระวัง';
+
       systemPrompt = `คุณคือ ${npcName} เทพในเกม RPG "Gods' Arena (วิหารแห่งเทพ)"
-บุคลิก: ${npcMood}
+
+=== บุคลิกภาพ ===
+${npcPersonality || npcMood}
+
+=== สไตล์การพูด ===
+${npcSpeechStyle || 'พูดให้เข้ากับบุคลิกของเทพ'}
+
+=== ระดับความสัมพันธ์ ===
+Bond Level: ${bondLevel || 1} — ${bondDesc}
+(ยิ่งสนิทมาก ยิ่งเปิดเผย อบอุ่น และแสดงอารมณ์มากขึ้น)
 
 สถานการณ์: ผู้เล่นมาเยี่ยมเยือนที่หมู่บ้านเพื่อสร้างสายสัมพันธ์กับคุณ
 
 กฎการตอบ:
 - ตอบสั้นๆ 1-2 ประโยค เป็นบทสนทนาเท่านั้น ห้ามมีคำนำหน้า
-- พูดให้เข้ากับบุคลิกของเทพ — ลึกลับ สง่างาม หรือดุดัน ตามแต่ตัวละคร
+- พูดตามสไตล์และบุคลิกที่กำหนดอย่างเคร่งครัด — ห้ามพูดเหมือนกันทุกตัวละคร
+- ปรับน้ำเสียงตามระดับ Bond — สนิทน้อย=ทางการ สนิทมาก=เป็นกันเอง
 - ตอบภาษาเดียวกับที่ผู้เล่นพูด (ถ้าพูดไทยก็ตอบไทย ถ้าพูดอังกฤษก็ตอบอังกฤษ)
 - ห้ามออกจากบทบาท ห้ามพูดถึงตัวเองว่าเป็น AI`;
       if (userMessage) {
         userPrompt = `ผู้เล่น ${playerName} พูดว่า: "${userMessage}"`;
       } else {
-        userPrompt = `ผู้เล่น ${playerName} เข้ามาหาคุณที่หมู่บ้านเพื่อสร้างสายสัมพันธ์ พูดทักทายหรือแบ่งปันคำทำนายสั้นๆ ที่น่าสนใจ`;
+        userPrompt = `ผู้เล่น ${playerName} เข้ามาหาคุณที่หมู่บ้านเพื่อสร้างสายสัมพันธ์ พูดทักทายตามสไตล์ของคุณ`;
       }
     } else {
       systemPrompt = `คุณเป็นผู้บรรยายการต่อสู้ในเกม RPG "Gods' Arena" บรรยายสั้น กระชับ ดราม่า 1-2 ประโยค เป็นภาษาไทย`;

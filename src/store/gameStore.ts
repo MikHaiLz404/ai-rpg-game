@@ -22,6 +22,7 @@ interface Companion {
   bond: number;
   level: number;
   unlockedSkills: DivineSkill[];
+  claimedThresholds: number[];
 }
 
 interface Customer {
@@ -52,6 +53,7 @@ interface GameStore {
   companions: Companion[];
   addBond: (id: string, amount: number) => void;
   unlockSkill: (godId: string, skill: DivineSkill) => void;
+  markThresholdClaimed: (godId: string, threshold: number) => void;
   getBondBonus: (id: string) => { atk: number; def: number };
   currentCustomer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
@@ -70,10 +72,10 @@ interface GameStore {
 }
 
 const INITIAL_COMPANIONS: Companion[] = [
-  { id: 'leo', name: 'เลโอ', bond: 5, level: 1, unlockedSkills: [] },
-  { id: 'arena', name: 'อารีน่า', bond: 3, level: 1, unlockedSkills: [] },
-  { id: 'draco', name: 'ดราโก้', bond: 2, level: 1, unlockedSkills: [] },
-  { id: 'kane', name: 'เคน', bond: 1, level: 1, unlockedSkills: [] },
+  { id: 'leo', name: 'เลโอ', bond: 5, level: 1, unlockedSkills: [], claimedThresholds: [] },
+  { id: 'arena', name: 'อารีน่า', bond: 3, level: 1, unlockedSkills: [], claimedThresholds: [] },
+  { id: 'draco', name: 'ดราโก้', bond: 2, level: 1, unlockedSkills: [], claimedThresholds: [] },
+  { id: 'kane', name: 'เคน', bond: 1, level: 1, unlockedSkills: [], claimedThresholds: [] },
 ];
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -140,6 +142,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     })
   })),
 
+  markThresholdClaimed: (godId, threshold) => set((state) => ({
+    companions: state.companions.map(c =>
+      c.id === godId
+        ? { ...c, claimedThresholds: [...c.claimedThresholds, threshold] }
+        : c
+    )
+  })),
+
   getBondBonus: (id) => {
     const companion = get().companions.find(c => c.id === id);
     if (!companion) return { atk: 0, def: 0 };
@@ -172,7 +182,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         ...c,
         bond: data.relationships[c.id] || c.bond,
         level: Math.floor((data.relationships[c.id] || c.bond) / 10) + 1,
-        unlockedSkills: data.unlockedSkills?.[c.id] || []
+        unlockedSkills: data.unlockedSkills?.[c.id] || [],
+        claimedThresholds: data.claimedThresholds?.[c.id] || []
       })),
       day: data.day || 1
     });

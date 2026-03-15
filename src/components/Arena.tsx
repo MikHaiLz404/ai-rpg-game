@@ -17,7 +17,7 @@ const CHAMPION = {
 };
 
 export default function Arena() {
-  const { gold, addGold, companions, getBondBonus, setDialogue } = useGameStore();
+  const { gold, addGold, companions, getBondBonus, addBond, setDialogue } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
@@ -84,6 +84,10 @@ export default function Arena() {
       setCombatLog(prev => [`🏹 ${narrative}`, ...prev]);
       
       if (skill) {
+        // Using a god's skill increases bond with that god
+        if (skill.godId) {
+          addBond(skill.godId, 1);
+        }
         setDialogue({
           speaker: 'Minju',
           text: `Yes! That ${skill.name} was perfect! Keep it up!`,
