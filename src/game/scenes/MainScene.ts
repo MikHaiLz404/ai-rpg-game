@@ -423,7 +423,7 @@ export class MainScene extends Phaser.Scene {
         if (this.currentRoom !== 'shop' || !isShiftActive || this.customerNPC) return;
 
         const npcList = [
-            { id: 'leo', name: 'เลโอ้', texture: 'npc_leo', anim: 'leo' },
+            { id: 'leo', name: 'เลโอ', texture: 'npc_leo', anim: 'leo' },
             { id: 'arena', name: 'อารีน่า', texture: 'npc_arena', anim: 'arena' },
             { id: 'draco', name: 'ดราโก้', texture: 'npc_draco', anim: 'draco' },
         ];

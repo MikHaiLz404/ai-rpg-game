@@ -70,7 +70,7 @@ interface GameStore {
 }
 
 const INITIAL_COMPANIONS: Companion[] = [
-  { id: 'leo', name: 'เลโอ้', bond: 5, level: 1, unlockedSkills: [] },
+  { id: 'leo', name: 'เลโอ', bond: 5, level: 1, unlockedSkills: [] },
   { id: 'arena', name: 'อารีน่า', bond: 3, level: 1, unlockedSkills: [] },
   { id: 'draco', name: 'ดราโก้', bond: 2, level: 1, unlockedSkills: [] },
   { id: 'kane', name: 'เคน', bond: 1, level: 1, unlockedSkills: [] },
