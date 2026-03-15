@@ -425,10 +425,46 @@ export class MainScene extends Phaser.Scene {
 
         if (this.walkTween) this.walkTween.stop();
 
-        const dx = target.x - this.player.x;
-        const dy = (target.y + 30) - this.player.y; // stop slightly below NPC
+        // Waypoint paths from Minju spawn (155, 200) along village roads
+        const ROAD_X = 155; // vertical road x
+        const ROAD_TOP_Y = 55; // top horizontal road y
+        const ROAD_MID_Y = 158; // mid horizontal road y
+
+        const waypoints: { x: number; y: number }[] = [];
+
+        if (npcId === 'leo') {
+            // Up the road, slight left to Leo
+            waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
+            waypoints.push({ x: target.x, y: target.y + 25 });
+        } else if (npcId === 'draco') {
+            // Up the road, then left to Draco
+            waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
+            waypoints.push({ x: target.x, y: ROAD_TOP_Y });
+            waypoints.push({ x: target.x, y: target.y + 25 });
+        } else if (npcId === 'arena') {
+            // Up to mid road, then right to Arena
+            waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
+            waypoints.push({ x: target.x, y: target.y + 25 });
+        } else {
+            waypoints.push({ x: target.x, y: target.y + 25 });
+        }
+
+        this.walkWaypoints(waypoints, 0);
+    }
+
+    walkWaypoints(waypoints: { x: number; y: number }[], index: number) {
+        if (index >= waypoints.length) {
+            this.player.anims.play('player-up', true);
+            this.player.anims.stop();
+            this.player.setFrame(9); // face up toward NPC
+            return;
+        }
+
+        const wp = waypoints[index];
+        const dx = wp.x - this.player.x;
+        const dy = wp.y - this.player.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const duration = Math.max(400, dist * 8);
+        const duration = Math.max(200, dist * 6);
 
         // Pick walk direction
         const anim = Math.abs(dx) > Math.abs(dy)
@@ -438,13 +474,11 @@ export class MainScene extends Phaser.Scene {
 
         this.walkTween = this.tweens.add({
             targets: this.player,
-            x: target.x,
-            y: target.y + 30,
+            x: wp.x,
+            y: wp.y,
             duration,
             onComplete: () => {
-                this.player.anims.play('player-up', true);
-                this.player.anims.stop();
-                this.player.setFrame(9); // face up toward NPC
+                this.walkWaypoints(waypoints, index + 1);
             }
         });
     }
@@ -562,14 +596,14 @@ export class MainScene extends Phaser.Scene {
             });
 
         } else if (roomName === 'village') {
-            this.player.setPosition(192, 220);
+            this.player.setPosition(155, 200);
             this.player.anims.play('player-down', true);
 
-            // Spawn NPCs scattered around the village
+            // Spawn NPCs scattered around the village (positions from guide)
             const villageNPCList = [
-                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 80, y: 160 },
-                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 192, y: 120 },
-                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 310, y: 170 },
+                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 84, y: 35 },
+                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 127, y: 35 },
+                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 276, y: 158 },
             ];
             for (const npc of villageNPCList) {
                 const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);
