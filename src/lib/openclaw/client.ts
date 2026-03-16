@@ -62,8 +62,16 @@ export class OpenClawGameClient {
 
       const onError = (err: any) => {
         clearTimeout(timeout);
-        console.error('[OpenClaw-Game] WS Error:', err?.message || err);
-        reject(new Error('WebSocket connection failed'));
+        const errMsg = err?.message || String(err);
+        console.error('[OpenClaw-Game] WS Error:', errMsg);
+        
+        if (errMsg.includes('404')) {
+          reject(new Error('OpenClaw Gateway offline or URL invalid (404). Check if Ngrok tunnel is running.'));
+        } else if (errMsg.includes('ECONNREFUSED')) {
+          reject(new Error('OpenClaw Gateway connection refused. Is the server running?'));
+        } else {
+          reject(new Error(`WebSocket connection failed: ${errMsg}`));
+        }
       };
 
       const onClose = () => {
@@ -188,8 +196,9 @@ export class OpenClawGameClient {
       await new Promise(r => setTimeout(r, pollInterval));
 
       try {
+        console.log(`[OpenClaw-Game] Polling history for session: ${agentSessionKey}...`);
         const history = await this.call<any[]>('sessions.history', {
-          session_id: agentSessionKey,
+          sessionKey: agentSessionKey,
         });
 
         if (Array.isArray(history) && history.length > 0) {
@@ -198,10 +207,12 @@ export class OpenClawGameClient {
             (m: any) => m.role === 'assistant' && m.content
           );
           if (lastAssistant) {
+            console.log(`[OpenClaw-Game] Received response for ${agentSessionKey}`);
             return lastAssistant.content;
           }
         }
-      } catch {
+      } catch (err) {
+        console.warn(`[OpenClaw-Game] History poll failed:`, err instanceof Error ? err.message : err);
         // Keep polling
       }
     }

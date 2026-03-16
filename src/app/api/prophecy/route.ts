@@ -87,12 +87,13 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
 
   try {
     const client = getGameClient();
-    console.log('[Prophecy] Attempting to connect to Gateway...');
+    console.log(`[Prophecy] Gateway URL: ${gatewayUrl}`);
     
     if (!client.isConnected()) {
+      console.log('[Prophecy] Client not connected, initiating connection...');
       await client.connect();
     }
-    console.log('[Prophecy] Connected to OpenClaw Gateway');
+    console.log('[Prophecy] Client connected/authenticated successfully');
 
     // Send prompts to all 3 agents in parallel
     const results = await Promise.allSettled(
@@ -101,12 +102,12 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
         const sessionKey = `agent:main:mission-control-${agentName}`;
 
         try {
-          console.log(`[Prophecy] Requesting from agent: ${agentName}...`);
-          const response = await client.sendChatAndWait(sessionKey, prompt, 20000);
-          console.log(`[Prophecy] Agent ${agentName} responded successfully.`);
+          console.log(`[Prophecy] Requesting from agent: ${agentName} (key: ${sessionKey})...`);
+          const response = await client.sendChatAndWait(sessionKey, prompt, 25000);
+          console.log(`[Prophecy] Agent ${agentName} responded successfully. Length: ${response.length}`);
           return { godId, text: response };
         } catch (err) {
-          console.warn(`[Prophecy] OpenClaw agent ${agentName} failed:`, err instanceof Error ? err.message : err);
+          console.warn(`[Prophecy] Agent ${agentName} failed or timed out:`, err instanceof Error ? err.message : err);
           return { godId, text: getFallback(godId, gameState) };
         }
       })

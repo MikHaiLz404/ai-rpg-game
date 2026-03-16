@@ -1,4 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getGameClient } from '@/lib/openclaw/client';
+
+// Map: Thai NPC name → OpenClaw agent name
+const NPC_TO_AGENT: Record<string, string> = {
+  'เลโอ': 'emily',
+  'อารีน่า': 'ember',
+  'ดราโก้': 'mochi',
+};
+
+async function generateViaOpenClaw(npcName: string, prompt: string): Promise<string | null> {
+  const agentName = NPC_TO_AGENT[npcName];
+  if (!agentName) return null;
+
+  const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL;
+  const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN;
+  
+  if (!gatewayUrl || !gatewayToken) return null;
+
+  try {
+    const client = getGameClient();
+    if (!client.isConnected()) {
+      await client.connect();
+    }
+
+    const sessionKey = `agent:main:mission-control-${agentName}`;
+    console.log(`[Narrate] Requesting from OpenClaw agent: ${agentName}...`);
+    const response = await client.sendChatAndWait(sessionKey, prompt, 20000);
+    return response;
+  } catch (err) {
+    console.warn(`[Narrate] OpenClaw failed for ${npcName}:`, err instanceof Error ? err.message : err);
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
@@ -12,6 +45,9 @@ export async function POST(request: NextRequest) {
       heal: 'channels healing magic',
       fireball: 'unleashes a powerful fire spell',
       talk: 'engages in conversation',
+      gift: 'receives a gift',
+      divine_intervention: 'intervenes with divine power',
+      exploration_event: 'discovers something during exploration'
     };
 
     let systemPrompt = '';
@@ -73,13 +109,29 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
       } else {
         userPrompt = `ผู้เล่น ${playerName} เข้ามาหาคุณที่หมู่บ้านเพื่อสร้างสายสัมพันธ์ พูดทักทายตามสไตล์ของคุณ`;
       }
+    } else if (action === 'gift') {
+        systemPrompt = `คุณคือ ${npcName} ในเกม RPG "Gods' Arena" คุณเพิ่งได้รับของขวัญจากผู้เล่น`;
+        userPrompt = `ผู้เล่นมอบ "${wantedItem || 'ของบางอย่าง'}" ให้คุณ (Bond Level: ${bondLevel})
+แสดงความขอบคุณหรือปฏิกิริยาตามบุคลิกของคุณ 1 ประโยคสั้นๆ ภาษาไทย`;
     } else {
       systemPrompt = `คุณเป็นผู้บรรยายการต่อสู้ในเกม RPG "Gods' Arena" บรรยายสั้น กระชับ ดราม่า 1-2 ประโยค เป็นภาษาไทย`;
       userPrompt = `${playerName} ${actionDescriptions[action] || 'ลงมือ'} ใส่ ${enemyName || 'ศัตรูปริศนา'} สร้างดาเมจ ${damage || 0}
 บรรยายฉากนี้ให้ตื่นเต้น`;
     }
 
-    // If no API key, return a fallback message immediately to avoid 500 error
+    // Combine for OpenClaw if needed
+    const combinedPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+    // Strategy 1: Try OpenClaw
+    if (NPC_TO_AGENT[npcName]) {
+        const openclawNarrative = await generateViaOpenClaw(npcName, combinedPrompt);
+        if (openclawNarrative) {
+            return NextResponse.json({ narrative: openclawNarrative, source: 'openclaw' });
+        }
+    }
+
+    // If no OpenClaw or failed, use OpenRouter
+    // If no API key, return a fallback message immediately
     if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY.includes('000000')) {
         console.warn('No OpenRouter API Key found. Using fallback narrative.');
         let fallback = '';
@@ -107,7 +159,7 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
         } else {
             fallback = `${playerName} โจมตี ${enemyName || 'ศัตรู'} อย่างรุนแรง สร้างดาเมจ ${damage || 0}!`;
         }
-        return NextResponse.json({ narrative: fallback });
+        return NextResponse.json({ narrative: fallback, source: 'fallback' });
     }
 
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -138,12 +190,12 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
     const data = await response.json();
     const narrative = data.choices?.[0]?.message?.content || '';
 
-    return NextResponse.json({ narrative });
+    return NextResponse.json({ narrative, source: 'openrouter' });
   } catch (error) {
     console.error('Narrate error:', error);
     return NextResponse.json(
-      { narrative: "The gods are silent at this moment, but their presence remains felt." },
-      { status: 200 } // Return 200 with fallback to prevent UI crash
+      { narrative: "The gods are silent at this moment, but their presence remains felt.", source: 'error' },
+      { status: 200 }
     );
   }
 }
