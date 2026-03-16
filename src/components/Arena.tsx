@@ -30,11 +30,24 @@ export default function Arena() {
   const [inCombat, setInCombat] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
   const [spriteFrame, setSpriteFrame] = useState(0);
+  const [interventionPoints, setInterventionPoints] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => setSpriteFrame(f => f + 1), 150);
     return () => clearInterval(interval);
   }, []);
+
+  const useIP = (cost: number) => {
+    if (interventionPoints >= cost) {
+      setInterventionPoints(p => p - cost);
+      return true;
+    }
+    return false;
+  };
+
+  const addIP = (amount: number) => {
+    setInterventionPoints(p => p + amount);
+  };
 
   const availableSkills = companions.flatMap(c => c.unlockedSkills);
 
@@ -67,17 +80,28 @@ export default function Arena() {
     });
   };
   
-  const executeAttack = async (skill?: DivineSkill) => {
+  const executeAttack = async (skill?: DivineSkill, isDivineIntervention = false) => {
     if (!selectedEnemy || result || isAttacking) return;
     
+    if (isDivineIntervention && !useIP(5)) {
+      setDialogue({
+        speaker: 'Minju',
+        text: 'พลังแทรกแซงไม่เพียงพอค่ะ! เราต้องสะสมพลังเพิ่มก่อนนะ',
+        portrait: 'shock'
+      });
+      return;
+    }
+
     setIsAttacking(true);
     
     // Play attack effect in Phaser
-    EventBus.emit('arena-attack', { target: 'enemy' });
+    EventBus.emit('arena-attack', { target: 'enemy', isSpecial: isDivineIntervention });
 
     const totalBonusAtk = companions.reduce((acc, c) => acc + getBondBonus(c.id).atk, 0);
     
-    const multiplier = skill ? skill.multiplier : 1.0;
+    let multiplier = skill ? skill.multiplier : 1.0;
+    if (isDivineIntervention) multiplier *= 2.5;
+
     const playerDmg = Math.floor((Math.random() * 10 + 15 + totalBonusAtk) * multiplier);
     
     const newEnemyHp = Math.max(0, enemyHp - playerDmg);
@@ -88,17 +112,17 @@ export default function Arena() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'attack',
-          playerName: skill ? `Kane using ${skill.name}` : 'Kane',
+          action: isDivineIntervention ? 'divine_intervention' : 'attack',
+          playerName: isDivineIntervention ? 'Divine Intervention via Kane' : (skill ? `Kane using ${skill.name}` : 'Kane'),
           enemyName: selectedEnemy.name,
           damage: playerDmg
         })
       });
       const data = await res.json();
-      const narrative = data.narrative || `Kane โจมตีใส่ ${playerDmg}!`;
-      setCombatLog(prev => [`🏹 ${narrative}`, ...prev]);
+      const narrative = data.narrative || (isDivineIntervention ? `✨ พลังแห่งทวยเทพฟาดฟันใส่ ${selectedEnemy.name} อย่างรุนแรง! (${playerDmg} dmg)` : `Kane โจมตีใส่ ${playerDmg}!`);
+      setCombatLog(prev => [isDivineIntervention ? `✨ ${narrative}` : `🏹 ${narrative}`, ...prev]);
       
-      if (skill) {
+      if (skill && !isDivineIntervention) {
         // Using a god's skill increases bond with that god
         if (skill.godId) {
           addBond(skill.godId, 1);
@@ -109,6 +133,14 @@ export default function Arena() {
           portrait: 'happy'
         });
       }
+
+      if (isDivineIntervention) {
+        setDialogue({
+          speaker: 'Minju',
+          text: `นั่นไง! พลังแทรกแซงของเหล่าเทพทำงานแล้ว! แข็งแกร่งสุดๆ ไปเลยค่ะ!`,
+          portrait: 'happy'
+        });
+      }
     } catch (err) {
       setCombatLog(prev => [`🏹 Kane โจมตีใส่ ${playerDmg}!`, ...prev]);
     }
@@ -116,6 +148,7 @@ export default function Arena() {
     if (newEnemyHp <= 0) {
       setResult('win');
       addGold(selectedEnemy.reward);
+      addIP(2); // Gain 2 IP on victory
       setIsAttacking(false);
 
       // Play death animation in Phaser
@@ -217,6 +250,14 @@ export default function Arena() {
             className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50 transition-all"
           >
             ยิงธรรมดา
+          </button>
+          <button 
+            onClick={() => executeAttack(undefined, true)}
+            disabled={isAttacking || !!result || interventionPoints < 5}
+            className="py-3 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] tracking-widest disabled:opacity-50 border border-indigo-400/20 transition-all flex flex-col items-center justify-center leading-tight"
+          >
+            <span>✨ Divine Intervention</span>
+            <span className="text-[8px] opacity-70">ใช้ 5 IP (มี {interventionPoints})</span>
           </button>
           {availableSkills.map((skill, i) => (
             <button 
