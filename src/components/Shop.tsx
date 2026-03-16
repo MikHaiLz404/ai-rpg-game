@@ -24,6 +24,9 @@ const ITEMS = [
   { id: 'sword', name: 'Sword', emoji: '⚔️', price: 200, desc: 'ดาบเหล็กกล้า' },
   { id: 'shield', name: 'Shield', emoji: '🛡️', price: 150, desc: 'โล่ป้องกัน' },
   { id: 'bow', name: 'Bow', emoji: '🏹', price: 180, desc: 'ธนูไม้สน' },
+  { id: 'herbs', name: 'Herbs', emoji: '🌿', price: 40, desc: 'สมุนไพรสดจากป่า' },
+  { id: 'ore', name: 'Ore', emoji: '🪨', price: 60, desc: 'แร่เหล็กคุณภาพดี' },
+  { id: 'wood', name: 'Wood', emoji: '🪵', price: 30, desc: 'ไม้เนื้อแข็ง' },
   { id: 'olympian_coin', name: 'Olympian Coin', emoji: '🪙', price: 500, desc: 'เหรียญโอลิมเปียหายาก' },
 ];
 

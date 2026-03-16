@@ -10,12 +10,13 @@ interface ChatMessage {
 }
 
 export default function Relationship() {
-  const { companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, choicesLeft, consumeChoice, setIsBusy } = useGameStore();
+  const { companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, choicesLeft, consumeChoice, setIsBusy, items, removeItem } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [chatLog, setChatLog] = useState<ChatMessage[]>([]);
   const [userInput, setUserMessage] = useState('');
   const [isTalking, setIsTalking] = useState(false);
   const [isGeneratingSkill, setIsGeneratingSkill] = useState(false);
+  const [showGiftModal, setShowGiftModal] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -156,6 +157,53 @@ export default function Relationship() {
     }
   };
 
+  const handleGift = async (itemId: string) => {
+    if (!selectedId || choicesLeft <= 0) return;
+    
+    const companion = companions.find(c => c.id === selectedId);
+    if (!companion) return;
+
+    consumeChoice();
+    removeItem(itemId);
+    setShowGiftModal(false);
+
+    setChatLog(prev => [...prev, { sender: 'player', text: `(มอบของขวัญ: ${itemId})` }]);
+    
+    // Logic for bond gain based on item
+    const bondGain = itemId.includes('potion') ? 3 : 5;
+    addBond(selectedId, bondGain);
+    setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +${bondGain}` }]);
+
+    try {
+      const res = await fetch('/api/narrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'gift',
+          playerName: 'Minju',
+          npcName: companion.name,
+          giftItem: itemId,
+          bondLevel: companion.level
+        })
+      });
+      const data = await res.json();
+      if (data.narrative) {
+        setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]);
+        setDialogue({
+          speaker: companion.name,
+          text: data.narrative
+        });
+      }
+    } catch (err) {
+      setDialogue({
+        speaker: companion.name,
+        text: `ขอบใจมากนะสำหรับ ${itemId} ข้าจะเก็บรักษาไว้อย่างดี`
+      });
+    }
+
+    setTimeout(() => checkAutoSkillUnlock(selectedId), 100);
+  };
+
   const selectedCompanion = companions.find(c => c.id === selectedId);
   const metadata = selectedId ? NPC_CONFIGS[selectedId] : null;
 
@@ -257,8 +305,42 @@ export default function Relationship() {
               e.preventDefault();
               if (userInput.trim()) handleTalk(selectedCompanion.id, userInput);
             }}
-            className="flex gap-2"
+            className="flex gap-2 relative"
           >
+            <button
+              type="button"
+              onClick={() => setShowGiftModal(!showGiftModal)}
+              disabled={choicesLeft <= 0}
+              className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0"
+              title="Give Gift"
+            >
+              🎁
+            </button>
+            
+            {showGiftModal && (
+              <div className="absolute bottom-16 left-0 w-64 bg-slate-900 border-2 border-pink-500/30 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between">
+                  <span>เลือกของขวัญ</span>
+                  <button onClick={() => setShowGiftModal(false)}>✕</button>
+                </div>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
+                  {Array.from(new Set(items)).map((itemId) => (
+                    <button
+                      key={itemId}
+                      onClick={() => handleGift(itemId)}
+                      className="w-full text-left p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-200 border border-white/5 transition-all flex justify-between items-center"
+                    >
+                      <span>{itemId}</span>
+                      <span className="text-[8px] text-pink-500/70">x{items.filter(i => i === itemId).length}</span>
+                    </button>
+                  ))}
+                  {items.length === 0 && (
+                    <div className="text-[10px] text-slate-600 italic text-center py-4">ไม่มีของในกระเป๋าเลย...</div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <input
               type="text"
               value={userInput}

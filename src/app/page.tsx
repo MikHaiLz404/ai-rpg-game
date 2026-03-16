@@ -8,6 +8,7 @@ import { EventBus } from '@/game/EventBus';
 
 import Shop from '@/components/Shop';
 import Arena from '@/components/Arena';
+import Exploration from '@/components/Exploration';
 import Relationship from '@/components/Relationship';
 import ChampionStatus from '@/components/ChampionStatus';
 import DialogueOverlay from '@/components/DialogueOverlay';
@@ -236,7 +237,7 @@ export default function Home() {
           <div className="min-h-[200px] md:min-h-[400px]">
             {phase === 'shop' && <Shop />}
             {phase === 'arena' && <Arena />}
-            {phase === 'exploration' && <Relationship />}
+            {phase === 'exploration' && <Exploration />}
             {phase === 'relationship' && <Relationship />}
             {(phase as any) === 'status' && <ChampionStatus />}
           </div>

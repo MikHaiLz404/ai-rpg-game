@@ -63,6 +63,11 @@ interface GameStore {
 
   day: number;
   choicesLeft: number;
+  interventionPoints: number;
+  addIP: (amount: number) => void;
+  useIP: (amount: number) => boolean;
+  lastDailyEvent: string | null;
+  setLastDailyEvent: (event: string | null) => void;
   consumeChoice: () => void;
   endDay: () => void;
   isBusy: boolean;
@@ -178,6 +183,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   day: 1,
   choicesLeft: MAX_CHOICES_PER_DAY,
+  interventionPoints: 10,
+  addIP: (amount) => set((state) => ({ interventionPoints: state.interventionPoints + amount })),
+  useIP: (amount) => {
+    const state = get();
+    if (state.interventionPoints >= amount) {
+      set({ interventionPoints: state.interventionPoints - amount });
+      return true;
+    }
+    return false;
+  },
+  lastDailyEvent: null,
+  setLastDailyEvent: (event) => set({ lastDailyEvent: event }),
+
   consumeChoice: () => set((state) => {
     return { choicesLeft: Math.max(0, state.choicesLeft - 1) };
   }),
@@ -187,7 +205,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (newDay > MAX_TURNS && !state.vampireDefeated) {
       return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, isBusy: false };
     }
-    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true, isBusy: false };
+    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true, isBusy: false, lastDailyEvent: null };
   }),
 
   isBusy: false,
@@ -225,6 +243,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     companions: INITIAL_COMPANIONS.map(c => ({ ...c, unlockedSkills: [], claimedThresholds: [] })),
     day: 1,
     choicesLeft: MAX_CHOICES_PER_DAY,
+    interventionPoints: 10,
+    lastDailyEvent: null,
     isBusy: false,
     customersServed: 0,
     isShiftActive: false,
@@ -251,6 +271,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       })),
       day: data.day || 1,
       choicesLeft: data.choicesLeft !== undefined ? data.choicesLeft : MAX_CHOICES_PER_DAY,
+      interventionPoints: data.interventionPoints || 10,
       vampireDefeated: data.vampireDefeated || false,
       gameOver: data.gameOver || null,
       isBusy: false,

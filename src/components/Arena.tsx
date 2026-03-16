@@ -19,7 +19,8 @@ const CHAMPION = {
 export default function Arena() {
   const { 
     gold, addGold, companions, getBondBonus, addBond, setDialogue, 
-    defeatVampire, gameOver, choicesLeft, consumeChoice, endDay, setIsBusy 
+    defeatVampire, gameOver, choicesLeft, consumeChoice, endDay, setIsBusy,
+    interventionPoints, addIP, useIP
   } = useGameStore();
   
   const [combatLog, setCombatLog] = useState<string[]>([]);
@@ -30,24 +31,11 @@ export default function Arena() {
   const [inCombat, setInCombat] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
   const [spriteFrame, setSpriteFrame] = useState(0);
-  const [interventionPoints, setInterventionPoints] = useState(0);
 
   useEffect(() => {
     const interval = setInterval(() => setSpriteFrame(f => f + 1), 150);
     return () => clearInterval(interval);
   }, []);
-
-  const useIP = (cost: number) => {
-    if (interventionPoints >= cost) {
-      setInterventionPoints(p => p - cost);
-      return true;
-    }
-    return false;
-  };
-
-  const addIP = (amount: number) => {
-    setInterventionPoints(p => p + amount);
-  };
 
   const availableSkills = companions.flatMap(c => c.unlockedSkills);
 
@@ -123,7 +111,6 @@ export default function Arena() {
       setCombatLog(prev => [isDivineIntervention ? `✨ ${narrative}` : `🏹 ${narrative}`, ...prev]);
       
       if (skill && !isDivineIntervention) {
-        // Using a god's skill increases bond with that god
         if (skill.godId) {
           addBond(skill.godId, 1);
         }
@@ -266,7 +253,7 @@ export default function Arena() {
               disabled={isAttacking || !!result}
               className="py-3 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] tracking-widest disabled:opacity-50 border border-amber-400/20 transition-all"
             >
-              ✨ {skill.name}
+              🔥 {skill.name}
             </button>
           ))}
         </div>
@@ -309,7 +296,13 @@ export default function Arena() {
 
   return (
     <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-2xl">
-      <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-6 italic font-serif">สนามประลองเทพ</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic font-serif">สนามประลองเทพ</h2>
+        <div className="flex items-center gap-2 bg-indigo-900/30 px-3 py-1.5 rounded-full border border-indigo-500/20">
+          <span className="text-xs">✨</span>
+          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{interventionPoints} IP</span>
+        </div>
+      </div>
       <div className="space-y-3">
         {ENEMIES.map((enemy) => (
           <button

@@ -1,5 +1,11 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useGameStore } from '@/store/gameStore';
+import { EventBus } from '@/game/EventBus';
+
+const ITEMS_POOL = [
+  'potion_health', 'potion_mana', 'soap', 'flower', 'basket', 'cloth', 'mirror', 'herbs', 'ore', 'wood'
+];
 
 const TILE_SIZE = 48;
 const GRID_COLS = 8;
@@ -71,16 +77,69 @@ const ROOM_NAMES: Record<string, string> = {
 };
 
 export default function Exploration() {
+  const { choicesLeft, consumeChoice, addItem, setDialogue, setIsBusy } = useGameStore();
   const [room, setRoom] = useState('shop');
   const [playerX, setPlayerX] = useState(3);
   const [playerY, setPlayerY] = useState(3);
   const [frame, setFrame] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
+  const [isGathering, setIsGathering] = useState(false);
   
   useEffect(() => {
     const timer = setInterval(() => setFrame(f => (f + 1) % 4), 200);
     return () => clearInterval(timer);
   }, []);
+
+  const handleGather = async () => {
+    if (choicesLeft <= 0) {
+      setDialogue({
+        speaker: 'Minju',
+        text: 'วันนี้สำรวจมาเยอะแล้วค่ะ... กลับไปพักผ่อนกันก่อนดีกว่านะเคน',
+        portrait: 'work'
+      });
+      return;
+    }
+
+    setIsGathering(true);
+    setIsBusy(true);
+    consumeChoice();
+
+    // Trigger animation in Phaser if applicable
+    EventBus.emit('exploration-gather-start');
+
+    setTimeout(async () => {
+      const randomItem = ITEMS_POOL[Math.floor(Math.random() * ITEMS_POOL.length)];
+      addItem(randomItem);
+
+      try {
+        const res = await fetch('/api/narrate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'exploration_event',
+            location: ROOM_NAMES[room],
+            foundItem: randomItem
+          })
+        });
+        const data = await res.json();
+        setDialogue({
+          speaker: 'Minju',
+          text: data.narrative || `ว้าว! เจอ ${randomItem} ใน ${ROOM_NAMES[room]} ด้วยล่ะเคน!`,
+          portrait: 'happy'
+        });
+      } catch (err) {
+        setDialogue({
+          speaker: 'Minju',
+          text: `เจอ ${randomItem} ใน ${ROOM_NAMES[room]} ด้วยล่ะเคน! เก็บไว้ขายที่ร้านเรานะ`,
+          portrait: 'happy'
+        });
+      }
+
+      setIsGathering(false);
+      setIsBusy(false);
+      EventBus.emit('exploration-gather-end');
+    }, 1500);
+  };
   
   const currentMap = ROOM_MAPS[room as keyof typeof ROOM_MAPS];
   const tileBase = TILE_MAPPINGS[room] || TILE_MAPPINGS['shop'];
@@ -107,7 +166,26 @@ export default function Exploration() {
         </div>
       ) : (
         <>
-          <div style={{ marginBottom: '10px', color: '#9ca3af', fontSize: '0.9rem' }}>📍 {ROOM_NAMES[room]}</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ color: '#9ca3af', fontSize: '0.9rem' }}>📍 {ROOM_NAMES[room]}</div>
+            <button 
+              onClick={handleGather}
+              disabled={isGathering || choicesLeft <= 0}
+              style={{
+                padding: '8px 16px',
+                background: choicesLeft > 0 ? '#10b981' : '#4b5563',
+                border: 'none',
+                borderRadius: '8px',
+                color: '#fff',
+                cursor: choicesLeft > 0 ? 'pointer' : 'not-allowed',
+                fontWeight: 'bold',
+                fontSize: '0.8rem',
+                opacity: isGathering ? 0.7 : 1
+              }}
+            >
+              {isGathering ? '⏳ กำลังค้นหา...' : `🔍 สำรวจที่นี่ (${choicesLeft} แต้ม)`}
+            </button>
+          </div>
           
           {/* Game Container */}
           <div style={{ 
