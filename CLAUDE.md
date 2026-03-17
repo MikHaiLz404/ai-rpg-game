@@ -1,85 +1,88 @@
----
-title: Claude
-agent: aide
-topic: ai-rpg-game
-status: active
-version: 1.1.0
-updated: 2026-03-15
----
-
-## CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## What is repository is
+## Overview
 
-โปรเจคเกมตัวอย่างที่ทดลองการเอา ai agent มาช่วยในการสร้างเกมและระบบการโต้ตอบกับผู้เล่นในการพัฒนาความสัมพันธ์ของตัวละครและสุ่มสร้างสกิล
+**Gods' Arena (วิหารแห่งเทพ)** — a multi-genre RPG (Shop Management + Turn-Based Combat + Dating Sim + Roguelite) built with Next.js 14, Phaser 3, TypeScript, and Zustand. Players act as a merchant/coach supporting Gods in a 20-day campaign to defeat the Vampire Lord. AI agents generate NPC dialogue and skills dynamically.
 
-## 🌟 Project Overview
-**Gods' Arena (วิหารแห่งเทพ)** is a multi-genre RPG that combines **Shop Management**, **Turn-Based Combat**, **Dating Sim**, and **Roguelite** elements. Built with **Next.js**, **Phaser 3**, and **TypeScript**, the game features an AI-driven narrative and mechanics where players act as a merchant/coach supporting divine entities (Gods) in an arena.
+Bilingual project: Thai for narrative content (`novel/`), English for code and technical specs.
 
-### 🔄 Core Gameplay Loop
-1.  **Shop Phase 🏪**: Manage inventory, set prices, and sell items to Gods and mortals to earn gold and reputation.
-2.  **Arena Phase ⚔️**: Select Gods to compete in turn-based tactical battles. Players use **Intervention Points (IP)** to manipulate turn order.
-3.  **Exploration Phase 🗡️**: Travel through various locations to gather materials, fight monsters (auto/semi-auto), and encounter rival shops.
-4.  **Relationship Phase 💕**: Interact with Gods to build **Bond Levels**, unlocking unique AI-generated skills and stat bonuses.
+## Commands
 
----
+```bash
+npm run dev      # Start Next.js dev server (port 3000)
+npm run build    # Production build
+npm run start    # Start production server
+```
 
-## 🛠️ Technical Stack
--   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Game Engine**: [Phaser 3](https://phaser.io/)
--   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
--   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
--   **Asset Management**: Python-based utility scripts for optimization and extraction.
+Python utility scripts in `scripts/`:
+```bash
+python scripts/test_runner.py       # Test game logic (combat, shop)
+python scripts/combat_simulator.py  # Balance testing
+python scripts/data_generator.py    # Generate/update JSON data in src/data/
+python scripts/localizer.py         # Translation management
+```
 
----
+No JS test framework is configured (no Jest/Vitest).
 
-## 📂 Directory Structure Highlights
--   `src/app/`: Next.js pages and API routes (e.g., `/api/narrate` for AI dialogue).
--   `src/components/`: React components, including phase-specific UI (`Arena/`, `Shop/`, etc.).
--   `src/game/`: Phaser logic, scenes (`MainScene.ts`), and the `EventBus.ts` for React-Phaser communication.
--   `src/store/`: Zustand stores for game state (`gameStore.ts`), save data (`saveStore.ts`), and editor settings.
--   `src/types/`: Centralized TypeScript interfaces and types (`game.ts`).
--   `src/data/`: Game data in JSON format (gods, enemies, items, npcs).
--   `novel/`: Narrative content, lore, and Thai-language story chapters.
--   `game-design/`: Comprehensive design documents and mechanics specifications.
--   `scripts/`: Python and Shell scripts for testing, data generation, and asset processing.
--   `public/images/`: Organized hierarchical asset storage.
+## Architecture
 
----
+```
+React UI (Next.js App Router)
+    ↕ EventBus (EventEmitter)
+Phaser 3 Game Engine (MainScene)
 
-## ✅ Recent Progress (March 2026)
--   **Security**: Moving hardcoded secrets to environment variables.
--   **Architecture**: Implemented centralized dialogue system with portrait support.
--   **UI/UX**: Rebuilt dashboard based on wireframe specifications (right sidebar layout).
--   **Visuals**: Integrated facial expressions for Minju (Player) mapped to game events.
--   **World**: Fully implemented room transition logic and environment asset loading.
+React UI → Zustand stores (gameStore, saveStore, editorStore)
 
----
+Next.js API Routes (/api/narrate, /api/prophecy)
+    ↕ WebSocket (challenge-response auth)
+OpenClaw Gateway (AI agents) → fallback: OpenRouter API
+```
 
-## 🚀 Key Commands
--   `npm run dev`: Start the Next.js development server.
--   `npm run build`: Build the project for production.
--   `npm run start`: Start the production server.
--   `python scripts/test_runner.py`: Run automated tests for game logic (combat, shop, etc.).
--   `python scripts/combat_simulator.py`: Simulate and test combat balance.
--   `python scripts/data_generator.py`: Generate or update JSON data files in `src/data/`.
+### React ↔ Phaser Bridge
 
----
+`PhaserGame.tsx` wraps Phaser as a dynamically imported React component (`ssr: false`). Communication happens through `EventBus.ts` (an EventEmitter). Phaser emits events like `phase-change` and `change-room`; React listens and updates Zustand state. Game rendering config: 384x288px, pixel art mode, arcade physics.
 
-## 🧠 Development Conventions
--   **Type Safety**: Always use types from `src/types/game.ts` for game entities.
--   **State Management**: Use `useGameStore` (Zustand) for reactive UI state.
--   **Phaser Integration**: Game-specific rendering and physics happen in Phaser scenes, communicating with React via `EventBus.ts`.
--   **Localization**: The project includes Thai (`novel/`) and English content. Use `scripts/localizer.py` for managing translations.
--   **Testing**: Before making significant changes to combat or shop logic, run `python scripts/test_runner.py` to ensure no regressions in data integrity.
+### State Management (Zustand)
 
----
+- **`gameStore.ts`** — Primary store: game phase, gold, items, companions/bonds, intervention points, dialogue, day counter (1-20), win/lose state. All game mutations go through this store.
+- **`saveStore.ts`** — Save/load system: auto-save to localStorage (30s interval), 3 manual save slots, JSON export/import. Save version: `1.0.0`.
+- **`editorStore.ts`** — Runtime CRUD editor for game data (items, gods, enemies, NPCs).
 
-## 🎯 Current Focus
--   Refining the **Shop Management** loop with more complex customer requests and restocking mechanics.
--   Enhancing the **AI-driven Relationship** system to generate more varied divine skills.
--   Balancing **Arena Combat** difficulty and Kane's progression stats.
--   Expanding the **Exploration Phase** with interactive tiles and gathering mechanics.
+### API Routes
+
+- **`/api/narrate`** — AI dialogue generation. Maps gods to OpenClaw agents (emily, ember, mochi). Supports prompt types: `generate_skill`, `shop_talk`, `talk`. Falls back to OpenRouter if Gateway unavailable.
+- **`/api/prophecy`** — Daily prophecy from all 3 gods in parallel. Includes hardcoded fallback prophecies.
+
+### OpenClaw Gateway Integration
+
+`src/lib/openclaw/client.ts` implements a WebSocket client with device-keypair authentication (challenge-response). Session keys follow format: `agent:main:mission-control-{agentName}`. Device identity (RSA keypair) is stored in localStorage.
+
+### Game Loop
+
+Each day: Prophecy → 3 actions (Shop/Arena/Exploration/Relationship) → End Day. Win by defeating vampire within 20 days. Bond thresholds at `[3, 5, 8, 12, 17]` unlock AI-generated skills.
+
+### World Structure (MainScene)
+
+Rooms: `shop`, `arena`, `village`, `cave_entrance`, `cave_inside` — each with background image, NPC placements, and exit connections. Room transitions handled in Phaser scene.
+
+## Types & Data
+
+- **Types**: `src/types/index.ts` is the comprehensive type file (God, Enemy, Item, NPC, Companion, SaveData, GameData). `src/types/game.ts` has legacy types with partial overlap — prefer `index.ts`.
+- **Game data**: `src/data/` — TypeScript files exporting gods (Zeus, Athena, Ares), enemies, items, NPCs, and NPC personality configs (`npcConfig.ts`).
+- **Path alias**: `@/*` maps to `./src/*`
+
+## Environment Variables
+
+Required in `.env.local`:
+
+| Variable | Description |
+|---|---|
+| `OPENCLAW_GATEWAY_URL` | WebSocket URL for AI Gateway |
+| `OPENCLAW_GATEWAY_TOKEN` | Auth token for Gateway |
+| `OPENROUTER_API_KEY` | Fallback LLM provider |
+
+## Game Design
+
+Design docs in `game-design/turn-based-rpg/GAME_DESIGN.md`. Narrative lore and Thai-language novel chapters in `novel/`.

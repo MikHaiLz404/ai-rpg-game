@@ -35,17 +35,20 @@ export class OpenClawGameClient {
       const wsUrl = new URL(this.url);
       
       if (typeof window === 'undefined') {
-        // Node.js (Vercel) connection options
-        console.log(`[OpenClaw-Game] Connecting to ${wsUrl.host} with bypass headers...`);
+        const isNgrok = wsUrl.host.includes('ngrok');
+        const headers: Record<string, string> = {
+          'User-Agent': 'OpenClaw-Game-Client',
+        };
+        if (isNgrok) {
+          headers['ngrok-skip-browser-warning'] = 'true';
+          headers['Host'] = wsUrl.host;
+          headers['Origin'] = wsUrl.origin;
+        }
+        console.log(`[OpenClaw-Game] Connecting to ${wsUrl.host}${isNgrok ? ' (ngrok tunnel)' : ' (local)'}...`);
         this.ws = new WS(wsUrl.toString(), {
-          headers: {
-            'ngrok-skip-browser-warning': 'true',
-            'User-Agent': 'OpenClaw-Game-Client',
-            'Host': wsUrl.host,
-            'Origin': wsUrl.origin
-          },
+          headers,
           handshakeTimeout: 15000,
-          perMessageDeflate: false // Ngrok often struggles with compression
+          perMessageDeflate: !isNgrok, // Ngrok struggles with compression
         });
       } else {
         this.ws = new WS(wsUrl.toString());
@@ -94,7 +97,7 @@ export class OpenClawGameClient {
             if (this.deviceIdentity) {
               const payload = buildDeviceAuthPayload({
                 deviceId: this.deviceIdentity.deviceId,
-                clientId: 'rpg-game', clientMode: 'ui',
+                clientId: 'cli', clientMode: 'ui',
                 role: 'operator', scopes: ['operator.admin', 'operator.read', 'operator.write'],
                 signedAtMs, token: this.token || null, nonce,
               });
@@ -123,7 +126,7 @@ export class OpenClawGameClient {
               type: 'req', id: requestId, method: 'connect',
               params: {
                 minProtocol: 3, maxProtocol: 3,
-                client: { id: 'rpg-game', version: '1.0.0', platform: 'server', mode: 'ui' },
+                client: { id: 'cli', version: '1.0.0', platform: 'server', mode: 'ui' },
                 auth: { token: this.token },
                 role: 'operator',
                 scopes: ['operator.admin', 'operator.read', 'operator.write'],
