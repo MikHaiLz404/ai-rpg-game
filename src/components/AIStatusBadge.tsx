@@ -53,7 +53,7 @@ export default function AIStatusBadge({ compact }: { compact?: boolean }) {
     return (
       <div className={`flex items-center gap-1 ${config.color}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${config.dot} ${source === 'openclaw' ? 'animate-pulse' : ''}`} />
-        <span className="text-[8px] font-bold uppercase tracking-wider">{source === 'checking' ? '...' : config.label}</span>
+        <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-wider">{source === 'checking' ? '...' : config.label}</span>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default function AIStatusBadge({ compact }: { compact?: boolean }) {
   return (
     <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/50 border border-slate-700/50 ${config.color}`}>
       <span className={`w-2 h-2 rounded-full ${config.dot} ${source === 'openclaw' ? 'animate-pulse' : ''}`} />
-      <span className="text-[9px] font-bold uppercase tracking-widest">AI: {config.label}</span>
+      <span className="text-[9px] md:text-[11px] font-bold uppercase tracking-widest">AI: {config.label}</span>
     </div>
   );
 }

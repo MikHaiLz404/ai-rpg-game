@@ -505,10 +505,16 @@ export class MainScene extends Phaser.Scene {
     scheduleNextCustomer() {
         const { day } = (this.game as any).store?.getState() || { day: 1 };
         let minDelay: number, maxDelay: number;
-        if (day <= 5) { minDelay = 12000; maxDelay = 18000; }
-        else if (day <= 14) { minDelay = 8000; maxDelay = 14000; }
-        else { minDelay = 5000; maxDelay = 10000; }
+        // Faster customer flow: Early 6-10s, Mid 4-8s, Late 3-5s
+        if (day <= 5) { minDelay = 6000; maxDelay = 10000; }
+        else if (day <= 14) { minDelay = 4000; maxDelay = 8000; }
+        else { minDelay = 3000; maxDelay = 5000; }
+        
         const delay = minDelay + Math.random() * (maxDelay - minDelay);
+        
+        // Let React know a customer is coming so it can show a progress bar
+        EventBus.emit('customer-incoming', { delay });
+
         this.time.delayedCall(delay, () => {
             this.trySpawnCustomer();
             this.scheduleNextCustomer();

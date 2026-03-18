@@ -54,7 +54,7 @@ export default function DialogueOverlay() {
             <span>{dialogue.speaker}</span>
             <button
               onClick={() => setDialogue(null)}
-              className="text-slate-500 hover:text-white transition-colors text-[10px]"
+              className="text-slate-500 hover:text-white transition-colors text-[10px] md:text-xs"
             >
               ✕
             </button>

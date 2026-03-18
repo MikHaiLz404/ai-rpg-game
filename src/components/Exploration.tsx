@@ -424,7 +424,7 @@ export default function Exploration() {
       <div className="bg-slate-900/90 p-6 rounded-2xl border border-emerald-500/20 shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-black text-emerald-400 uppercase tracking-tighter italic font-serif">ดินแดนสำรวจ</h2>
-          <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+          <div className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
             พลังรบ: <span className="text-emerald-400">{kanePower}</span> ATK / <span className="text-blue-400">{totalBonusDef}</span> DEF
           </div>
         </div>
@@ -456,17 +456,17 @@ export default function Exploration() {
                   <div className="text-left">
                     <div className="font-black text-white uppercase tracking-tight">
                       {loc.name}
-                      <span className="ml-2 text-amber-400/70 text-[9px]">
+                      <span className="ml-2 text-amber-400/70 text-[9px] md:text-[11px]">
                         {'★'.repeat(loc.difficulty)}{'☆'.repeat(5 - loc.difficulty)}
                       </span>
                     </div>
-                    <div className="text-[9px] text-slate-400 mt-0.5">
+                    <div className="text-[9px] md:text-[11px] text-slate-400 mt-0.5">
                       {locked ? `ปลดล็อควันที่ ${loc.unlockDay}` : loc.description}
                     </div>
                   </div>
                 </div>
                 {!locked && (
-                  <div className="text-[10px] font-black text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="text-[10px] md:text-xs font-black text-emerald-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                     สำรวจ
                   </div>
                 )}
@@ -477,8 +477,8 @@ export default function Exploration() {
 
         {/* Exploration Log */}
         {explorationLog.length > 0 && (
-          <div className="bg-black/50 p-4 rounded-xl max-h-32 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
-            <div className="text-[9px] font-black text-slate-600 uppercase tracking-widest mb-2">บันทึกการสำรวจ</div>
+          <div className="bg-black/50 p-4 rounded-xl max-h-32 overflow-y-auto font-mono text-[10px] md:text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
+            <div className="text-[9px] md:text-[11px] font-black text-slate-600 uppercase tracking-widest mb-2">บันทึกการสำรวจ</div>
             {explorationLog.map((log, i) => (
               <div key={i} className={i === 0 ? 'text-emerald-300 font-bold' : 'text-slate-500'}>{log}</div>
             ))}
@@ -495,11 +495,11 @@ export default function Exploration() {
       <div className="flex justify-between items-center mb-4">
         <button
           onClick={() => { setSelectedLocation(null); setExploreResult(null); }}
-          className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+          className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"
         >
           ← กลับ
         </button>
-        <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+        <div className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest">
           {choicesLeft > 0 ? `${choicesLeft} แต้มเหลือ` : 'แต้มหมด'}
         </div>
       </div>
@@ -516,11 +516,11 @@ export default function Exploration() {
             <div>
               <h3 className="text-xl font-black text-white uppercase tracking-tight drop-shadow">
                 {selectedLocation.name}
-                <span className="ml-2 text-amber-400/70 text-xs">
+                <span className="ml-2 text-amber-400/70 text-xs md:text-sm">
                   {'★'.repeat(selectedLocation.difficulty)}
                 </span>
               </h3>
-              <div className="text-[10px] text-slate-300/70">{selectedLocation.description}</div>
+              <div className="text-[10px] md:text-xs text-slate-300/70">{selectedLocation.description}</div>
             </div>
           </div>
         </div>
@@ -529,30 +529,30 @@ export default function Exploration() {
       {/* Location Info Grid */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5 text-center">
-          <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">สัตว์ร้าย</div>
+          <div className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">สัตว์ร้าย</div>
           <div className="text-sm font-black text-red-400 mt-1">{Math.round(selectedLocation.encounterRate * 100)}%</div>
         </div>
         <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5 text-center">
-          <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">ของดรอป</div>
+          <div className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">ของดรอป</div>
           <div className="text-sm font-black text-amber-400 mt-1">{selectedLocation.loot.length} แบบ</div>
         </div>
         <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5 text-center">
-          <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">เหตุการณ์</div>
+          <div className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">เหตุการณ์</div>
           <div className="text-sm font-black text-purple-400 mt-1">{selectedLocation.events.length} แบบ</div>
         </div>
       </div>
 
       {/* Monsters Preview */}
       <div className="mb-4 space-y-2">
-        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">สัตว์ร้ายในพื้นที่</div>
+        <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest">สัตว์ร้ายในพื้นที่</div>
         <div className="flex gap-2">
           {selectedLocation.monsters.map((m, i) => {
             const dayScale = 1 + (day - 1) * 0.04;
             return (
               <div key={i} className="flex-1 bg-red-900/20 p-2 rounded-xl border border-red-500/10 text-center">
                 <span className="text-xl">{m.emoji}</span>
-                <div className="text-[9px] font-black text-white mt-1">{m.name}</div>
-                <div className="text-[8px] text-slate-400">HP {Math.floor(m.hp * dayScale)} ATK {Math.floor(m.atk * dayScale)}</div>
+                <div className="text-[9px] md:text-[11px] font-black text-white mt-1">{m.name}</div>
+                <div className="text-[8px] md:text-[10px] text-slate-400">HP {Math.floor(m.hp * dayScale)} ATK {Math.floor(m.atk * dayScale)}</div>
               </div>
             );
           })}
@@ -563,7 +563,7 @@ export default function Exploration() {
       <button
         onClick={() => handleExplore(selectedLocation)}
         disabled={isExploring || choicesLeft <= 0}
-        className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95 mb-4"
+        className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95 mb-4"
       >
         {isExploring ? '⏳ กำลังสำรวจ...' : choicesLeft > 0 ? `🗡️ ออกสำรวจ (ใช้ 1 แต้ม)` : 'แต้มหมดแล้ว'}
       </button>
@@ -583,7 +583,7 @@ export default function Exploration() {
               <div className="text-sm font-black text-white mt-1">
                 {exploreResult.won ? 'ชัยชนะ!' : 'ต้องถอยหนี!'}
               </div>
-              <div className="text-[10px] text-slate-400 mt-1">
+              <div className="text-[10px] md:text-xs text-slate-400 mt-1">
                 ปะทะ {exploreResult.monster.name} · โดน {exploreResult.playerDmgTaken} dmg · ได้ {exploreResult.goldEarned} ทอง
               </div>
             </div>
@@ -592,14 +592,14 @@ export default function Exploration() {
             <div className="text-center">
               <span className="text-3xl">{exploreResult.event.emoji}</span>
               <div className="text-sm font-black text-white mt-1">{exploreResult.event.name}</div>
-              <div className="text-[10px] text-slate-400 mt-1">{exploreResult.event.description}</div>
+              <div className="text-[10px] md:text-xs text-slate-400 mt-1">{exploreResult.event.description}</div>
             </div>
           )}
           {exploreResult.type === 'gather' && (
             <div className="text-center">
               <span className="text-3xl">{exploreResult.item.emoji}</span>
               <div className="text-sm font-black text-white mt-1">เก็บ {exploreResult.item.name}!</div>
-              <div className="text-[10px] text-slate-400 mt-1">เพิ่มเข้าคลังสินค้าแล้ว</div>
+              <div className="text-[10px] md:text-xs text-slate-400 mt-1">เพิ่มเข้าคลังสินค้าแล้ว</div>
             </div>
           )}
         </div>
@@ -607,10 +607,10 @@ export default function Exploration() {
 
       {/* Location Loot Table */}
       <div className="bg-black/30 p-3 rounded-xl border border-white/5">
-        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">ของที่หาได้</div>
+        <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">ของที่หาได้</div>
         <div className="flex flex-wrap gap-1.5">
           {selectedLocation.loot.map((item, i) => (
-            <span key={i} className="text-[9px] bg-slate-800 text-slate-300 px-2 py-1 rounded-lg border border-white/5">
+            <span key={i} className="text-[9px] md:text-[11px] bg-slate-800 text-slate-300 px-2 py-1 rounded-lg border border-white/5">
               {item.emoji} {item.name}
             </span>
           ))}

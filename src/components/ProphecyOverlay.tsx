@@ -117,13 +117,13 @@ export default function ProphecyOverlay() {
       <div className={`relative z-10 max-w-2xl w-full mx-4 flex flex-col items-center`}>
         {/* Council Title */}
         <div className="text-center mb-6">
-          <div className={`text-[10px] ${subtitleColor} font-bold uppercase tracking-[0.4em] mb-2 ${urgency === 'critical' ? 'animate-pulse' : ''}`}>
+          <div className={`text-[10px] md:text-xs ${subtitleColor} font-bold uppercase tracking-[0.4em] mb-2 ${urgency === 'critical' ? 'animate-pulse' : ''}`}>
             {urgency === 'critical' ? 'สภาฉุกเฉิน' : 'สภาแห่งทวยเทพ'}
           </div>
           <h2 className={`text-2xl md:text-3xl font-black ${titleColor} uppercase tracking-widest`}>
             Divine Council
           </h2>
-          <div className={`text-xs ${subtitleColor} font-bold mt-2 tracking-wider`}>
+          <div className={`text-xs md:text-sm ${subtitleColor} font-bold mt-2 tracking-wider`}>
             วันที่ {day} / {MAX_TURNS} — เหลือเวลาอีก {turnsLeft} วัน
           </div>
         </div>
@@ -152,7 +152,7 @@ export default function ProphecyOverlay() {
                     </div>
                   )}
                 </div>
-                <div className={`text-[9px] font-black uppercase tracking-widest mt-2 transition-all duration-500 ${
+                <div className={`text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 transition-all duration-500 ${
                   isRevealed ? 'text-amber-500/80' : 'text-slate-600'
                 }`}>
                   {prophecy?.godName || godId}
@@ -168,7 +168,7 @@ export default function ProphecyOverlay() {
           {loading && prophecies.length === 0 && (
             <div className="text-center py-12 px-6">
               <div className="text-4xl mb-4 animate-pulse">🔮</div>
-              <div className="text-amber-500/70 text-xs font-black uppercase tracking-[0.3em] animate-pulse">
+              <div className="text-amber-500/70 text-xs md:text-sm font-black uppercase tracking-[0.3em] animate-pulse">
                 เหล่าเทพกำลังร่วมประชุมกัน...
               </div>
             </div>
@@ -203,12 +203,12 @@ export default function ProphecyOverlay() {
                       {/* Speech bubble */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-black text-amber-500/80 uppercase tracking-widest">{p.godName}</span>
+                          <span className="text-[10px] md:text-xs font-black text-amber-500/80 uppercase tracking-widest">{p.godName}</span>
                           {i === 0 && (
-                            <span className="text-[8px] text-amber-500/30 font-bold uppercase tracking-wider">เริ่มประเด็น</span>
+                            <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">เริ่มประเด็น</span>
                           )}
                           {i > 0 && (
-                            <span className="text-[8px] text-amber-500/30 font-bold uppercase tracking-wider">ตอบโต้</span>
+                            <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">ตอบโต้</span>
                           )}
                         </div>
                         <div className={`text-sm leading-relaxed rounded-xl px-3 py-2 ${
@@ -219,7 +219,7 @@ export default function ProphecyOverlay() {
                           <span className="italic">{p.text}</span>
                         </div>
                         {source === 'openclaw' && p.agentName && (
-                          <div className="text-[9px] text-cyan-400/50 mt-1 font-mono ml-3">
+                          <div className="text-[9px] md:text-[11px] text-cyan-400/50 mt-1 font-mono ml-3">
                             via agent: {p.agentName}
                           </div>
                         )}
@@ -255,11 +255,11 @@ export default function ProphecyOverlay() {
           {/* Footer */}
           <div className="px-5 md:px-6 pb-5 md:pb-6 pt-2">
             <div className="flex items-center justify-between mb-3">
-              <span className={`text-[8px] font-bold uppercase tracking-widest ${sourceColor}`}>
+              <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${sourceColor}`}>
                 AI: {source || '...'}
               </span>
               {urgency !== 'calm' && (
-                <span className={`text-[8px] font-black uppercase tracking-widest ${urgency === 'critical' ? 'text-red-400 animate-pulse' : 'text-orange-400'}`}>
+                <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${urgency === 'critical' ? 'text-red-400 animate-pulse' : 'text-orange-400'}`}>
                   {urgency === 'critical' ? 'เวลาใกล้หมด!' : 'เวลาจำกัด'}
                 </span>
               )}
@@ -267,7 +267,7 @@ export default function ProphecyOverlay() {
             <button
               onClick={() => setShowProphecy(false)}
               disabled={(loading && prophecies.length === 0) || (dailyEvent && !eventApplied && revealed > prophecies.length)}
-              className={`w-full py-3 font-black rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
+              className={`w-full py-3 font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
                 urgency === 'critical'
                   ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20'
                   : 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20'
@@ -296,17 +296,17 @@ function DailyEventCard({ event, applied, onApply }: { event: DailyEvent; applie
 
   return (
     <div className="mt-3 pt-3 border-t border-amber-500/10 animate-in fade-in duration-700">
-      <div className="text-[9px] font-black text-amber-500/40 uppercase tracking-[0.3em] mb-2">เหตุการณ์ประจำวัน</div>
+      <div className="text-[9px] md:text-[11px] font-black text-amber-500/40 uppercase tracking-[0.3em] mb-2">เหตุการณ์ประจำวัน</div>
       <div className="flex items-center gap-3 bg-amber-500/5 border border-amber-500/15 rounded-xl px-3 py-2.5">
         <span className="text-2xl shrink-0">{event.emoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-xs font-black text-amber-400">{event.title}</div>
-          <div className="text-[11px] text-slate-300 leading-snug mt-0.5">{event.description}</div>
+          <div className="text-xs md:text-sm font-black text-amber-400">{event.title}</div>
+          <div className="text-[11px] md:text-[13px] text-slate-300 leading-snug mt-0.5">{event.description}</div>
         </div>
         <button
           onClick={onApply}
           disabled={applied}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${
             applied
               ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
               : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'

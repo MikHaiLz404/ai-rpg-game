@@ -235,11 +235,11 @@ export default function Arena() {
                     }}
                   />
               </div>
-              <div className="text-[10px] font-black text-blue-400 uppercase">{CHAMPION.name}</div>
+              <div className="text-[10px] md:text-xs font-black text-blue-400 uppercase">{CHAMPION.name}</div>
               <div className="w-24 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
                 <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${playerHp}%` }} />
               </div>
-              <div className="text-[9px] text-blue-400/70 mt-0.5 font-mono">{playerHp}/100</div>
+              <div className="text-[9px] md:text-[11px] text-blue-400/70 mt-0.5 font-mono">{playerHp}/100</div>
            </div>
 
            <div className="text-2xl font-black text-white italic opacity-20 animate-pulse">VS</div>
@@ -257,11 +257,11 @@ export default function Arena() {
                   />
                 ) : <span className="text-3xl">{selectedEnemy.emoji}</span>}
               </div>
-              <div className="text-[10px] font-black text-red-400 uppercase">{selectedEnemy.name}</div>
+              <div className="text-[10px] md:text-xs font-black text-red-400 uppercase">{selectedEnemy.name}</div>
               <div className="text-left w-full h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
                 <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${(enemyHp / selectedEnemy.hp) * 100}%` }} />
               </div>
-              <div className="text-[9px] text-red-400/70 mt-0.5 font-mono">{enemyHp}/{selectedEnemy.hp}</div>
+              <div className="text-[9px] md:text-[11px] text-red-400/70 mt-0.5 font-mono">{enemyHp}/{selectedEnemy.hp}</div>
            </div>
         </div>
 
@@ -269,24 +269,24 @@ export default function Arena() {
           <button 
             onClick={() => executeAttack()}
             disabled={isAttacking || !!result}
-            className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50 transition-all"
+            className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 transition-all"
           >
             ยิงธรรมดา
           </button>
           <button 
             onClick={() => executeAttack(undefined, true)}
             disabled={isAttacking || !!result || interventionPoints < 5}
-            className="py-3 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] tracking-widest disabled:opacity-50 border border-indigo-400/20 transition-all flex flex-col items-center justify-center leading-tight"
+            className="py-3 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 border border-indigo-400/20 transition-all flex flex-col items-center justify-center leading-tight"
           >
             <span>✨ Divine Intervention</span>
-            <span className="text-[8px] opacity-70">ใช้ 5 IP (มี {interventionPoints})</span>
+            <span className="text-[8px] md:text-[10px] opacity-70">ใช้ 5 IP (มี {interventionPoints})</span>
           </button>
           {availableSkills.map((skill, i) => (
             <button
               key={i}
               onClick={() => executeAttack(skill)}
               disabled={isAttacking || !!result}
-              className="py-3 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] tracking-widest disabled:opacity-50 border border-amber-400/20 transition-all"
+              className="py-3 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 border border-amber-400/20 transition-all"
             >
               🔥 {skill.name}
             </button>
@@ -294,7 +294,7 @@ export default function Arena() {
           <button
             onClick={handleRetreat}
             disabled={isAttacking || !!result}
-            className="py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50 transition-all"
+            className="py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-black rounded-xl border border-white/10 uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 transition-all"
           >
             🏃 ถอยหนี
           </button>
@@ -318,7 +318,7 @@ export default function Arena() {
             {choicesLeft <= 0 && (
               <button
                 onClick={() => { setInCombat(false); setIsBusy(false); endDay(); }}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase text-[10px] tracking-widest shadow-lg"
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase text-[10px] md:text-xs tracking-widest shadow-lg"
               >
                 💤 แต้มหมดแล้ว ไปพักผ่อนเพื่อเริ่มวันใหม่
               </button>
@@ -326,7 +326,7 @@ export default function Arena() {
           </div>
         )}
 
-        <div className="bg-black/50 p-4 rounded-xl h-24 overflow-y-auto font-mono text-[10px] leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
+        <div className="bg-black/50 p-4 rounded-xl h-24 overflow-y-auto font-mono text-[10px] md:text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
           {combatLog.map((log, i) => (
             <div key={i} className={i === 0 ? 'text-white font-bold' : 'text-slate-500'}>{log}</div>
           ))}
@@ -341,8 +341,8 @@ export default function Arena() {
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic font-serif">สนามประลองเทพ</h2>
         <div className="flex items-center gap-2 bg-indigo-900/30 px-3 py-1.5 rounded-full border border-indigo-500/20">
-          <span className="text-xs">✨</span>
-          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">{interventionPoints} IP</span>
+          <span className="text-xs md:text-sm">✨</span>
+          <span className="text-[10px] md:text-xs font-black text-indigo-400 uppercase tracking-widest">{interventionPoints} IP</span>
         </div>
       </div>
       <div className="space-y-3">
@@ -367,11 +367,11 @@ export default function Arena() {
               </div>
               <div className="text-left">
                 <div className="font-black text-white uppercase tracking-tight">{enemy.name}</div>
-                <div className="text-[9px] font-black text-slate-400 uppercase">HP {enemy.hp} · ATK {enemy.atk}</div>
-                <div className="text-[9px] font-black text-amber-500/70 uppercase">รางวัล: {enemy.reward} ทอง</div>
+                <div className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase">HP {enemy.hp} · ATK {enemy.atk}</div>
+                <div className="text-[9px] md:text-[11px] font-black text-amber-500/70 uppercase">รางวัล: {enemy.reward} ทอง</div>
               </div>
             </div>
-            <div className="text-[10px] font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="text-[10px] md:text-xs font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
               {choicesLeft > 0 ? 'สู้ ⚔️' : 'แต้มหมด'}
             </div>
           </button>

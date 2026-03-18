@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react';
 import { useGameStore, MAX_TURNS } from '@/store/gameStore';
 import { useSaveStore } from '@/store/saveStore';
-import { NPC_CONFIGS, SKILL_THRESHOLDS } from '@/data/npcConfig';
+import { NPC_CONFIGS, getSkillThresholds } from '@/data/npcConfig';
 
 // Item lookup for display
 const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
@@ -113,9 +113,9 @@ export default function ChampionStatus() {
         <div>
           <h2 className="text-2xl font-black text-white uppercase tracking-tight italic">Kane <span className="text-blue-500 text-sm not-italic">ผู้พิทักษ์</span></h2>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="bg-blue-500 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded uppercase">LVL {kane.level}</span>
-            <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">สกิล: {kane.unlockedSkills.length}</span>
-            <span className="text-amber-500/70 text-[10px] font-bold uppercase tracking-widest">วันที่ {day}/{MAX_TURNS}</span>
+            <span className="bg-blue-500 text-slate-900 text-[10px] md:text-xs font-black px-2 py-0.5 rounded uppercase">LVL {kane.level}</span>
+            <span className="text-slate-500 text-[10px] md:text-xs font-bold uppercase tracking-widest">สกิล: {kane.unlockedSkills.length}</span>
+            <span className="text-amber-500/70 text-[10px] md:text-xs font-bold uppercase tracking-widest">วันที่ {day}/{MAX_TURNS}</span>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function ChampionStatus() {
       {/* Stats + Bonds Row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">พลังการต่อสู้</div>
+          <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">พลังการต่อสู้</div>
           <div className="space-y-2">
             <StatRow label="โจมตี" value={15 + bonuses.atk} bonus={bonuses.atk} color="text-red-400" />
             <StatRow label="ป้องกัน" value={10 + bonuses.def} bonus={bonuses.def} color="text-blue-400" />
@@ -131,26 +131,27 @@ export default function ChampionStatus() {
           </div>
         </div>
         <div className="bg-black/40 p-3 rounded-xl border border-white/5">
-          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2">สายสัมพันธ์</div>
+          <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">สายสัมพันธ์</div>
           <div className="space-y-2">
             {gods.map(god => {
               const config = NPC_CONFIGS[god.id];
-              const nextThreshold = SKILL_THRESHOLDS.find(t => god.bond < t);
-              const prev = SKILL_THRESHOLDS.filter(t => t <= god.bond).pop() || 0;
+              const godThresholds = getSkillThresholds(god.id);
+              const nextThreshold = godThresholds.find(t => god.bond < t);
+              const prev = godThresholds.filter(t => t <= god.bond).pop() || 0;
               const progress = nextThreshold ? ((god.bond - prev) / (nextThreshold - prev)) * 100 : 100;
               return (
                 <div key={god.id}>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs">{config?.emoji || '👤'}</span>
+                    <span className="text-xs md:text-sm">{config?.emoji || '👤'}</span>
                     <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
                       <div className="h-full bg-pink-500 transition-all" style={{ width: `${progress}%` }} />
                     </div>
-                    <span className="text-[8px] font-black text-slate-500">{god.bond}{nextThreshold ? `/${nextThreshold}` : ''}</span>
+                    <span className="text-[8px] md:text-[10px] font-black text-slate-500">{god.bond}{nextThreshold ? `/${nextThreshold}` : ''}</span>
                   </div>
                   {god.unlockedSkills.length > 0 && (
                     <div className="flex flex-wrap gap-1 ml-5 mt-0.5">
                       {god.unlockedSkills.map((skill, i) => (
-                        <span key={i} className="text-[7px] bg-amber-500/10 text-amber-400 px-1 py-0.5 rounded border border-amber-500/20">
+                        <span key={i} className="text-[7px] md:text-[9px] bg-amber-500/10 text-amber-400 px-1 py-0.5 rounded border border-amber-500/20">
                           {skill.name}
                         </span>
                       ))}
@@ -166,8 +167,8 @@ export default function ChampionStatus() {
       {/* Inventory */}
       <div className="bg-black/40 p-3 rounded-xl border border-white/5">
         <div className="flex justify-between items-center mb-2">
-          <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">คลังสินค้า</div>
-          <div className="text-[9px] font-black text-amber-500/70">{items.length} ชิ้น · 💰 {gold.toLocaleString()}</div>
+          <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest">คลังสินค้า</div>
+          <div className="text-[9px] md:text-[11px] font-black text-amber-500/70">{items.length} ชิ้น · 💰 {gold.toLocaleString()}</div>
         </div>
         {Object.keys(itemCounts).length > 0 ? (
           <div className="grid grid-cols-3 gap-1.5">
@@ -175,21 +176,21 @@ export default function ChampionStatus() {
               const info = ITEMS_MAP[id];
               return (
                 <div key={id} className="bg-slate-800/50 px-2 py-1.5 rounded-lg border border-white/5 flex items-center gap-1.5">
-                  <span className="text-xs">{info?.emoji || '📦'}</span>
-                  <span className="text-[8px] text-slate-300 truncate flex-1">{info?.name || id}</span>
-                  <span className="text-[8px] font-black text-slate-500">x{count}</span>
+                  <span className="text-xs md:text-sm">{info?.emoji || '📦'}</span>
+                  <span className="text-[8px] md:text-[10px] text-slate-300 truncate flex-1">{info?.name || id}</span>
+                  <span className="text-[8px] md:text-[10px] font-black text-slate-500">x{count}</span>
                 </div>
               );
             })}
           </div>
         ) : (
-          <div className="text-[10px] text-slate-600 italic text-center py-3">กระเป๋าว่างเปล่า</div>
+          <div className="text-[10px] md:text-xs text-slate-600 italic text-center py-3">กระเป๋าว่างเปล่า</div>
         )}
       </div>
 
       {/* Skills */}
       <div>
-        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">ทักษะเทพเจ้า</div>
+        <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 px-1">ทักษะเทพเจ้า</div>
         <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-800">
           {gods.map(god => {
             const config = NPC_CONFIGS[god.id];
@@ -198,20 +199,20 @@ export default function ChampionStatus() {
             return (
               <div key={god.id}>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs">{config?.emoji || '👤'}</span>
-                  <span className="text-[9px] font-black text-white uppercase tracking-widest">{god.name}</span>
+                  <span className="text-xs md:text-sm">{config?.emoji || '👤'}</span>
+                  <span className="text-[9px] md:text-[11px] font-black text-white uppercase tracking-widest">{god.name}</span>
                 </div>
                 <div className="space-y-1.5 pl-5">
                   {godSkills.map((skill, i) => (
                     <div key={i} className="bg-slate-800/50 p-2 rounded-lg border border-white/5 flex justify-between items-center">
                       <div>
-                        <div className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1.5">
+                        <div className="text-[10px] md:text-xs font-black text-amber-500 uppercase flex items-center gap-1.5">
                           {skill.name}
-                          <span className="text-[7px] bg-amber-500/10 px-1 rounded text-amber-500/70 border border-amber-500/20">{skill.type}</span>
+                          <span className="text-[7px] md:text-[9px] bg-amber-500/10 px-1 rounded text-amber-500/70 border border-amber-500/20">{skill.type}</span>
                         </div>
-                        <div className="text-[8px] text-slate-400 italic mt-0.5 line-clamp-1">{skill.description}</div>
+                        <div className="text-[8px] md:text-[10px] text-slate-400 italic mt-0.5 line-clamp-1">{skill.description}</div>
                       </div>
-                      <div className="text-[9px] font-black text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
+                      <div className="text-[9px] md:text-[11px] font-black text-white bg-slate-900 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
                         x{skill.multiplier.toFixed(1)}
                       </div>
                     </div>
@@ -222,7 +223,7 @@ export default function ChampionStatus() {
           })}
           {kane.unlockedSkills.length === 0 && (
             <div className="text-center py-6 bg-black/20 rounded-xl border border-dashed border-slate-800">
-              <p className="text-[10px] text-slate-600 italic">ยังไม่มีทักษะเทพเจ้า ไปที่วิหารเพื่อสร้างความสัมพันธ์กับเหล่าเทพ</p>
+              <p className="text-[10px] md:text-xs text-slate-600 italic">ยังไม่มีทักษะเทพเจ้า ไปที่วิหารเพื่อสร้างความสัมพันธ์กับเหล่าเทพ</p>
             </div>
           )}
         </div>
@@ -230,10 +231,10 @@ export default function ChampionStatus() {
 
       {/* Save Slots */}
       <div className="space-y-2 pt-2 border-t border-slate-800">
-        <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">บันทึก / โหลด</div>
+        <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest">บันทึก / โหลด</div>
 
         {saveMsg && (
-          <div className="text-[10px] font-black text-emerald-400 bg-emerald-900/20 border border-emerald-500/20 rounded-lg px-3 py-1.5 text-center animate-in fade-in">
+          <div className="text-[10px] md:text-xs font-black text-emerald-400 bg-emerald-900/20 border border-emerald-500/20 rounded-lg px-3 py-1.5 text-center animate-in fade-in">
             {saveMsg}
           </div>
         )}
@@ -244,19 +245,19 @@ export default function ChampionStatus() {
             return (
               <div key={slot} className="flex gap-1.5">
                 <div className="flex-1 bg-slate-800/30 rounded-lg px-3 py-1.5 border border-white/5 flex items-center">
-                  <span className="text-[9px] text-slate-400">Slot {slot}</span>
-                  <span className="text-[8px] text-slate-600 ml-auto">{hasSave ? 'มีข้อมูล' : 'ว่าง'}</span>
+                  <span className="text-[9px] md:text-[11px] text-slate-400">Slot {slot}</span>
+                  <span className="text-[8px] md:text-[10px] text-slate-600 ml-auto">{hasSave ? 'มีข้อมูล' : 'ว่าง'}</span>
                 </div>
                 <button
                   onClick={() => handleSaveSlot(slot)}
-                  className="px-3 py-1.5 bg-blue-900/40 hover:bg-blue-800/50 border border-blue-500/20 rounded-lg text-[8px] font-black uppercase text-blue-400 transition-all active:scale-95"
+                  className="px-3 py-1.5 bg-blue-900/40 hover:bg-blue-800/50 border border-blue-500/20 rounded-lg text-[8px] md:text-[10px] font-black uppercase text-blue-400 transition-all active:scale-95"
                 >
                   💾
                 </button>
                 <button
                   onClick={() => handleLoadSlot(slot)}
                   disabled={!hasSave}
-                  className="px-3 py-1.5 bg-emerald-900/40 hover:bg-emerald-800/50 border border-emerald-500/20 rounded-lg text-[8px] font-black uppercase text-emerald-400 transition-all active:scale-95 disabled:opacity-30"
+                  className="px-3 py-1.5 bg-emerald-900/40 hover:bg-emerald-800/50 border border-emerald-500/20 rounded-lg text-[8px] md:text-[10px] font-black uppercase text-emerald-400 transition-all active:scale-95 disabled:opacity-30"
                 >
                   📂
                 </button>
@@ -269,13 +270,13 @@ export default function ChampionStatus() {
         <div className="flex gap-1.5">
           <button
             onClick={handleExport}
-            className="flex-1 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+            className="flex-1 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
           >
             📤 ส่งออก JSON
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all active:scale-95"
+            className="flex-1 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-lg text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
           >
             📥 นำเข้า JSON
           </button>
@@ -286,13 +287,13 @@ export default function ChampionStatus() {
         <div className="flex gap-1.5 pt-1">
           <button
             onClick={handleResetTutorial}
-            className="flex-1 py-2 bg-slate-800/30 hover:bg-slate-800/50 border border-white/5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
+            className="flex-1 py-2 bg-slate-800/30 hover:bg-slate-800/50 border border-white/5 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
           >
             📖 Tutorial
           </button>
           <button
             onClick={handleReset}
-            className="flex-1 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all active:scale-95 text-red-400"
+            className="flex-1 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-red-400"
           >
             🗑 เริ่มใหม่
           </button>
@@ -304,11 +305,11 @@ export default function ChampionStatus() {
 
 function StatRow({ label, value, bonus, color }: { label: string, value: number, bonus: number, color: string }) {
   return (
-    <div className="flex justify-between items-center text-xs">
+    <div className="flex justify-between items-center text-xs md:text-sm">
       <span className="text-slate-400">{label}</span>
       <div className="font-black flex items-center gap-1">
         <span className={color}>{value}</span>
-        {bonus > 0 && <span className="text-green-500 text-[8px]">+{bonus}</span>}
+        {bonus > 0 && <span className="text-green-500 text-[8px] md:text-[10px]">+{bonus}</span>}
       </div>
     </div>
   );

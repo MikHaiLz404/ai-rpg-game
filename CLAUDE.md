@@ -85,6 +85,8 @@ Required in `.env.local`:
 
 ## AI Integration Notes
 
+Full documentation of AI agent architecture, personalities, and integration logic can be found in **AGENTS.md**.
+
 - **Skill generation** (`generate_skill` action) responses are sanitized (markdown fences stripped) and validated (name, description, multiplier 1.5-3.0, type physical/magical). Invalid responses fall back to deterministic per-god per-level skills in `Relationship.tsx`.
 - **Deterministic fallback skills** in `/api/narrate` — 5 unique skills per god (Leo=physical, Arena=magical, Draco=mixed), indexed by bond level.
 - **Fallback coverage**: all 6 narrate actions (`shop_talk`, `talk`, `generate_skill`, `gift`, `exploration_event`, combat) have Thai-language hardcoded fallbacks.

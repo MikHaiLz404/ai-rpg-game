@@ -101,7 +101,7 @@ export default function Home() {
           <div className="bg-slate-900/95 border-2 border-amber-500/40 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
             <div className="bg-gradient-to-r from-amber-900/50 to-amber-800/30 px-6 py-4 border-b border-amber-500/20">
               <h2 className="text-lg font-black text-amber-500 uppercase tracking-widest">ยินดีต้อนรับสู่ Gods&apos; Arena</h2>
-              <div className="text-[9px] text-amber-500/50 font-bold uppercase tracking-widest mt-0.5">คู่มือผู้เล่นใหม่</div>
+              <div className="text-[9px] md:text-[11px] text-amber-500/50 font-bold uppercase tracking-widest mt-0.5">คู่มือผู้เล่นใหม่</div>
             </div>
             <div className="p-6 space-y-4 text-sm text-slate-300 leading-relaxed">
               <div className="flex gap-3 items-start">
@@ -120,14 +120,14 @@ export default function Home() {
                 <span className="text-xl shrink-0">💕</span>
                 <div><span className="font-black text-white">หมู่บ้าน</span> — สร้างสายสัมพันธ์กับเทพ ปลดล็อคสกิลใหม่ มอบของขวัญ</div>
               </div>
-              <div className="bg-red-900/30 border border-red-500/20 rounded-xl p-3 text-xs text-red-300">
+              <div className="bg-red-900/30 border border-red-500/20 rounded-xl p-3 text-xs md:text-sm text-red-300">
                 <span className="font-black">เป้าหมาย:</span> ปราบเจ้าแห่งแวมไพร์ให้ได้ภายใน {MAX_TURNS} วัน! แต่ละวันมี {MAX_CHOICES_PER_DAY} แต้มกิจกรรม
               </div>
             </div>
             <div className="px-6 pb-6">
               <button
                 onClick={dismissTutorial}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95"
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95"
               >
                 เข้าใจแล้ว เริ่มเลย!
               </button>
@@ -159,7 +159,7 @@ export default function Home() {
               }
             </p>
             <div className="flex flex-col gap-3 pt-4">
-              <div className="text-[10px] text-slate-500 font-black uppercase tracking-widest">
+              <div className="text-[10px] md:text-xs text-slate-500 font-black uppercase tracking-widest">
                 สำเร็จใน {day} วัน | ทอง: {gold} | สกิล: {companions.find(c => c.id === 'kane')?.unlockedSkills.length || 0}
               </div>
               <button
@@ -183,7 +183,7 @@ export default function Home() {
             <span className="text-3xl drop-shadow-lg">🏛️</span>
             <div>
               <h1 className="text-xl font-black tracking-tighter text-amber-500 uppercase leading-none italic">Gods&apos; Arena</h1>
-              <div className="text-[9px] text-slate-500 font-bold tracking-[0.25em] uppercase mt-1">วิหารแห่งเทพ</div>
+              <div className="text-[9px] md:text-[11px] text-slate-500 font-bold tracking-[0.25em] uppercase mt-1">วิหารแห่งเทพ</div>
             </div>
             <AIStatusBadge />
           </div>
@@ -198,17 +198,17 @@ export default function Home() {
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="text-[9px] text-amber-500/70 font-black uppercase tracking-widest flex items-center justify-end gap-1">
+              <span className="text-[9px] md:text-[11px] text-amber-500/70 font-black uppercase tracking-widest flex items-center justify-end gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                 Actions Left
               </span>
               <div className="font-black text-xl leading-none text-white">
-                {choicesLeft} <span className="text-xs opacity-30">/ {MAX_CHOICES_PER_DAY}</span>
+                {choicesLeft} <span className="text-xs md:text-sm opacity-30">/ {MAX_CHOICES_PER_DAY}</span>
               </div>
             </div>
             <div className="w-px h-8 bg-slate-700" />
             <div className="text-right">
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">วันที่</span>
+              <span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest">วันที่</span>
               <div className={`font-black text-xl leading-none ${isUrgent ? 'text-red-400' : 'text-amber-400'}`}>
                 {day} <span className="text-sm opacity-50">/ {MAX_TURNS}</span>
               </div>
@@ -227,19 +227,19 @@ export default function Home() {
         <div className="px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-[8px] text-amber-500/70 font-black uppercase leading-none mb-0.5">{choicesLeft} Left</div>
-              <span className={`text-[10px] font-black uppercase ${isUrgent ? 'text-red-400' : 'text-slate-500'}`}>
+              <div className="text-[8px] md:text-[10px] text-amber-500/70 font-black uppercase leading-none mb-0.5">{choicesLeft} Left</div>
+              <span className={`text-[10px] md:text-xs font-black uppercase ${isUrgent ? 'text-red-400' : 'text-slate-500'}`}>
                 Day {day}/{MAX_TURNS}
               </span>
             </div>
             <div className="w-px h-4 bg-slate-700" />
             <div className="flex items-center gap-1.5 text-amber-400 font-black text-base">
-              <span className="text-xs opacity-70">💰</span>
+              <span className="text-xs md:text-sm opacity-70">💰</span>
               <span>{gold.toLocaleString()}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            <div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">
               {phase === 'shop' && 'ร้านค้าสวรรค์'}
               {phase === 'arena' && 'มหาอารีน่า'}
               {phase === 'exploration' && 'ป่าเถื่อน'}
@@ -254,7 +254,7 @@ export default function Home() {
       {/* Urgency Warning Banner */}
       {isUrgent && !gameOver && (
         <div className={`max-w-7xl mx-auto px-4 md:px-6 pt-3 ${turnsLeft <= 3 ? 'animate-pulse' : ''}`}>
-          <div className={`text-center py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest border ${
+          <div className={`text-center py-2 px-4 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest border ${
             turnsLeft <= 3
               ? 'bg-red-900/40 border-red-500/50 text-red-400'
               : 'bg-amber-900/30 border-amber-500/30 text-amber-400'
@@ -298,7 +298,7 @@ export default function Home() {
                 saveGame(gold, null, saveItems as any, relationships, 0, true);
                 alert('บันทึกความคืบหน้าแล้ว!');
               }}
-              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
+              className="px-4 py-2 bg-slate-800/50 hover:bg-slate-700 border border-slate-700 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95"
             >
               💾 บันทึก (Save)
             </button>
@@ -309,7 +309,7 @@ export default function Home() {
                   resetGame();
                 }
               }}
-              className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 text-red-400"
+              className="px-4 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 text-red-400"
             >
               🗑 เริ่มใหม่ (Reset)
             </button>
@@ -345,7 +345,7 @@ function MobileNavTab({ label, active, onClick }: { label: string, active: boole
   return (
     <button
       onClick={onClick}
-      className={`py-3 text-[10px] font-black uppercase tracking-widest transition-all border-t-2 ${
+      className={`py-3 text-[10px] md:text-xs font-black uppercase tracking-widest transition-all border-t-2 ${
         active
           ? 'text-amber-500 border-amber-500 bg-amber-500/5'
           : 'text-slate-500 border-transparent hover:text-slate-300'
@@ -360,7 +360,7 @@ function NavTab({ label, active, onClick }: { label: string, active: boolean, on
   return (
     <button
       onClick={onClick}
-      className={`px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+      className={`px-6 py-2 rounded-xl text-xs md:text-sm font-black uppercase tracking-widest transition-all ${
         active
           ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20'
           : 'text-slate-500 hover:text-white hover:bg-slate-800/50'

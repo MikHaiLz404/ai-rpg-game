@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 
@@ -100,15 +100,20 @@ export default function Shop() {
   } = useGameStore();
   
   const [isGenerating, setIsGenerating] = useState(false);
-  const [shiftSummary, setShiftSummary] = useState<{gold: number, bond: number} | null>(null);
+  const [incomingProgress, setIncomingProgress] = useState(0);
+  const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  const SHIFT_TARGET = 3; // Serve 3 customers to end the day
+  // Dynamic Shift Target: Day 1-4: 3, Day 5-8: 4, Day 9-12: 5, Day 13-16: 6, Day 17-20: 7
+  const shiftTarget = Math.min(7, 3 + Math.floor((day - 1) / 4));
 
   useEffect(() => {
     const onArrival = async (npc: { id: string, name: string }) => {
       if (!isShiftActive) return;
       
       setIsGenerating(true);
+      setIncomingProgress(0);
+      if (progressInterval.current) clearInterval(progressInterval.current);
+
       const isGod = companions.some(c => c.name === npc.name);
       const wantedItem = pickWeightedItem(day, isGod);
       const offeredGold = calcOfferedGold(wantedItem.price, day, isGod);
@@ -149,11 +154,32 @@ export default function Shop() {
       }
     };
 
+    const onIncoming = ({ delay }: { delay: number }) => {
+      if (!isShiftActive || currentCustomer || isGenerating) return;
+      
+      setIncomingProgress(0);
+      if (progressInterval.current) clearInterval(progressInterval.current);
+      
+      const startTime = Date.now();
+      progressInterval.current = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(100, (elapsed / delay) * 100);
+        setIncomingProgress(progress);
+        if (progress >= 100 && progressInterval.current) {
+          clearInterval(progressInterval.current);
+        }
+      }, 50);
+    };
+
     EventBus.on('customer-arrival', onArrival);
+    EventBus.on('customer-incoming', onIncoming);
+    
     return () => {
       EventBus.off('customer-arrival', onArrival);
+      EventBus.off('customer-incoming', onIncoming);
+      if (progressInterval.current) clearInterval(progressInterval.current);
     };
-  }, [setCustomer, companions, isShiftActive]);
+  }, [setCustomer, companions, isShiftActive, currentCustomer, isGenerating, day]);
 
   const handleSell = () => {
     if (!currentCustomer) return;
@@ -170,11 +196,6 @@ export default function Shop() {
         }
       }
       
-      setShiftSummary(prev => ({
-        gold: (prev?.gold || 0) + currentCustomer.offeredGold,
-        bond: (prev?.bond || 0) + bondGain
-      }));
-
       // Minju is happy with the sale
       setDialogue({
         speaker: 'Minju',
@@ -187,7 +208,7 @@ export default function Shop() {
       EventBus.emit('clear-customer');
 
       // Check if shift is done
-      if (customersServed + 1 >= SHIFT_TARGET) {
+      if (customersServed + 1 >= shiftTarget) {
         setTimeout(() => {
           endShift();
           setDialogue({
@@ -218,7 +239,7 @@ export default function Shop() {
     setCustomer(null);
     EventBus.emit('clear-customer');
     
-    if (customersServed + 1 >= SHIFT_TARGET) {
+    if (customersServed + 1 >= shiftTarget) {
       setTimeout(() => {
         endShift();
       }, 2000);
@@ -252,16 +273,38 @@ export default function Shop() {
       {/* Open Shop Button */}
       {!isShiftActive && (
         <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl text-center space-y-3">
-          <div className="text-[10px] font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2">
+          <div className="text-[10px] md:text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2">
             <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" />
             Sanctum is Closed
           </div>
           <button
             onClick={startShift}
-            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest"
+            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest"
           >
             Open Shop
           </button>
+        </div>
+      )}
+
+      {/* Progress & Stats */}
+      {isShiftActive && (
+        <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 shadow-xl flex items-center justify-between gap-4">
+           <div className="flex-1">
+             <div className="flex justify-between items-center mb-1.5">
+               <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                 {currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Waiting for Customer'}
+               </span>
+               <span className="text-[10px] md:text-xs font-bold text-amber-500">
+                 {customersServed} / {shiftTarget} Served
+               </span>
+             </div>
+             <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+               <div 
+                 className={`h-full transition-all duration-300 rounded-full ${currentCustomer ? 'bg-amber-500 w-full' : isGenerating ? 'bg-blue-500 w-1/2 animate-pulse' : 'bg-amber-500/40'}`}
+                 style={{ width: !currentCustomer && !isGenerating ? `${incomingProgress}%` : undefined }}
+               />
+             </div>
+           </div>
         </div>
       )}
 
@@ -274,14 +317,14 @@ export default function Shop() {
             </div>
             <div>
               <div className="font-black text-white uppercase tracking-tight">{currentCustomer.name}</div>
-              <div className="text-[10px] text-amber-500/70 font-bold uppercase">{currentCustomer.isGod ? 'Divine Entity' : 'Mortal Soul'}</div>
+              <div className="text-[10px] md:text-xs text-amber-500/70 font-bold uppercase">{currentCustomer.isGod ? 'Divine Entity' : 'Mortal Soul'}</div>
             </div>
           </div>
           <p className="text-slate-200 italic text-sm leading-relaxed mb-4 border-l-4 border-amber-500/50 pl-4 py-1">
             "{currentCustomer.request}"
           </p>
           <div className="flex justify-between items-center bg-black/30 p-3 rounded-xl border border-white/5 mb-4">
-            <div className="text-[10px] font-bold text-slate-500 uppercase">Request</div>
+            <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Request</div>
             <div className="flex items-center gap-2">
               {(() => { const found = ITEMS.find(i => i.id === currentCustomer.wantedItemId); return found ? <><ItemIcon item={found} /><span className="font-bold text-slate-200">{found.name}</span></> : null; })()}
             </div>
@@ -290,7 +333,7 @@ export default function Shop() {
             <button
               onClick={handleSell}
               disabled={!items.includes(currentCustomer.wantedItemId)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs
+              className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm
                 ${items.includes(currentCustomer.wantedItemId) 
                   ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' 
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}
@@ -300,7 +343,7 @@ export default function Shop() {
             </button>
             <button
               onClick={handleDecline}
-              className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] tracking-widest"
+              className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest"
             >
               Decline
             </button>
@@ -310,7 +353,7 @@ export default function Shop() {
 
       {/* Inventory Section (E) */}
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center">
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center">
           <span>Inventory</span>
           <span className="text-amber-500/50 font-bold">{items.length} Units</span>
         </h3>
@@ -322,20 +365,20 @@ export default function Shop() {
               <div key={itemType.id} className="bg-slate-800/50 px-3 py-2 rounded-lg border border-white/5 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <ItemIcon item={itemType} size="sm" />
-                  <span className="text-[10px] font-bold text-slate-200 uppercase">{itemType.name}</span>
-                  <span className="text-[9px] font-bold text-slate-500">(x{count})</span>
+                  <span className="text-[10px] md:text-xs font-bold text-slate-200 uppercase">{itemType.name}</span>
+                  <span className="text-[9px] md:text-[11px] font-bold text-slate-500">(x{count})</span>
                 </div>
-                <span className="text-[9px] font-bold text-amber-500">{itemType.price}</span>
+                <span className="text-[9px] md:text-[11px] font-bold text-amber-500">{itemType.price}</span>
               </div>
             );
           })}
-          {items.length === 0 && <div className="py-4 text-center text-[10px] text-slate-600 italic">Inventory is empty. Use Restock below.</div>}
+          {items.length === 0 && <div className="py-4 text-center text-[10px] md:text-xs text-slate-600 italic">Inventory is empty. Use Restock below.</div>}
         </div>
       </div>
 
       {/* Stockroom & Restock Section (F) */}
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
           Stockroom & Restock
         </h3>
         <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
@@ -348,14 +391,14 @@ export default function Shop() {
                 <div className="flex items-center gap-2">
                   <ItemIcon item={item} size="sm" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-[9px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div>
-                    <div className="text-[8px] text-slate-500">(x{count})</div>
+                    <div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div>
+                    <div className="text-[8px] md:text-[10px] text-slate-500">(x{count})</div>
                   </div>
                 </div>
                 <button
                   onClick={() => handleRestock(item)}
                   disabled={gold < wholesale}
-                  className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] font-bold rounded-lg transition-all border border-slate-600"
+                  className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600"
                 >
                   {wholesale}💰 {isExpensive && <span className="text-red-400">↑</span>}
                 </button>

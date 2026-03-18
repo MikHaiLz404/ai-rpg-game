@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
-import { NPC_CONFIGS, SKILL_THRESHOLDS } from '@/data/npcConfig';
+import { NPC_CONFIGS, SKILL_THRESHOLDS, getSkillThresholds, GOD_BOND_RATE, GOD_CHAT_LIMIT } from '@/data/npcConfig';
 
 // Item lookup for gift display names
 const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
@@ -107,6 +107,8 @@ export default function Relationship() {
   const [isTalking, setIsTalking] = useState(false);
   const [isGeneratingSkill, setIsGeneratingSkill] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const [turnsUsed, setTurnsUsed] = useState(0);
+  const [conversationEnded, setConversationEnded] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -125,7 +127,8 @@ export default function Relationship() {
     const config = NPC_CONFIGS[id];
     if (!config) return;
 
-    const unclaimedThreshold = SKILL_THRESHOLDS.find(
+    const godThresholds = getSkillThresholds(id);
+    const unclaimedThreshold = godThresholds.find(
       t => freshCompanion.bond >= t && !freshCompanion.claimedThresholds.includes(t)
     );
 
@@ -168,11 +171,23 @@ export default function Relationship() {
     }
   };
 
+  // God-specific farewell messages
+  const GOD_FAREWELLS: Record<string, string> = {
+    leo: 'พอก่อน... ข้ามีเรื่องต้องจัดการ กลับมาหาข้าเมื่อเจ้าพร้อมสู้',
+    arena: 'ข้าต้องกลับไปดูแลวิหารแล้ว... ไว้พบกันใหม่นะ',
+    draco: 'ฮึ่ม... เวลาของเราวันนี้หมดแล้ว ข้าต้องกลับไปนิทรา ไว้มาคุยกันใหม่',
+  };
+
   const handleTalk = async (id: string, message?: string) => {
     const companion = companions.find(c => c.id === id);
     if (!companion) return;
 
-    // Prevention for message sending
+    const chatLimit = GOD_CHAT_LIMIT[id] ?? 3;
+
+    // Block if conversation already ended
+    if (message && conversationEnded) return;
+
+    // Block if no action points
     if (message && choicesLeft <= 0) {
       setDialogue({
         speaker: 'Minju',
@@ -185,11 +200,12 @@ export default function Relationship() {
     const config = NPC_CONFIGS[id];
 
     setIsTalking(true);
-    setIsBusy(true); // Mark as busy when conversation starts
+    setIsBusy(true);
     if (!selectedId) setSelectedId(id);
 
     if (message) {
       consumeChoice();
+      setTurnsUsed(prev => prev + 1);
       setChatLog(prev => [...prev, { sender: 'player', text: message }]);
       setUserMessage('');
 
@@ -227,13 +243,13 @@ export default function Relationship() {
           });
         }, 500);
 
-        // Bond gain logic: Only if day is active (choices > 0)
-        if (choicesLeft > 0) {
-          const bondChance = Math.max(0.15, 0.4 - companion.bond * 0.02);
+        // Bond gain logic: Only when player actively sends a message
+        if (message && choicesLeft > 0) {
+          const godRate = GOD_BOND_RATE[id] ?? 1.0;
+          const bondChance = Math.max(0.10, (0.4 - companion.bond * 0.02) * godRate);
           if (Math.random() < bondChance) {
             addBond(id, 1);
             setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +1` }]);
-            // Check skill unlock after bond increase
             setTimeout(() => checkAutoSkillUnlock(id), 100);
           }
         }
@@ -247,8 +263,22 @@ export default function Relationship() {
       });
     } finally {
       setIsTalking(false);
-      // Wait a bit before clearing busy so the dialogue can be read
       setTimeout(() => setIsBusy(false), 1000);
+    }
+
+    // Check if conversation limit reached (use turnsUsed + 1 since setState is async)
+    const newTurns = message ? turnsUsed + 1 : turnsUsed;
+    if (message && newTurns >= chatLimit) {
+      setConversationEnded(true);
+      const farewell = GOD_FAREWELLS[id] || 'ไว้พบกันใหม่นะ...';
+      setTimeout(() => {
+        setChatLog(prev => [...prev, { sender: 'npc', text: farewell }]);
+        setChatLog(prev => [...prev, { sender: 'system', text: `💬 บทสนทนาวันนี้จบลงแล้ว` }]);
+        setDialogue({
+          speaker: companion.name,
+          text: farewell
+        });
+      }, 1500);
     }
   };
 
@@ -307,9 +337,10 @@ export default function Relationship() {
   const selectedCompanion = companions.find(c => c.id === selectedId);
   const metadata = selectedId ? NPC_CONFIGS[selectedId] : null;
 
-  // Calculate next threshold for selected companion
+  // Calculate next threshold for selected companion (per-god)
   const getNextThreshold = (companion: typeof companions[0]) => {
-    return SKILL_THRESHOLDS.find(t => companion.bond < t);
+    const thresholds = getSkillThresholds(companion.id);
+    return thresholds.find(t => companion.bond < t);
   };
 
   return (
@@ -318,8 +349,8 @@ export default function Relationship() {
         <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic">สายสัมพันธ์แห่งเทพ</h2>
         {selectedId && (
           <button
-            onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false);}}
-            className="text-slate-500 hover:text-white text-[10px] font-black uppercase tracking-widest transition-colors"
+            onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}}
+            className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors"
           >
             ← กลับ
           </button>
@@ -343,7 +374,8 @@ export default function Relationship() {
                   <div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">
                     {(() => {
                       const next = getNextThreshold(selectedCompanion);
-                      const prev = SKILL_THRESHOLDS.filter(t => t <= selectedCompanion.bond).pop() || 0;
+                      const godThresholds = getSkillThresholds(selectedCompanion.id);
+                      const prev = godThresholds.filter(t => t <= selectedCompanion.bond).pop() || 0;
                       const progress = next ? ((selectedCompanion.bond - prev) / (next - prev)) * 100 : 100;
                       return (
                         <div
@@ -354,20 +386,20 @@ export default function Relationship() {
                     })()}
                   </div>
                   <div className="flex justify-between mt-0.5">
-                    <span className="text-[8px] text-slate-500">ค่าความสนิท: {selectedCompanion.bond}</span>
+                    <span className="text-[8px] md:text-[10px] text-slate-500">ค่าความสนิท: {selectedCompanion.bond}</span>
                     {getNextThreshold(selectedCompanion) && (
-                      <span className="text-[8px] text-amber-500/70">สกิลถัดไป: {getNextThreshold(selectedCompanion)}</span>
+                      <span className="text-[8px] md:text-[10px] text-amber-500/70">สกิลถัดไป: {getNextThreshold(selectedCompanion)}</span>
                     )}
                   </div>
                 </div>
-                <span className="text-[10px] font-black text-pink-500 shrink-0">LVL {selectedCompanion.level}</span>
+                <span className="text-[10px] md:text-xs font-black text-pink-500 shrink-0">LVL {selectedCompanion.level}</span>
               </div>
             </div>
           </div>
 
           {isGeneratingSkill && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse">
-              <span className="text-amber-500 text-xs font-black uppercase tracking-widest">กำลังรวบรวมพลังเทพ...</span>
+              <span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest">กำลังรวบรวมพลังเทพ...</span>
             </div>
           )}
 
@@ -376,7 +408,7 @@ export default function Relationship() {
             className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800"
           >
             {chatLog.length === 0 && (
-              <div className="text-center text-slate-600 italic text-xs py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>
+              <div className="text-center text-slate-600 italic text-xs md:text-sm py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>
             )}
             {chatLog.map((msg, i) => (
               <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}>
@@ -385,7 +417,7 @@ export default function Relationship() {
                     ? 'bg-pink-600 text-white rounded-tr-none'
                     : msg.sender === 'npc'
                     ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5'
-                    : 'bg-amber-500/10 text-amber-500 text-[10px] font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'
+                    : 'bg-amber-500/10 text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'
                 }`}>
                   {msg.text}
                 </div>
@@ -393,33 +425,65 @@ export default function Relationship() {
             ))}
             {isTalking && (
               <div className="flex justify-start">
-                <div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs">
+                <div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs md:text-sm">
                   กำลังคิด...
                 </div>
               </div>
             )}
           </div>
 
+          {/* Conversation turns indicator */}
+          {selectedId && !conversationEnded && (
+            <div className="flex items-center justify-between px-1 mb-1">
+              <span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest">
+                โอกาสพูดคุย
+              </span>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: GOD_CHAT_LIMIT[selectedId] ?? 3 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      i < turnsUsed ? 'bg-slate-700' : 'bg-pink-500'
+                    }`}
+                  />
+                ))}
+                <span className="text-[8px] md:text-[10px] text-slate-500 ml-1">
+                  {Math.max(0, (GOD_CHAT_LIMIT[selectedId] ?? 3) - turnsUsed)}/{GOD_CHAT_LIMIT[selectedId] ?? 3}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Conversation ended banner */}
+          {conversationEnded && (
+            <div className="bg-slate-800/50 border border-pink-500/20 rounded-xl px-4 py-3 text-center">
+              <div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">
+                บทสนทนาวันนี้จบลงแล้ว
+              </div>
+              <div className="text-[9px] md:text-[11px] text-slate-600 mt-1">ยังมอบของขวัญได้ หรือกลับไปเลือกเทพองค์อื่น</div>
+            </div>
+          )}
+
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              if (userInput.trim()) handleTalk(selectedCompanion.id, userInput);
+              if (userInput.trim() && !conversationEnded) handleTalk(selectedCompanion.id, userInput);
             }}
             className="flex gap-2 relative"
           >
             <button
               type="button"
               onClick={() => setShowGiftModal(!showGiftModal)}
-              disabled={choicesLeft <= 0}
-              className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0"
+              disabled={choicesLeft <= 0 || conversationEnded}
+              className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50"
               title="Give Gift"
             >
               🎁
             </button>
-            
+
             {showGiftModal && (
               <div className="absolute bottom-16 left-0 w-64 bg-slate-900 border-2 border-pink-500/30 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between">
+                <div className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between">
                   <span>เลือกของขวัญ</span>
                   <button onClick={() => setShowGiftModal(false)}>✕</button>
                 </div>
@@ -431,17 +495,17 @@ export default function Relationship() {
                       <button
                         key={itemId}
                         onClick={() => handleGift(itemId)}
-                        className={`w-full text-left p-2 rounded-lg text-xs text-slate-200 border transition-all flex justify-between items-center ${
+                        className={`w-full text-left p-2 rounded-lg text-xs md:text-sm text-slate-200 border transition-all flex justify-between items-center ${
                           isFav ? 'bg-pink-900/30 hover:bg-pink-800/40 border-pink-500/20' : 'bg-slate-800 hover:bg-slate-700 border-white/5'
                         }`}
                       >
                         <span>{info ? `${info.emoji} ${info.name}` : itemId}{isFav ? ' ⭐' : ''}</span>
-                        <span className="text-[8px] text-pink-500/70">x{items.filter(i => i === itemId).length}</span>
+                        <span className="text-[8px] md:text-[10px] text-pink-500/70">x{items.filter(i => i === itemId).length}</span>
                       </button>
                     );
                   })}
                   {items.length === 0 && (
-                    <div className="text-[10px] text-slate-600 italic text-center py-4">ไม่มีของในกระเป๋าเลย...</div>
+                    <div className="text-[10px] md:text-xs text-slate-600 italic text-center py-4">ไม่มีของในกระเป๋าเลย...</div>
                   )}
                 </div>
               </div>
@@ -451,15 +515,16 @@ export default function Relationship() {
               type="text"
               value={userInput}
               onChange={(e) => setUserMessage(e.target.value)}
-              placeholder="พิมพ์ข้อความคุยกับเทพ..."
-              className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors"
+              disabled={conversationEnded}
+              placeholder={conversationEnded ? 'เทพกลับไปแล้ว...' : 'พิมพ์ข้อความคุยกับเทพ...'}
+              className={`flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors ${conversationEnded ? 'opacity-50' : ''}`}
             />
             <button
               type="submit"
-              disabled={isTalking || !userInput.trim() || choicesLeft <= 0}
-              className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-all"
+              disabled={isTalking || !userInput.trim() || choicesLeft <= 0 || conversationEnded}
+              className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest transition-all"
             >
-              {choicesLeft > 0 ? 'ส่ง' : 'แต้มหมด'}
+              {conversationEnded ? 'จบ' : choicesLeft > 0 ? 'ส่ง' : 'แต้มหมด'}
             </button>
           </form>
         </div>
@@ -467,7 +532,7 @@ export default function Relationship() {
         <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
           {companions.map((comp) => {
             const meta = NPC_CONFIGS[comp.id];
-            const nextThreshold = SKILL_THRESHOLDS.find(t => comp.bond < t);
+            const nextThreshold = getSkillThresholds(comp.id).find(t => comp.bond < t);
             return (comp.id !== 'kane' && (
               <button
                 key={comp.id}
@@ -494,13 +559,13 @@ export default function Relationship() {
                 </div>
                 <div className="text-center">
                   <div className="font-black text-white uppercase tracking-tight">{comp.name}</div>
-                  <div className="text-[9px] text-pink-500/70 font-black uppercase mt-1">
+                  <div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1">
                     ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}
                   </div>
                   {comp.unlockedSkills.length > 0 && (
                     <div className="flex flex-wrap gap-1 justify-center mt-2">
                       {comp.unlockedSkills.map((skill, i) => (
-                        <span key={i} className="text-[8px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20" title={`x${skill.multiplier}`}>
+                        <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20" title={`x${skill.multiplier}`}>
                           🔥 {skill.name}
                         </span>
                       ))}

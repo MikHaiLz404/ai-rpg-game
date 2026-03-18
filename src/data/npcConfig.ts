@@ -1,4 +1,33 @@
+// Per-god skill thresholds and bond difficulty
+// Draco: easy (wise dragon, quick to see potential)
+// Leo: medium (war god, respects persistence)
+// Arena: hard (queen, must truly earn her trust)
+export const GOD_SKILL_THRESHOLDS: Record<string, number[]> = {
+  draco: [2, 4, 7, 10, 14],
+  leo:   [3, 6, 10, 14, 18],
+  arena: [5, 9, 13, 17, 22],
+};
+
+// Bond gain rate multiplier per god (higher = easier to gain bond)
+export const GOD_BOND_RATE: Record<string, number> = {
+  draco: 1.3,
+  leo:   1.0,
+  arena: 0.7,
+};
+
+// Max conversation turns per visit per god
+export const GOD_CHAT_LIMIT: Record<string, number> = {
+  draco: 4,  // patient elder, enjoys conversation
+  leo:   3,  // direct warrior, gets to the point
+  arena: 2,  // busy queen, every word must count
+};
+
+// Legacy: default thresholds for non-god companions (kane)
 export const SKILL_THRESHOLDS = [3, 5, 8, 12, 17];
+
+export function getSkillThresholds(godId: string): number[] {
+  return GOD_SKILL_THRESHOLDS[godId] || SKILL_THRESHOLDS;
+}
 
 export interface NpcConfig {
   id: string;
