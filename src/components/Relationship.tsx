@@ -4,6 +4,32 @@ import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 import { NPC_CONFIGS, SKILL_THRESHOLDS } from '@/data/npcConfig';
 
+// Item lookup for gift display names
+const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
+  potion_health: { name: 'Health Potion', emoji: '❤️' },
+  potion_mana: { name: 'Mana Potion', emoji: '💙' },
+  soap: { name: 'Soap', emoji: '🧼' },
+  perfume: { name: 'Perfume', emoji: '✨' },
+  basket: { name: 'Basket', emoji: '🧺' },
+  cloth: { name: 'Cloth', emoji: '🧣' },
+  flower: { name: 'Flower', emoji: '🌸' },
+  mirror: { name: 'Mirror', emoji: '🪞' },
+  sword: { name: 'Sword', emoji: '⚔️' },
+  shield: { name: 'Shield', emoji: '🛡️' },
+  bow: { name: 'Bow', emoji: '🏹' },
+  herbs: { name: 'Herbs', emoji: '🌿' },
+  ore: { name: 'Ore', emoji: '🪨' },
+  wood: { name: 'Wood', emoji: '🪵' },
+  olympian_coin: { name: 'Olympian Coin', emoji: '🪙' },
+};
+
+// Each god has favorite gifts that give bonus bond
+const FAVORITE_GIFTS: Record<string, string[]> = {
+  leo: ['sword', 'shield', 'bow'],       // War god likes weapons
+  arena: ['perfume', 'flower', 'mirror'], // Queen likes elegant items
+  draco: ['herbs', 'ore', 'olympian_coin'], // Ancient dragon likes rare/natural items
+};
+
 interface ChatMessage {
   sender: 'player' | 'npc' | 'system';
   text: string;
@@ -167,12 +193,17 @@ export default function Relationship() {
     removeItem(itemId);
     setShowGiftModal(false);
 
-    setChatLog(prev => [...prev, { sender: 'player', text: `(มอบของขวัญ: ${itemId})` }]);
-    
-    // Logic for bond gain based on item
-    const bondGain = itemId.includes('potion') ? 3 : 5;
+    const itemInfo = ITEMS_MAP[itemId];
+    const itemName = itemInfo ? `${itemInfo.emoji} ${itemInfo.name}` : itemId;
+    setChatLog(prev => [...prev, { sender: 'player', text: `(มอบของขวัญ: ${itemName})` }]);
+
+    // Bond gain: base 3 for potions, 5 for other items, +3 bonus for favorite gifts
+    const isFavorite = FAVORITE_GIFTS[selectedId]?.includes(itemId);
+    const baseBond = itemId.includes('potion') ? 3 : 5;
+    const bondGain = isFavorite ? baseBond + 3 : baseBond;
     addBond(selectedId, bondGain);
-    setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +${bondGain}` }]);
+    const favoriteText = isFavorite ? ' ⭐ ของขวัญโปรด!' : '';
+    setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +${bondGain}${favoriteText}` }]);
 
     try {
       const res = await fetch('/api/narrate', {
@@ -197,7 +228,7 @@ export default function Relationship() {
     } catch (err) {
       setDialogue({
         speaker: companion.name,
-        text: `ขอบใจมากนะสำหรับ ${itemId} ข้าจะเก็บรักษาไว้อย่างดี`
+        text: `ขอบใจมากนะสำหรับ ${itemInfo?.name || itemId} ข้าจะเก็บรักษาไว้อย่างดี`
       });
     }
 
@@ -324,16 +355,22 @@ export default function Relationship() {
                   <button onClick={() => setShowGiftModal(false)}>✕</button>
                 </div>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-                  {Array.from(new Set(items)).map((itemId) => (
-                    <button
-                      key={itemId}
-                      onClick={() => handleGift(itemId)}
-                      className="w-full text-left p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs text-slate-200 border border-white/5 transition-all flex justify-between items-center"
-                    >
-                      <span>{itemId}</span>
-                      <span className="text-[8px] text-pink-500/70">x{items.filter(i => i === itemId).length}</span>
-                    </button>
-                  ))}
+                  {Array.from(new Set(items)).map((itemId) => {
+                    const info = ITEMS_MAP[itemId];
+                    const isFav = selectedId ? FAVORITE_GIFTS[selectedId]?.includes(itemId) : false;
+                    return (
+                      <button
+                        key={itemId}
+                        onClick={() => handleGift(itemId)}
+                        className={`w-full text-left p-2 rounded-lg text-xs text-slate-200 border transition-all flex justify-between items-center ${
+                          isFav ? 'bg-pink-900/30 hover:bg-pink-800/40 border-pink-500/20' : 'bg-slate-800 hover:bg-slate-700 border-white/5'
+                        }`}
+                      >
+                        <span>{info ? `${info.emoji} ${info.name}` : itemId}{isFav ? ' ⭐' : ''}</span>
+                        <span className="text-[8px] text-pink-500/70">x{items.filter(i => i === itemId).length}</span>
+                      </button>
+                    );
+                  })}
                   {items.length === 0 && (
                     <div className="text-[10px] text-slate-600 italic text-center py-4">ไม่มีของในกระเป๋าเลย...</div>
                   )}
@@ -391,6 +428,15 @@ export default function Relationship() {
                   <div className="text-[9px] text-pink-500/70 font-black uppercase mt-1">
                     ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}
                   </div>
+                  {comp.unlockedSkills.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-center mt-2">
+                      {comp.unlockedSkills.map((skill, i) => (
+                        <span key={i} className="text-[8px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20" title={`x${skill.multiplier}`}>
+                          🔥 {skill.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             ));

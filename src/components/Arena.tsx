@@ -3,11 +3,24 @@ import { useState, useEffect } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 
-const ENEMIES = [
+const BASE_ENEMIES = [
   { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/enemies-slime1_idle.png', frames: 3 },
   { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png', frames: 6 },
   { id: 'demon', name: 'Vampire Lord', emoji: '🧛', hp: 250, atk: 45, reward: 500, image: '/images/enemies/demon/idle/enemies-vampire_idle.png', frames: 6 },
 ];
+
+type ScaledEnemy = typeof BASE_ENEMIES[number] & { hp: number; atk: number; reward: number };
+
+// Scale enemy stats by day: +5% HP/ATK per day, +3% reward per day
+function getScaledEnemies(day: number): ScaledEnemy[] {
+  const scale = 1 + (day - 1) * 0.05;
+  return BASE_ENEMIES.map(e => ({
+    ...e,
+    hp: Math.floor(e.hp * scale),
+    atk: Math.floor(e.atk * scale),
+    reward: Math.floor(e.reward * (1 + (day - 1) * 0.03)),
+  }));
+}
 
 const CHAMPION = {
   id: 'kane',
@@ -17,17 +30,19 @@ const CHAMPION = {
 };
 
 export default function Arena() {
-  const { 
-    gold, addGold, companions, getBondBonus, addBond, setDialogue, 
+  const {
+    gold, addGold, companions, getBondBonus, addBond, setDialogue,
     defeatVampire, gameOver, choicesLeft, consumeChoice, endDay, setIsBusy,
-    interventionPoints, addIP, useIP
+    interventionPoints, addIP, useIP, day
   } = useGameStore();
-  
+
+  const ENEMIES = getScaledEnemies(day);
+
   const [combatLog, setCombatLog] = useState<string[]>([]);
   const [playerHp, setPlayerHp] = useState(100);
   const [enemyHp, setEnemyHp] = useState(0);
   const [result, setResult] = useState<'win' | 'lose' | null>(null);
-  const [selectedEnemy, setSelectedEnemy] = useState<typeof ENEMIES[0] | null>(null);
+  const [selectedEnemy, setSelectedEnemy] = useState<ScaledEnemy | null>(null);
   const [inCombat, setInCombat] = useState(false);
   const [isAttacking, setIsAttacking] = useState(false);
   const [spriteFrame, setSpriteFrame] = useState(0);
@@ -39,7 +54,19 @@ export default function Arena() {
 
   const availableSkills = companions.flatMap(c => c.unlockedSkills);
 
-  const startCombat = (enemy: typeof ENEMIES[0]) => {
+  const handleRetreat = () => {
+    if (!selectedEnemy || result) return;
+    // Retreating costs half HP as penalty
+    setResult('lose');
+    setCombatLog(prev => ['🏃 Kane ถอยหนีออกจากการต่อสู้!', ...prev]);
+    setDialogue({
+      speaker: 'Minju',
+      text: 'ไม่เป็นไรนะเคน การถอยก็เป็นกลยุทธ์อย่างนึงค่ะ ไว้กลับมาสู้ใหม่!',
+      portrait: 'work'
+    });
+  };
+
+  const startCombat = (enemy: ScaledEnemy) => {
     if (choicesLeft <= 0) {
       setDialogue({
         speaker: 'Minju',
@@ -159,12 +186,18 @@ export default function Arena() {
       return;
     }
     
-    // Enemy counter
+    // Enemy counter-attack with defense bonus
     setTimeout(async () => {
-      const enemyDmg = Math.floor(Math.random() * selectedEnemy.atk) + 5;
+      const totalBonusDef = companions.reduce((acc, c) => acc + getBondBonus(c.id).def, 0);
+      const rawDmg = Math.floor(Math.random() * selectedEnemy.atk) + 5;
+      const enemyDmg = Math.max(1, rawDmg - totalBonusDef);
       const newPlayerHp = Math.max(0, playerHp - enemyDmg);
       setPlayerHp(newPlayerHp);
-      
+
+      // Show enemy damage in combat log
+      const defText = totalBonusDef > 0 ? ` (ป้องกัน -${totalBonusDef})` : '';
+      setCombatLog(prev => [`💥 ${selectedEnemy.name} โจมตีใส่ Kane ${enemyDmg} dmg${defText}`, ...prev]);
+
       // Play counter attack effect in Phaser
       EventBus.emit('arena-attack', { target: 'player' });
 
@@ -206,6 +239,7 @@ export default function Arena() {
               <div className="w-24 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
                 <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${playerHp}%` }} />
               </div>
+              <div className="text-[9px] text-blue-400/70 mt-0.5 font-mono">{playerHp}/100</div>
            </div>
 
            <div className="text-2xl font-black text-white italic opacity-20 animate-pulse">VS</div>
@@ -227,6 +261,7 @@ export default function Arena() {
               <div className="text-left w-full h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
                 <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${(enemyHp / selectedEnemy.hp) * 100}%` }} />
               </div>
+              <div className="text-[9px] text-red-400/70 mt-0.5 font-mono">{enemyHp}/{selectedEnemy.hp}</div>
            </div>
         </div>
 
@@ -247,7 +282,7 @@ export default function Arena() {
             <span className="text-[8px] opacity-70">ใช้ 5 IP (มี {interventionPoints})</span>
           </button>
           {availableSkills.map((skill, i) => (
-            <button 
+            <button
               key={i}
               onClick={() => executeAttack(skill)}
               disabled={isAttacking || !!result}
@@ -256,6 +291,13 @@ export default function Arena() {
               🔥 {skill.name}
             </button>
           ))}
+          <button
+            onClick={handleRetreat}
+            disabled={isAttacking || !!result}
+            className="py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-black rounded-xl border border-white/10 uppercase text-[10px] tracking-widest disabled:opacity-50 transition-all"
+          >
+            🏃 ถอยหนี
+          </button>
         </div>
 
         {result && (
@@ -325,6 +367,7 @@ export default function Arena() {
               </div>
               <div className="text-left">
                 <div className="font-black text-white uppercase tracking-tight">{enemy.name}</div>
+                <div className="text-[9px] font-black text-slate-400 uppercase">HP {enemy.hp} · ATK {enemy.atk}</div>
                 <div className="text-[9px] font-black text-amber-500/70 uppercase">รางวัล: {enemy.reward} ทอง</div>
               </div>
             </div>

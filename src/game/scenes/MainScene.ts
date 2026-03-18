@@ -258,12 +258,7 @@ export class MainScene extends Phaser.Scene {
             this.coordText.setVisible(this.debugMode);
         });
 
-        this.time.addEvent({
-            delay: 15000,
-            callback: this.trySpawnCustomer,
-            callbackScope: this,
-            loop: true
-        });
+        this.scheduleNextCustomer();
 
         EventBus.on('clear-customer', () => this.clearCustomer());
         
@@ -492,16 +487,38 @@ export class MainScene extends Phaser.Scene {
         }
     }
 
+    scheduleNextCustomer() {
+        const { day } = (this.game as any).store?.getState() || { day: 1 };
+        let minDelay: number, maxDelay: number;
+        if (day <= 5) { minDelay = 12000; maxDelay = 18000; }
+        else if (day <= 14) { minDelay = 8000; maxDelay = 14000; }
+        else { minDelay = 5000; maxDelay = 10000; }
+        const delay = minDelay + Math.random() * (maxDelay - minDelay);
+        this.time.delayedCall(delay, () => {
+            this.trySpawnCustomer();
+            this.scheduleNextCustomer();
+        });
+    }
+
     trySpawnCustomer() {
-        const { isShiftActive } = (this.game as any).store?.getState() || { isShiftActive: true };
+        const { isShiftActive, day } = (this.game as any).store?.getState() || { isShiftActive: true, day: 1 };
         if (this.currentRoom !== 'shop' || !isShiftActive || this.customerNPC) return;
 
-        const npcList = [
+        const gods = [
             { id: 'leo', name: 'เลโอ', texture: 'npc_leo', anim: 'leo' },
             { id: 'arena', name: 'อารีน่า', texture: 'npc_arena', anim: 'arena' },
             { id: 'draco', name: 'ดราโก้', texture: 'npc_draco', anim: 'draco' },
         ];
-        const selected = npcList[Math.floor(Math.random() * npcList.length)];
+        // Mortals reuse existing NPC sprites with different names
+        const mortals = [
+            { id: 'mortal_farmer', name: 'ชาวนาฟลอร่า', texture: 'npc_leo', anim: 'leo' },
+            { id: 'mortal_merchant', name: 'พ่อค้าเดินทาง', texture: 'npc_arena', anim: 'arena' },
+            { id: 'mortal_soldier', name: 'ทหารรับจ้าง', texture: 'npc_draco', anim: 'draco' },
+        ];
+        // Day-based god vs mortal weighting
+        const godChance = day <= 5 ? 0.3 : day <= 14 ? 0.5 : 0.7;
+        const pool = Math.random() < godChance ? gods : mortals;
+        const selected = pool[Math.floor(Math.random() * pool.length)];
 
         this.customerNPC = this.add.sprite(180, 263, selected.texture);
         this.customerNPC.setScale(1.5).setDepth(45);

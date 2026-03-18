@@ -79,9 +79,12 @@ interface GameStore {
   incrementServed: () => void;
 
   gameOver: 'win' | 'lose' | null;
+  gameOverReason: 'time' | 'bankruptcy' | null;
   vampireDefeated: boolean;
   defeatVampire: () => void;
   setGameOver: (result: 'win' | 'lose' | null) => void;
+
+  restockCostMultiplier: number;
 
   showProphecy: boolean;
   setShowProphecy: (show: boolean) => void;
@@ -202,10 +205,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   
   endDay: () => set((state) => {
     const newDay = state.day + 1;
+    // Time's up
     if (newDay > MAX_TURNS && !state.vampireDefeated) {
-      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, isBusy: false };
+      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'time' as const, isBusy: false };
     }
-    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, showProphecy: true, isBusy: false, lastDailyEvent: null };
+    // Bankruptcy: no gold AND no items — can't recover
+    if (state.gold <= 0 && state.items.length === 0) {
+      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'bankruptcy' as const, isBusy: false };
+    }
+    const restockCostMultiplier = 1.0 + (newDay - 1) * 0.03;
+    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, restockCostMultiplier, showProphecy: true, isBusy: false, lastDailyEvent: null };
   }),
 
   isBusy: false,
@@ -226,9 +235,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   incrementServed: () => set((state) => ({ customersServed: state.customersServed + 1 })),
 
   gameOver: null,
+  gameOverReason: null,
   vampireDefeated: false,
   defeatVampire: () => set({ vampireDefeated: true, gameOver: 'win' }),
   setGameOver: (result) => set({ gameOver: result }),
+
+  restockCostMultiplier: 1.0,
 
   showProphecy: false,
   setShowProphecy: (show) => set({ showProphecy: show }),
@@ -252,8 +264,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     dialogue: null,
     phase: 'shop' as GamePhase,
     gameOver: null,
+    gameOverReason: null,
     vampireDefeated: false,
     showProphecy: false,
+    restockCostMultiplier: 1.0,
   }),
 
   loadSaveData: (data) => {

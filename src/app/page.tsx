@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useGameStore, MAX_TURNS, MAX_CHOICES_PER_DAY } from '@/store/gameStore';
 import { useSaveStore } from '@/store/saveStore';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { EventBus } from '@/game/EventBus';
 
 import Shop from '@/components/Shop';
@@ -29,7 +29,7 @@ const PhaserGame = dynamic(() => import('@/game/PhaserGame'), {
 export default function Home() {
   const {
     phase, setPhase, gold, items, companions, loadSaveData, resetGame,
-    day, choicesLeft, setDialogue, gameOver, isShiftActive, isBusy, endDay
+    day, choicesLeft, setDialogue, gameOver, gameOverReason, isShiftActive, isBusy, endDay
   } = useGameStore();
   const { initializeSave, currentSaveData, saveGame, autoSaveEnabled, deleteAllSaves } = useSaveStore();
 
@@ -71,6 +71,21 @@ export default function Home() {
     EventBus.emit('change-room', room);
   };
 
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Show tutorial on first day if never dismissed
+  useEffect(() => {
+    if (day === 1 && !gameOver && typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem('gods-arena-tutorial-dismissed');
+      if (!dismissed) setShowTutorial(true);
+    }
+  }, [day, gameOver]);
+
+  const dismissTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('gods-arena-tutorial-dismissed', 'true');
+  };
+
   const turnsLeft = Math.max(0, MAX_TURNS - day + 1);
   const isUrgent = turnsLeft <= 5;
 
@@ -79,14 +94,57 @@ export default function Home() {
       {/* Divine Council Prophecy */}
       <ProphecyOverlay />
 
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <div className="fixed inset-0 z-[180] bg-black/85 flex items-center justify-center backdrop-blur-sm p-4">
+          <div className="bg-slate-900/95 border-2 border-amber-500/40 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="bg-gradient-to-r from-amber-900/50 to-amber-800/30 px-6 py-4 border-b border-amber-500/20">
+              <h2 className="text-lg font-black text-amber-500 uppercase tracking-widest">ยินดีต้อนรับสู่ Gods&apos; Arena</h2>
+              <div className="text-[9px] text-amber-500/50 font-bold uppercase tracking-widest mt-0.5">คู่มือผู้เล่นใหม่</div>
+            </div>
+            <div className="p-6 space-y-4 text-sm text-slate-300 leading-relaxed">
+              <div className="flex gap-3 items-start">
+                <span className="text-xl shrink-0">🏪</span>
+                <div><span className="font-black text-white">ร้านค้า</span> — ซื้อขายสินค้ากับลูกค้า เทพจ่ายแพงกว่าคนธรรมดา</div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="text-xl shrink-0">⚔️</span>
+                <div><span className="font-black text-white">อารีน่า</span> — ส่งเคนต่อสู้กับศัตรู รับทองและ IP เมื่อชนะ</div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="text-xl shrink-0">🗺️</span>
+                <div><span className="font-black text-white">สำรวจ</span> — ออกเดินทางหาวัตถุดิบ ต่อสู้สัตว์ประหลาด พื้นที่ใหม่เปิดตามวัน</div>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="text-xl shrink-0">💕</span>
+                <div><span className="font-black text-white">หมู่บ้าน</span> — สร้างสายสัมพันธ์กับเทพ ปลดล็อคสกิลใหม่ มอบของขวัญ</div>
+              </div>
+              <div className="bg-red-900/30 border border-red-500/20 rounded-xl p-3 text-xs text-red-300">
+                <span className="font-black">เป้าหมาย:</span> ปราบเจ้าแห่งแวมไพร์ให้ได้ภายใน {MAX_TURNS} วัน! แต่ละวันมี {MAX_CHOICES_PER_DAY} แต้มกิจกรรม
+              </div>
+            </div>
+            <div className="px-6 pb-6">
+              <button
+                onClick={dismissTutorial}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-black rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95"
+              >
+                เข้าใจแล้ว เริ่มเลย!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Game Over / Win Overlay */}
       {gameOver && (
         <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center backdrop-blur-sm">
           <div className="text-center space-y-6 p-8 max-w-md">
-            <div className="text-6xl">{gameOver === 'win' ? '🏆' : '💀'}</div>
+            <div className="text-6xl">{gameOver === 'win' ? '🏆' : gameOverReason === 'bankruptcy' ? '💸' : '💀'}</div>
             <h2 className="text-4xl font-black uppercase tracking-tight">
               {gameOver === 'win' ? (
                 <span className="text-amber-500">ชัยชนะ!</span>
+              ) : gameOverReason === 'bankruptcy' ? (
+                <span className="text-red-500">ล้มละลาย!</span>
               ) : (
                 <span className="text-red-500">จบเกม</span>
               )}
@@ -94,6 +152,8 @@ export default function Home() {
             <p className="text-slate-300 text-sm leading-relaxed">
               {gameOver === 'win'
                 ? 'เจ้าแห่งแวมไพร์พ่ายแพ้แล้ว! ด้วยพลังแห่งสายสัมพันธ์และปณิธานที่แน่วแน่ เคนจึงได้รับชัยชนะ เหล่าเทพต่างยิ้มรับให้แก่คุณ'
+                : gameOverReason === 'bankruptcy'
+                ? 'ร้านค้าล้มละลาย... ไม่มีทั้งสินค้าและทองคำเหลืออยู่แม้แต่น้อย ไม่มีทางฟื้นตัวได้อีกแล้ว บางทีครั้งหน้าควรบริหารเงินให้ดีกว่านี้'
                 : `เวลาผ่านไป ${MAX_TURNS} วันแล้ว แต่เจ้าแห่งแวมไพร์ยังคงครอบงำอยู่... เหล่าเทพเริ่มกระสับกระส่าย บางทีครั้งหน้า คุณควรสร้างสายสัมพันธ์ให้แน่นแฟ้นและเตรียมตัวให้ดีกว่านี้`
               }
             </p>
@@ -129,6 +189,7 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <NavTab label="ร้านค้า" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
             <NavTab label="อารีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+            <NavTab label="สำรวจ" active={phase === 'exploration'} onClick={() => setPhase('exploration')} />
             <NavTab label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
             <NavTab label="สถานะ" active={phase === 'status' as any} onClick={() => setPhase('status' as any)} />
           </div>
@@ -185,10 +246,28 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Urgency Warning Banner */}
+      {isUrgent && !gameOver && (
+        <div className={`max-w-7xl mx-auto px-4 md:px-6 pt-3 ${turnsLeft <= 3 ? 'animate-pulse' : ''}`}>
+          <div className={`text-center py-2 px-4 rounded-xl text-xs font-black uppercase tracking-widest border ${
+            turnsLeft <= 3
+              ? 'bg-red-900/40 border-red-500/50 text-red-400'
+              : 'bg-amber-900/30 border-amber-500/30 text-amber-400'
+          }`}>
+            {turnsLeft <= 3
+              ? `เจ้าแห่งแวมไพร์แข็งแกร่งขึ้นทุกวัน เหลือเวลาอีกเพียง ${turnsLeft} วัน!`
+              : `เวลาเริ่มจำกัด เหลืออีก ${turnsLeft} วัน — เตรียมตัวให้พร้อม`
+            }
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-8 grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-8 items-start relative">
         {/* Main View */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="relative isolate group rounded-xl md:rounded-3xl overflow-hidden border-2 md:border-4 border-slate-800 bg-slate-950 shadow-2xl shadow-black/50 aspect-[4/3] w-full max-w-full">
+          <div className={`relative isolate group rounded-xl md:rounded-3xl overflow-hidden border-2 md:border-4 bg-slate-950 shadow-2xl aspect-[4/3] w-full max-w-full ${
+            turnsLeft <= 3 && !gameOver ? 'border-red-500/60 shadow-red-500/20' : 'border-slate-800 shadow-black/50'
+          }`}>
             <PhaserGame />
             <DialogueOverlay />
             
@@ -245,9 +324,10 @@ export default function Home() {
       </div>
       {/* Bottom Nav — mobile only */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md md:hidden">
-        <div className="grid grid-cols-4 gap-0">
+        <div className="grid grid-cols-5 gap-0">
           <MobileNavTab label="ร้านค้า" active={phase === 'shop'} onClick={() => changeRoom('shop')} />
           <MobileNavTab label="อารีน่า" active={phase === 'arena'} onClick={() => changeRoom('arena')} />
+          <MobileNavTab label="สำรวจ" active={phase === 'exploration'} onClick={() => setPhase('exploration')} />
           <MobileNavTab label="หมู่บ้าน" active={phase === 'relationship'} onClick={() => changeRoom('village')} />
           <MobileNavTab label="สถานะ" active={(phase as any) === 'status'} onClick={() => setPhase('status' as any)} />
         </div>

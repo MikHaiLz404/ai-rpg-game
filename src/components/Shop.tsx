@@ -52,12 +52,51 @@ function ItemIcon({ item, size = 'md' }: { item: typeof ITEMS[number], size?: 's
   return <span className={size === 'sm' ? 'text-base' : 'text-xl'}>{item.emoji}</span>;
 }
 
+// Pick a weighted random item based on game day
+function pickWeightedItem(day: number, isGod: boolean): typeof ITEMS[number] {
+  const weights = ITEMS.map(item => {
+    const tier = item.price <= 50 ? 'common' : item.price <= 150 ? 'uncommon' : 'rare';
+    let w: number;
+    if (day <= 7) {
+      w = tier === 'common' ? 60 : tier === 'uncommon' ? 30 : 10;
+    } else if (day <= 14) {
+      w = tier === 'common' ? 30 : tier === 'uncommon' ? 40 : 30;
+    } else {
+      w = tier === 'common' ? 10 : tier === 'uncommon' ? 30 : 60;
+    }
+    // Gods prefer uncommon/rare
+    if (isGod && tier === 'common') w *= 0.5;
+    if (isGod && tier === 'rare') w *= 1.5;
+    return w;
+  });
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < ITEMS.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return ITEMS[i];
+  }
+  return ITEMS[ITEMS.length - 1];
+}
+
+// Calculate offered gold based on customer type and day
+function calcOfferedGold(price: number, day: number, isGod: boolean): number {
+  let min: number, max: number;
+  if (isGod) {
+    min = 1.0; max = 1.5;
+  } else {
+    min = 0.6; max = 1.0;
+  }
+  // Late game: everyone pays more (desperation)
+  if (day >= 15) { min += 0.2; max += 0.3; }
+  return Math.floor(price * (min + Math.random() * (max - min)));
+}
+
 export default function Shop() {
-  const { 
-    gold, addGold, spendGold, addItem, items, removeItem, 
+  const {
+    gold, addGold, spendGold, addItem, items, removeItem,
     currentCustomer, setCustomer, companions, addBond,
     day, choicesLeft, customersServed, isShiftActive, startShift, endShift, incrementServed,
-    setDialogue
+    setDialogue, restockCostMultiplier
   } = useGameStore();
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -70,9 +109,9 @@ export default function Shop() {
       if (!isShiftActive) return;
       
       setIsGenerating(true);
-      const wantedItem = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-      const offeredGold = Math.floor(wantedItem.price * (0.8 + Math.random() * 0.5));
       const isGod = companions.some(c => c.name === npc.name);
+      const wantedItem = pickWeightedItem(day, isGod);
+      const offeredGold = calcOfferedGold(wantedItem.price, day, isGod);
 
       try {
         const res = await fetch('/api/narrate', {
@@ -186,8 +225,10 @@ export default function Shop() {
     }
   };
 
+  const getWholesalePrice = (item: typeof ITEMS[0]) => Math.floor(item.price * 0.6 * restockCostMultiplier);
+
   const handleRestock = (item: typeof ITEMS[0]) => {
-    const wholesalePrice = Math.floor(item.price * 0.6);
+    const wholesalePrice = getWholesalePrice(item);
     if (gold >= wholesalePrice) {
       if (spendGold(wholesalePrice)) {
         addItem(item.id);
@@ -300,6 +341,8 @@ export default function Shop() {
         <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
           {ITEMS.map((item) => {
             const count = items.filter(id => id === item.id).length;
+            const wholesale = getWholesalePrice(item);
+            const isExpensive = restockCostMultiplier > 1.2;
             return (
               <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
@@ -311,10 +354,10 @@ export default function Shop() {
                 </div>
                 <button
                   onClick={() => handleRestock(item)}
-                  disabled={gold < Math.floor(item.price * 0.6)}
+                  disabled={gold < wholesale}
                   className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] font-bold rounded-lg transition-all border border-slate-600"
                 >
-                  สั่งซื้อ (Restock)
+                  {wholesale}💰 {isExpensive && <span className="text-red-400">↑</span>}
                 </button>
               </div>
             );

@@ -81,21 +81,32 @@ export default function ProphecyOverlay() {
     }
   };
 
+  const turnsLeft = MAX_TURNS - day + 1;
+  const urgency: 'calm' | 'warning' | 'critical' = turnsLeft <= 5 ? 'critical' : turnsLeft <= 10 ? 'warning' : 'calm';
+
   if (!showProphecy) return null;
+
+  const borderColor = urgency === 'critical' ? 'border-red-500/60' : urgency === 'warning' ? 'border-orange-500/40' : 'border-amber-500/40';
+  const shadowColor = urgency === 'critical' ? 'shadow-red-500/20' : urgency === 'warning' ? 'shadow-orange-500/10' : 'shadow-amber-500/10';
+  const headerGradient = urgency === 'critical' ? 'from-red-900/60 to-red-800/30' : urgency === 'warning' ? 'from-orange-900/50 to-amber-800/30' : 'from-amber-900/50 to-amber-800/30';
+  const headerBorder = urgency === 'critical' ? 'border-red-500/30' : urgency === 'warning' ? 'border-orange-500/20' : 'border-amber-500/20';
+  const titleColor = urgency === 'critical' ? 'text-red-400' : urgency === 'warning' ? 'text-orange-400' : 'text-amber-500';
 
   return (
     <div className="fixed inset-0 z-[150] bg-black/80 flex items-center justify-center backdrop-blur-sm p-4">
-      <div className="bg-slate-900/95 border-2 border-amber-500/40 rounded-2xl shadow-2xl shadow-amber-500/10 max-w-lg w-full overflow-hidden">
+      <div className={`bg-slate-900/95 border-2 ${borderColor} rounded-2xl shadow-2xl ${shadowColor} max-w-lg w-full overflow-hidden`}>
         {/* Header */}
-        <div className="bg-gradient-to-r from-amber-900/50 to-amber-800/30 px-6 py-4 border-b border-amber-500/20">
+        <div className={`bg-gradient-to-r ${headerGradient} px-6 py-4 border-b ${headerBorder}`}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-black text-amber-500 uppercase tracking-widest">สภาแห่งทวยเทพ</h2>
-              <div className="text-[9px] text-amber-500/50 font-bold uppercase tracking-widest mt-0.5">
-                คำทำนายวันที่ {day} — เหลือเวลาอีก {MAX_TURNS - day + 1} วัน
+              <h2 className={`text-lg font-black ${titleColor} uppercase tracking-widest`}>สภาแห่งทวยเทพ</h2>
+              <div className={`text-[9px] ${titleColor} opacity-50 font-bold uppercase tracking-widest mt-0.5`}>
+                คำทำนายวันที่ {day} — เหลือเวลาอีก {turnsLeft} วัน
               </div>
             </div>
-            <div className="text-3xl opacity-50">📜</div>
+            <div className={`text-3xl opacity-50 ${urgency === 'critical' ? 'animate-pulse' : ''}`}>
+              {urgency === 'critical' ? '⚠️' : '📜'}
+            </div>
           </div>
         </div>
 
