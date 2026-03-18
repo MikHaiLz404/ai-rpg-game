@@ -613,14 +613,14 @@ export class MainScene extends Phaser.Scene {
             });
 
         } else if (roomName === 'village') {
-            this.player.setPosition(205, 250);
+            this.player.setPosition(205, 240);
             this.player.anims.play('player-down', true);
 
             // Spawn NPCs scattered around the village (positions from guide)
             const villageNPCList = [
-                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 134, y: 85 },
-                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 177, y: 85 },
-                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 326, y: 208 },
+                { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 134, y: 75 },
+                { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 177, y: 75 },
+                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 326, y: 198 },
             ];
             for (const npc of villageNPCList) {
                 const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);
