@@ -186,12 +186,27 @@ async function generateCouncilDialogue(gameState: GameState, apiKey: string): Pr
   const totalSkills = gameState.skills.length;
   const urgency = gameState.turnsLeft <= 5 ? 'วิกฤต เหลือเวลาน้อยมาก' : gameState.turnsLeft <= 10 ? 'เร่งด่วน' : 'ยังมีเวลา';
 
+  // Analyze game state for tactical hints
+  const bonds = { leo: bondLevel('leo'), arena: bondLevel('arena'), draco: bondLevel('draco') };
+  const weakestGod = Object.entries(bonds).reduce((a, b) => a[1] <= b[1] ? a : b);
+  const strongestGod = Object.entries(bonds).reduce((a, b) => a[1] >= b[1] ? a : b);
+  const avgBond = Math.round((bonds.leo + bonds.arena + bonds.draco) / 3);
+  const nextSkillThreshold = [3, 5, 8, 12, 17].find(t => avgBond < t) || 17;
+  const canFightVampire = totalSkills >= 3 && avgBond >= 8;
+  const goldStatus = gameState.gold < 50 ? 'ทองน้อยมาก อาจล้มละลาย' : gameState.gold < 200 ? 'ทองพอใช้' : 'ทองมาก';
+
   const gameContext = `สถานะเกม:
 - วัน: ${gameState.day}/20 (${urgency} — เหลือ ${gameState.turnsLeft} วัน)
-- ทอง: ${gameState.gold}
-- Bond: เลโอ=${bondLevel('leo')}, อารีน่า=${bondLevel('arena')}, ดราโก้=${bondLevel('draco')}
+- ทอง: ${gameState.gold} (${goldStatus})
+- Bond: เลโอ=${bonds.leo}, อารีน่า=${bonds.arena}, ดราโก้=${bonds.draco} (เฉลี่ย: ${avgBond})
 - สกิลของ Kane: ${totalSkills} ชิ้น (${gameState.skills.join(', ') || 'ยังไม่มี'})
-- เป้าหมาย: เอาชนะ Vampire Lord ภายใน 20 วัน`;
+- Bond ต่ำสุด: ${GOD_PROMPTS[weakestGod[0]]?.name} (${weakestGod[1]})
+- Bond สูงสุด: ${GOD_PROMPTS[strongestGod[0]]?.name} (${strongestGod[1]})
+- Threshold สกิลถัดไป: Bond ${nextSkillThreshold}
+- ${canFightVampire ? 'พร้อมสู้ Vampire Lord ได้แล้ว!' : 'ยังไม่พร้อมสู้ Vampire Lord — ต้องสะสมสกิลและ Bond เพิ่ม'}
+- เป้าหมาย: เอาชนะ Vampire Lord ภายใน 20 วัน
+
+วิเคราะห์สถานะแล้วให้คำแนะนำเชิงกลยุทธ์ที่เจาะจง เช่น ควรไปหาเทพองค์ไหน ควรสำรวจหรือสู้ ควรเก็บทองหรือใช้`;
 
   if (!apiKey || apiKey.includes('000000')) {
     // Fallback: use conversation-style hardcoded fallbacks
@@ -277,6 +292,115 @@ function generateCouncilFallback(gameState: GameState): { godId: string; text: s
   }
 }
 
+// --- Daily Event Generation ---
+interface DailyEvent {
+  title: string;
+  description: string;
+  emoji: string;
+  effect: { type: 'gold' | 'item' | 'ip' | 'bond' | 'discount'; value: number; target?: string };
+}
+
+function generateDeterministicDailyEvent(gameState: GameState): DailyEvent {
+  const { day, gold, bonds, turnsLeft } = gameState;
+  const avgBond = Math.round(Object.values(bonds).reduce((a, b) => a + b, 0) / Math.max(Object.keys(bonds).length, 1));
+  const weakestGod = Object.entries(bonds).reduce((a, b) => (a[1] <= b[1] ? a : b), ['leo', 99]);
+
+  // Event pool — selected by day pattern for variety
+  const events: DailyEvent[] = [
+    { title: 'พ่อค้าเร่ร่อน', description: 'พ่อค้าเร่ร่อนแวะมาที่ร้าน มอบทองให้เล็กน้อย', emoji: '🧳', effect: { type: 'gold', value: 30 + day * 5 } },
+    { title: 'ลมแห่งพร', description: 'ลมศักดิ์สิทธิ์พัดผ่าน เพิ่มพลังเทพ', emoji: '🍃', effect: { type: 'ip', value: 2 } },
+    { title: 'ดาวตก', description: 'ดาวตกลงมาในป่า อาจมีของดีซ่อนอยู่', emoji: '🌠', effect: { type: 'item', value: 0, target: 'olympian_coin' } },
+    { title: 'เทพประทานพร', description: `${GOD_PROMPTS[weakestGod[0]]?.name || 'เทพ'} ส่งพรมาให้`, emoji: '✨', effect: { type: 'bond', value: 2, target: weakestGod[0] } },
+    { title: 'ตลาดนัดเทพ', description: 'วันนี้สินค้าลดราคาพิเศษ!', emoji: '🏷️', effect: { type: 'discount', value: 20 } },
+    { title: 'นกส่งสาร', description: 'นกศักดิ์สิทธิ์มอบทองจากดินแดนไกล', emoji: '🕊️', effect: { type: 'gold', value: 50 + day * 3 } },
+    { title: 'คัมภีร์โบราณ', description: 'พบคัมภีร์ที่เปล่งพลังให้ Kane', emoji: '📜', effect: { type: 'ip', value: 3 } },
+    { title: 'ฝนทอง', description: 'ฝนเหรียญทองตกลงมาจากฟ้า!', emoji: '🌧️', effect: { type: 'gold', value: 80 } },
+  ];
+
+  // Context-aware event selection
+  if (turnsLeft <= 3) {
+    // Urgent: give IP or bond to help player
+    return { title: 'พลังรวมเทพ', description: 'เทพทั้งสามรวมพลังมอบให้ Kane เป็นครั้งสุดท้าย', emoji: '⚡', effect: { type: 'ip', value: 5 } };
+  }
+  if (gold < 50) {
+    // Low gold: give gold to prevent bankruptcy
+    return { title: 'ของขวัญจากเทพ', description: 'เทพเห็นใจ มอบทองให้เพื่อช่วยเหลือ', emoji: '💰', effect: { type: 'gold', value: 100 } };
+  }
+  if (avgBond < 3 && day > 5) {
+    // Low bonds: boost weakest god
+    return events[3]; // เทพประทานพร
+  }
+
+  // Normal: pick by day for variety
+  const index = (day * 7 + 3) % events.length;
+  return events[index];
+}
+
+async function generateAIDailyEvent(gameState: GameState, apiKey: string): Promise<DailyEvent> {
+  const fallback = generateDeterministicDailyEvent(gameState);
+
+  if (!apiKey || apiKey.includes('000000')) return fallback;
+
+  const avgBond = Math.round(Object.values(gameState.bonds).reduce((a, b) => a + b, 0) / Math.max(Object.keys(gameState.bonds).length, 1));
+  const weakestGodEntry = Object.entries(gameState.bonds).reduce((a, b) => (a[1] <= b[1] ? a : b), ['leo', 99]);
+  const weakestGodName = GOD_PROMPTS[weakestGodEntry[0]]?.name || 'เทพ';
+
+  try {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'AI RPG Game - Daily Event',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-001',
+        messages: [
+          { role: 'system', content: `คุณเป็นเกมดีไซเนอร์ของเกม RPG "Gods' Arena" สร้าง Daily Event สั้นๆ ให้ผู้เล่น
+
+ตอบเป็น JSON เท่านั้น:
+{"title":"ชื่อเหตุการณ์","description":"คำอธิบาย 1 ประโยค ภาษาไทย","emoji":"อีโมจิ 1 ตัว","effectType":"gold|ip|bond","effectValue":ตัวเลข}
+
+effectType:
+- gold: ได้ทอง (value: 30-150)
+- ip: ได้ Intervention Points (value: 1-5)
+- bond: เพิ่ม Bond กับเทพ (value: 1-3)` },
+          { role: 'user', content: `สถานะ: วัน ${gameState.day}/20 ทอง ${gameState.gold} Bond เฉลี่ย ${avgBond} Bond ต่ำสุด ${weakestGodName}(${weakestGodEntry[1]}) สกิล ${gameState.skills.length} ชิ้น เหลือ ${gameState.turnsLeft} วัน
+สร้าง Daily Event ที่เหมาะกับสถานการณ์` }
+        ],
+        max_tokens: 100,
+        temperature: 0.9,
+      }),
+    });
+    if (!response.ok) return fallback;
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+
+    // Parse AI response
+    const cleaned = raw.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    if (!parsed.title || !parsed.description || !parsed.emoji || !parsed.effectType) return fallback;
+
+    const effectType = ['gold', 'ip', 'bond'].includes(parsed.effectType) ? parsed.effectType : 'gold';
+    const effectValue = Math.min(Math.max(1, Number(parsed.effectValue) || 30), effectType === 'gold' ? 150 : effectType === 'ip' ? 5 : 3);
+
+    return {
+      title: parsed.title,
+      description: parsed.description,
+      emoji: parsed.emoji,
+      effect: {
+        type: effectType,
+        value: effectValue,
+        target: effectType === 'bond' ? weakestGodEntry[0] : undefined,
+      },
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
@@ -288,6 +412,7 @@ export async function POST(request: NextRequest) {
 
     if (openclawResult) {
       console.log('[Prophecy] Generated via OpenClaw Gateway');
+      const dailyEvent = await generateAIDailyEvent(gameState, OPENROUTER_API_KEY);
       return NextResponse.json({
         source: 'openclaw',
         prophecies: openclawResult.map(r => ({
@@ -297,12 +422,16 @@ export async function POST(request: NextRequest) {
           text: r.text,
           agentName: GOD_TO_AGENT[r.godId] || null,
         })),
+        dailyEvent,
       });
     }
 
     // Strategy 2: Fallback to OpenRouter API — God-to-God Council Dialogue
     console.log('[Prophecy] Falling back to OpenRouter API (council dialogue)');
-    const councilResults = await generateCouncilDialogue(gameState, OPENROUTER_API_KEY);
+    const [councilResults, dailyEvent] = await Promise.all([
+      generateCouncilDialogue(gameState, OPENROUTER_API_KEY),
+      generateAIDailyEvent(gameState, OPENROUTER_API_KEY),
+    ]);
 
     return NextResponse.json({
       source: 'openrouter',
@@ -312,6 +441,7 @@ export async function POST(request: NextRequest) {
         emoji: r.godId === 'leo' ? '⚔️' : r.godId === 'arena' ? '👑' : '🐉',
         text: r.text,
       })),
+      dailyEvent,
     });
   } catch (error) {
     console.error('Prophecy error:', error);
@@ -322,6 +452,7 @@ export async function POST(request: NextRequest) {
         { godId: 'arena', godName: 'อารีน่า', emoji: '👑', text: '"..."' },
         { godId: 'draco', godName: 'ดราโก้', emoji: '🐉', text: '"..."' },
       ],
+      dailyEvent: { title: 'ลมแห่งพร', description: 'ลมศักดิ์สิทธิ์พัดผ่าน เพิ่มพลังเทพ', emoji: '🍃', effect: { type: 'ip', value: 1 } },
     });
   }
 }

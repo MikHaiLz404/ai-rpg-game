@@ -12,9 +12,18 @@ interface Prophecy {
   agentName?: string;
 }
 
+interface DailyEvent {
+  title: string;
+  description: string;
+  emoji: string;
+  effect: { type: 'gold' | 'item' | 'ip' | 'bond' | 'discount'; value: number; target?: string };
+}
+
 export default function ProphecyOverlay() {
-  const { day, gold, companions, showProphecy, setShowProphecy } = useGameStore();
+  const { day, gold, companions, showProphecy, setShowProphecy, addGold, addItem, addIP, addBond, setLastDailyEvent } = useGameStore();
   const [prophecies, setProphecies] = useState<Prophecy[]>([]);
+  const [dailyEvent, setDailyEvent] = useState<DailyEvent | null>(null);
+  const [eventApplied, setEventApplied] = useState(false);
   const [source, setSource] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [revealed, setRevealed] = useState(0);
@@ -22,6 +31,8 @@ export default function ProphecyOverlay() {
   useEffect(() => {
     if (!showProphecy) {
       setProphecies([]);
+      setDailyEvent(null);
+      setEventApplied(false);
       setSource('');
       setRevealed(0);
       return;
@@ -50,12 +61,18 @@ export default function ProphecyOverlay() {
         setSource(data.source || '');
         broadcastAISource(data.source || 'fallback');
 
-        // Reveal prophecies one by one with longer delay for council feel
+        // Store daily event
+        if (data.dailyEvent) {
+          setDailyEvent(data.dailyEvent);
+        }
+
+        // Reveal prophecies one by one, then daily event
+        const totalItems = (data.prophecies?.length || 3) + (data.dailyEvent ? 1 : 0);
         let i = 0;
         const interval = setInterval(() => {
           i++;
           setRevealed(i);
-          if (i >= (data.prophecies?.length || 3)) clearInterval(interval);
+          if (i >= totalItems) clearInterval(interval);
         }, 1200);
       } catch {
         setProphecies([
@@ -211,6 +228,27 @@ export default function ProphecyOverlay() {
                   </div>
                 );
               })}
+
+              {/* Daily Event — shown after all prophecies */}
+              {dailyEvent && revealed > prophecies.length && (
+                <DailyEventCard
+                  event={dailyEvent}
+                  applied={eventApplied}
+                  onApply={() => {
+                    if (eventApplied) return;
+                    setEventApplied(true);
+                    const { effect } = dailyEvent;
+                    switch (effect.type) {
+                      case 'gold': addGold(effect.value); break;
+                      case 'ip': addIP(effect.value); break;
+                      case 'item': if (effect.target) addItem(effect.target); break;
+                      case 'bond': if (effect.target) addBond(effect.target, effect.value); break;
+                      case 'discount': addGold(effect.value); break; // Simplified: discount = bonus gold
+                    }
+                    setLastDailyEvent(`${dailyEvent.emoji} ${dailyEvent.title}`);
+                  }}
+                />
+              )}
             </div>
           )}
 
@@ -228,17 +266,54 @@ export default function ProphecyOverlay() {
             </div>
             <button
               onClick={() => setShowProphecy(false)}
-              disabled={loading && prophecies.length === 0}
+              disabled={(loading && prophecies.length === 0) || (dailyEvent && !eventApplied && revealed > prophecies.length)}
               className={`w-full py-3 font-black rounded-xl uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
                 urgency === 'critical'
                   ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20'
                   : 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20'
               }`}
             >
-              {revealed >= prophecies.length ? `เริ่มวันที่ ${day}` : 'กำลังรับฟัง...'}
+              {revealed > prophecies.length && (!dailyEvent || eventApplied) ? `เริ่มวันที่ ${day}` : 'กำลังรับฟัง...'}
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DailyEventCard({ event, applied, onApply }: { event: DailyEvent; applied: boolean; onApply: () => void }) {
+  const effectLabel = (() => {
+    switch (event.effect.type) {
+      case 'gold': return `+${event.effect.value} ทอง`;
+      case 'ip': return `+${event.effect.value} IP`;
+      case 'item': return `ได้ของ!`;
+      case 'bond': return `+${event.effect.value} Bond`;
+      case 'discount': return `ลด ${event.effect.value}%`;
+      default: return '';
+    }
+  })();
+
+  return (
+    <div className="mt-3 pt-3 border-t border-amber-500/10 animate-in fade-in duration-700">
+      <div className="text-[9px] font-black text-amber-500/40 uppercase tracking-[0.3em] mb-2">เหตุการณ์ประจำวัน</div>
+      <div className="flex items-center gap-3 bg-amber-500/5 border border-amber-500/15 rounded-xl px-3 py-2.5">
+        <span className="text-2xl shrink-0">{event.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-black text-amber-400">{event.title}</div>
+          <div className="text-[11px] text-slate-300 leading-snug mt-0.5">{event.description}</div>
+        </div>
+        <button
+          onClick={onApply}
+          disabled={applied}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+            applied
+              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+              : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'
+          }`}
+        >
+          {applied ? `${effectLabel} ✓` : effectLabel}
+        </button>
       </div>
     </div>
   );
