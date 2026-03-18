@@ -92,6 +92,9 @@ interface GameStore {
   dialogue: Dialogue | null;
   setDialogue: (dialogue: Dialogue | null) => void;
 
+  explorationLog: string[];
+  addExplorationLog: (entries: string[]) => void;
+
   loadSaveData: (data: any) => void;
   resetGame: () => void;
 }
@@ -248,6 +251,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   dialogue: null,
   setDialogue: (dialogue) => set({ dialogue }),
 
+  explorationLog: [],
+  addExplorationLog: (entries) => set((state) => ({
+    explorationLog: [...entries, ...state.explorationLog].slice(0, 20)
+  })),
+
   resetGame: () => set({
     gold: 500,
     player: { gold: 500, hp: 100, maxHp: 100 },
@@ -268,6 +276,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     vampireDefeated: false,
     showProphecy: false,
     restockCostMultiplier: 1.0,
+    explorationLog: [],
   }),
 
   loadSaveData: (data) => {
@@ -288,6 +297,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       interventionPoints: data.interventionPoints || 10,
       vampireDefeated: data.vampireDefeated || false,
       gameOver: data.gameOver || null,
+      explorationLog: data.explorationLog || [],
       isBusy: false,
     });
   },

@@ -184,13 +184,13 @@ type ExploreResult = {
 export default function Exploration() {
   const {
     choicesLeft, consumeChoice, addItem, addGold, setDialogue, setIsBusy,
-    day, companions, getBondBonus, addIP, addBond, gold, spendGold
+    day, companions, getBondBonus, addIP, addBond, gold, spendGold,
+    explorationLog, addExplorationLog
   } = useGameStore();
 
   const [selectedLocation, setSelectedLocation] = useState<ExplorationLocation | null>(null);
   const [isExploring, setIsExploring] = useState(false);
   const [exploreResult, setExploreResult] = useState<ExploreResult | null>(null);
-  const [explorationLog, setExplorationLog] = useState<string[]>([]);
 
   const availableLocations = LOCATIONS.filter(loc => day >= loc.unlockDay);
 
@@ -262,13 +262,12 @@ export default function Exploration() {
           // Bonus: also get a loot item on monster kill
           const bonusItem = weightedRandom(location.loot);
           addItem(bonusItem.id);
-          setExplorationLog(prev => [
+          addExplorationLog([
             `${monster.emoji} ${monster.name} ปรากฏตัว!`,
             `Kane ต่อสู้ ${rounds} รอบ`,
             `Kane ชนะ! +${goldEarned} ทอง · +1 IP${luckyGod ? ` · ${luckyGod.name} +1 สนิท` : ''}`,
             `${bonusItem.emoji} เจอ ${bonusItem.name} ด้วย!`,
-            ...prev
-          ].slice(0, 20));
+          ]);
           setExploreResult({
             type: 'monster',
             monster: { ...monster, hp: scaledHp, atk: scaledAtk, reward: scaledReward },
@@ -279,12 +278,11 @@ export default function Exploration() {
           });
         } else {
           addGold(goldEarned);
-          setExplorationLog(prev => [
+          addExplorationLog([
             `${monster.emoji} ${monster.name} ปรากฏตัว!`,
             `Kane ต่อสู้ ${rounds} รอบ`,
             `Kane ต้องถอยหนี... +${goldEarned} ทอง`,
-            ...prev
-          ].slice(0, 20));
+          ]);
           setExploreResult({
             type: 'monster',
             monster: { ...monster, hp: scaledHp, atk: scaledAtk, reward: scaledReward },
@@ -341,14 +339,13 @@ export default function Exploration() {
             break;
         }
 
-        setExplorationLog(prev => [
+        addExplorationLog([
           `${event.emoji} ${event.name}: ${event.description}`,
           event.type === 'gold' ? `+${event.value} ทอง` :
           event.type === 'ip' ? `+${event.value} IP` :
           event.type === 'trap' ? `-${event.value} ทอง` :
           event.type === 'item' ? `ได้ของ!` : `ฟื้นฟูพลัง!`,
-          ...prev
-        ].slice(0, 20));
+        ]);
 
         setExploreResult({ type: 'event', event });
         setDialogue({
@@ -361,10 +358,9 @@ export default function Exploration() {
         const item = weightedRandom(location.loot);
         addItem(item.id);
 
-        setExplorationLog(prev => [
+        addExplorationLog([
           `${item.emoji} เก็บ ${item.name} ใน${location.name}`,
-          ...prev
-        ].slice(0, 20));
+        ]);
 
         setExploreResult({ type: 'gather', item });
 
