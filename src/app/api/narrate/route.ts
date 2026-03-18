@@ -1,6 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGameClient } from '@/lib/openclaw/client';
 
+// Deterministic fallback skills per god (indexed by level-1)
+const FALLBACK_SKILLS: Record<string, { name: string; description: string; multiplier: number; type: string }[]> = {
+  'เลโอ': [
+    { name: 'War Cry', description: 'เสียงกึกก้องจากสมรภูมิ', multiplier: 1.5, type: 'physical' },
+    { name: 'Blade Storm', description: 'พายุดาบแห่งเทพสงคราม', multiplier: 2.0, type: 'physical' },
+    { name: 'Olympian Fury', description: 'ความโกรธแค้นแห่งโอลิมปัส', multiplier: 2.5, type: 'physical' },
+    { name: 'God of War', description: 'พลังสูงสุดของเทพสงคราม', multiplier: 3.0, type: 'physical' },
+    { name: 'Eternal Vanguard', description: 'หอกนำทัพนิรันดร์', multiplier: 2.8, type: 'physical' },
+  ],
+  'อารีน่า': [
+    { name: 'Holy Light', description: 'แสงศักดิ์สิทธิ์แห่งราชินี', multiplier: 1.5, type: 'magical' },
+    { name: 'Starfall', description: 'ฝนดาวตกจากสวรรค์', multiplier: 2.0, type: 'magical' },
+    { name: 'Crown Judgment', description: 'คำพิพากษาแห่งมงกุฎ', multiplier: 2.5, type: 'magical' },
+    { name: 'Divine Radiance', description: 'รัศมีสูงสุดแห่งวิหาร', multiplier: 3.0, type: 'magical' },
+    { name: 'Celestial Bond', description: 'สายสัมพันธ์เบื้องบน', multiplier: 2.8, type: 'magical' },
+  ],
+  'ดราโก้': [
+    { name: 'Dragon Breath', description: 'ลมหายใจมังกรบรรพกาล', multiplier: 1.5, type: 'magical' },
+    { name: 'Ancient Tremor', description: 'แผ่นดินไหวแห่งยุคโบราณ', multiplier: 2.0, type: 'physical' },
+    { name: 'Wyrm Coil', description: 'ขดพญานาคสยบศัตรู', multiplier: 2.5, type: 'physical' },
+    { name: 'Primordial Flame', description: 'เปลวไฟดั้งเดิมแห่งโลก', multiplier: 3.0, type: 'magical' },
+    { name: 'Epoch Crusher', description: 'พลังทำลายกาลเวลา', multiplier: 2.8, type: 'magical' },
+  ],
+};
+
 // Map: Thai NPC name → OpenClaw agent name
 const NPC_TO_AGENT: Record<string, string> = {
   'เลโอ': 'emily',
@@ -155,7 +180,18 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
             const npcFallback = talkFallbacks[npcName] || { greet: `"..."`, reply: `"..."` };
             fallback = userMessage ? npcFallback.reply : npcFallback.greet;
         } else if (action === 'generate_skill') {
-            fallback = JSON.stringify({ name: 'Divine Strike', description: 'พลังศักดิ์สิทธิ์จากเทพ', multiplier: 1.8, type: 'magical' });
+            const pool = FALLBACK_SKILLS[npcName] || FALLBACK_SKILLS['เลโอ'];
+            const idx = Math.min((level || 1) - 1, pool.length - 1);
+            fallback = JSON.stringify(pool[Math.max(0, idx)]);
+        } else if (action === 'gift') {
+            const giftFallbacks: Record<string, string> = {
+                'เลโอ': '"ฮึ... ของดี ข้ารับไว้"',
+                'อารีน่า': '"ขอบใจ... ของชิ้นนี้ข้าชอบ"',
+                'ดราโก้': '"ฮึ่ม... เจ้านำของมาให้ข้าหรือ น่าสนใจ"',
+            };
+            fallback = giftFallbacks[npcName] || '"ขอบคุณ..."';
+        } else if (action === 'exploration_event') {
+            fallback = `${playerName} ค้นพบสิ่งลึกลับระหว่างการสำรวจ!`;
         } else {
             fallback = `${playerName} โจมตี ${enemyName || 'ศัตรู'} อย่างรุนแรง สร้างดาเมจ ${damage || 0}!`;
         }

@@ -83,6 +83,13 @@ Required in `.env.local`:
 | `OPENCLAW_GATEWAY_TOKEN` | Auth token for Gateway |
 | `OPENROUTER_API_KEY` | Fallback LLM provider |
 
+## AI Integration Notes
+
+- **Skill generation** (`generate_skill` action) responses are sanitized (markdown fences stripped) and validated (name, description, multiplier 1.5-3.0, type physical/magical). Invalid responses fall back to deterministic per-god per-level skills in `Relationship.tsx`.
+- **Deterministic fallback skills** in `/api/narrate` — 5 unique skills per god (Leo=physical, Arena=magical, Draco=mixed), indexed by bond level.
+- **Fallback coverage**: all 6 narrate actions (`shop_talk`, `talk`, `generate_skill`, `gift`, `exploration_event`, combat) have Thai-language hardcoded fallbacks.
+- **AI status badge** (`AIStatusBadge.tsx`) shows current AI source (OpenClaw/OpenRouter/Offline) in header. Probes `/api/narrate` on mount and listens for `ai-source-update` custom events. `broadcastAISource()` exported for components to update the badge after API calls.
+
 ## Game Design
 
 Design docs in `game-design/turn-based-rpg/GAME_DESIGN.md`. Narrative lore and Thai-language novel chapters in `novel/`.

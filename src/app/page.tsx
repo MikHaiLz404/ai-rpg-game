@@ -6,6 +6,7 @@ import { useSaveStore } from '@/store/saveStore';
 import { useState, useEffect } from 'react';
 import { EventBus } from '@/game/EventBus';
 
+import AIStatusBadge from '@/components/AIStatusBadge';
 import Shop from '@/components/Shop';
 import Arena from '@/components/Arena';
 import Exploration from '@/components/Exploration';
@@ -184,6 +185,7 @@ export default function Home() {
               <h1 className="text-xl font-black tracking-tighter text-amber-500 uppercase leading-none italic">Gods&apos; Arena</h1>
               <div className="text-[9px] text-slate-500 font-bold tracking-[0.25em] uppercase mt-1">วิหารแห่งเทพ</div>
             </div>
+            <AIStatusBadge />
           </div>
 
           <div className="flex items-center gap-2">
@@ -236,12 +238,15 @@ export default function Home() {
               <span>{gold.toLocaleString()}</span>
             </div>
           </div>
-          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            {phase === 'shop' && 'ร้านค้าสวรรค์'}
-            {phase === 'arena' && 'มหาอารีน่า'}
-            {phase === 'exploration' && 'ป่าเถื่อน'}
-            {phase === 'relationship' && 'หมู่บ้านเทพ'}
-            {(phase as any) === 'status' && 'สถานะ'}
+          <div className="flex items-center gap-2">
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+              {phase === 'shop' && 'ร้านค้าสวรรค์'}
+              {phase === 'arena' && 'มหาอารีน่า'}
+              {phase === 'exploration' && 'ป่าเถื่อน'}
+              {phase === 'relationship' && 'หมู่บ้านเทพ'}
+              {(phase as any) === 'status' && 'สถานะ'}
+            </div>
+            <AIStatusBadge compact />
           </div>
         </div>
       </header>

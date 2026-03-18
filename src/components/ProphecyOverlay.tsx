@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useGameStore, MAX_TURNS } from '@/store/gameStore';
 import { NPC_CONFIGS } from '@/data/npcConfig';
+import { broadcastAISource } from './AIStatusBadge';
 
 interface Prophecy {
   godId: string;
@@ -47,6 +48,7 @@ export default function ProphecyOverlay() {
         const data = await res.json();
         setProphecies(data.prophecies || []);
         setSource(data.source || '');
+        broadcastAISource(data.source || 'fallback');
 
         // Reveal prophecies one by one
         let i = 0;

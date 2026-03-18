@@ -23,6 +23,70 @@ const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
   olympian_coin: { name: 'Olympian Coin', emoji: '🪙' },
 };
 
+// Deterministic fallback skills per god per level
+const FALLBACK_SKILLS: Record<string, DivineSkill[]> = {
+  leo: [
+    { name: 'War Cry', description: 'เสียงกึกก้องจากสมรภูมิ', multiplier: 1.5, type: 'physical', godId: 'leo' },
+    { name: 'Blade Storm', description: 'พายุดาบแห่งเทพสงคราม', multiplier: 2.0, type: 'physical', godId: 'leo' },
+    { name: 'Olympian Fury', description: 'ความโกรธแค้นแห่งโอลิมปัส', multiplier: 2.5, type: 'physical', godId: 'leo' },
+    { name: 'God of War', description: 'พลังสูงสุดของเทพสงคราม', multiplier: 3.0, type: 'physical', godId: 'leo' },
+    { name: 'Eternal Vanguard', description: 'หอกนำทัพนิรันดร์', multiplier: 2.8, type: 'physical', godId: 'leo' },
+  ],
+  arena: [
+    { name: 'Holy Light', description: 'แสงศักดิ์สิทธิ์แห่งราชินี', multiplier: 1.5, type: 'magical', godId: 'arena' },
+    { name: 'Starfall', description: 'ฝนดาวตกจากสวรรค์', multiplier: 2.0, type: 'magical', godId: 'arena' },
+    { name: 'Crown Judgment', description: 'คำพิพากษาแห่งมงกุฎ', multiplier: 2.5, type: 'magical', godId: 'arena' },
+    { name: 'Divine Radiance', description: 'รัศมีสูงสุดแห่งวิหาร', multiplier: 3.0, type: 'magical', godId: 'arena' },
+    { name: 'Celestial Bond', description: 'สายสัมพันธ์เบื้องบน', multiplier: 2.8, type: 'magical', godId: 'arena' },
+  ],
+  draco: [
+    { name: 'Dragon Breath', description: 'ลมหายใจมังกรบรรพกาล', multiplier: 1.5, type: 'magical', godId: 'draco' },
+    { name: 'Ancient Tremor', description: 'แผ่นดินไหวแห่งยุคโบราณ', multiplier: 2.0, type: 'physical', godId: 'draco' },
+    { name: 'Wyrm Coil', description: 'ขดพญานาคสยบศัตรู', multiplier: 2.5, type: 'physical', godId: 'draco' },
+    { name: 'Primordial Flame', description: 'เปลวไฟดั้งเดิมแห่งโลก', multiplier: 3.0, type: 'magical', godId: 'draco' },
+    { name: 'Epoch Crusher', description: 'พลังทำลายกาลเวลา', multiplier: 2.8, type: 'magical', godId: 'draco' },
+  ],
+};
+
+function getDeterministicSkill(godId: string, level: number): DivineSkill {
+  const pool = FALLBACK_SKILLS[godId] || FALLBACK_SKILLS.leo;
+  const index = Math.min(level - 1, pool.length - 1);
+  return { ...pool[Math.max(0, index)], godId };
+}
+
+function parseSkillResponse(narrative: unknown, godId: string, level: number): DivineSkill {
+  try {
+    let raw: any;
+    if (typeof narrative === 'string') {
+      // Strip markdown fences and whitespace
+      const cleaned = narrative.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '').trim();
+      raw = JSON.parse(cleaned);
+    } else {
+      raw = narrative;
+    }
+
+    // Validate required fields
+    if (!raw || typeof raw.name !== 'string' || !raw.name.trim()) throw new Error('Missing name');
+    if (typeof raw.description !== 'string') throw new Error('Missing description');
+    if (typeof raw.multiplier !== 'number' || isNaN(raw.multiplier)) throw new Error('Invalid multiplier');
+    if (raw.type !== 'physical' && raw.type !== 'magical') throw new Error('Invalid type');
+
+    // Clamp multiplier to valid range
+    const multiplier = Math.min(3.0, Math.max(1.5, raw.multiplier));
+
+    return {
+      name: raw.name.trim(),
+      description: raw.description.trim(),
+      multiplier,
+      type: raw.type,
+      godId,
+    };
+  } catch (err) {
+    console.warn(`[Skill] Failed to parse AI skill response, using fallback:`, err);
+    return getDeterministicSkill(godId, level);
+  }
+}
+
 // Each god has favorite gifts that give bonus bond
 const FAVORITE_GIFTS: Record<string, string[]> = {
   leo: ['sword', 'shield', 'bow'],       // War god likes weapons
@@ -82,7 +146,7 @@ export default function Relationship() {
         })
       });
       const data = await res.json();
-      const skillData: DivineSkill = typeof data.narrative === 'string' ? JSON.parse(data.narrative) : data.narrative;
+      const skillData = parseSkillResponse(data.narrative, id, freshCompanion.level);
 
       unlockSkill(id, { ...skillData, godId: id });
       markThresholdClaimed(id, unclaimedThreshold);
@@ -94,6 +158,11 @@ export default function Relationship() {
       });
     } catch (err) {
       console.error('Auto skill gen error:', err);
+      // Fallback: still grant a skill so player isn't stuck
+      const fallback = getDeterministicSkill(id, freshCompanion.level);
+      unlockSkill(id, { ...fallback, godId: id });
+      markThresholdClaimed(id, unclaimedThreshold);
+      setChatLog(prev => [...prev, { sender: 'system', text: `✨ สกิลใหม่: ${fallback.name}! (พลังโจมตี x${fallback.multiplier})` }]);
     } finally {
       setIsGeneratingSkill(false);
     }
