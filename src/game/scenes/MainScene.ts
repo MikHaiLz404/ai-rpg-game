@@ -419,25 +419,28 @@ export class MainScene extends Phaser.Scene {
 
         if (this.walkTween) this.walkTween.stop();
 
-        // Waypoint paths from Minju spawn (155, 200) along village roads
-        const ROAD_X = 205; // vertical road x
-        const ROAD_TOP_Y = 105; // top horizontal road y
-        const ROAD_MID_Y = 208; // mid horizontal road y
+        // Waypoint paths along village stone roads (based on bg_village_exterior.png)
+        const ROAD_X = 200; // main vertical road x (center)
+        const ROAD_TOP_Y = 90; // top horizontal path (between top & middle stalls)
+        const ROAD_MID_Y = 175; // middle horizontal path (between middle & bottom stalls)
 
         const waypoints: { x: number; y: number }[] = [];
 
         if (npcId === 'leo') {
-            // Up the road, slight left to Leo
+            // Walk up vertical road, then along top path to Leo
+            waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
             waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
             waypoints.push({ x: target.x, y: target.y + 25 });
         } else if (npcId === 'draco') {
-            // Up the road, then left to Draco
+            // Walk up vertical road, then left along top path to Draco
+            waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
             waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
             waypoints.push({ x: target.x, y: ROAD_TOP_Y });
             waypoints.push({ x: target.x, y: target.y + 25 });
         } else if (npcId === 'arena') {
-            // Up to mid road, then right to Arena
+            // Walk up to middle path, then right along it to Arena
             waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
+            waypoints.push({ x: target.x, y: ROAD_MID_Y });
             waypoints.push({ x: target.x, y: target.y + 25 });
         } else {
             waypoints.push({ x: target.x, y: target.y + 25 });
@@ -620,7 +623,7 @@ export class MainScene extends Phaser.Scene {
             const villageNPCList = [
                 { id: 'draco', texture: 'npc_draco', anim: 'draco', x: 134, y: 75 },
                 { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 177, y: 75 },
-                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 326, y: 198 },
+                { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 336, y: 183 },
             ];
             for (const npc of villageNPCList) {
                 const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);
