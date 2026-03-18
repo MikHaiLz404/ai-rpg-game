@@ -184,7 +184,7 @@ type ExploreResult = {
 export default function Exploration() {
   const {
     choicesLeft, consumeChoice, addItem, addGold, setDialogue, setIsBusy,
-    day, companions, getBondBonus, addIP, gold, spendGold
+    day, companions, getBondBonus, addIP, addBond, gold, spendGold
   } = useGameStore();
 
   const [selectedLocation, setSelectedLocation] = useState<ExplorationLocation | null>(null);
@@ -253,13 +253,19 @@ export default function Exploration() {
 
         if (won) {
           addGold(goldEarned);
+          addIP(1); // IP gain on exploration monster kill
+          // Random god notices your bravery — 50% chance bond +1
+          const gods = companions.filter(c => c.id !== 'kane');
+          const luckyGod = gods.length > 0 && Math.random() < 0.5
+            ? gods[Math.floor(Math.random() * gods.length)] : null;
+          if (luckyGod) addBond(luckyGod.id, 1);
           // Bonus: also get a loot item on monster kill
           const bonusItem = weightedRandom(location.loot);
           addItem(bonusItem.id);
           setExplorationLog(prev => [
             `${monster.emoji} ${monster.name} ปรากฏตัว!`,
             `Kane ต่อสู้ ${rounds} รอบ`,
-            `Kane ชนะ! +${goldEarned} ทอง`,
+            `Kane ชนะ! +${goldEarned} ทอง · +1 IP${luckyGod ? ` · ${luckyGod.name} +1 สนิท` : ''}`,
             `${bonusItem.emoji} เจอ ${bonusItem.name} ด้วย!`,
             ...prev
           ].slice(0, 20));
