@@ -426,17 +426,29 @@ export class MainScene extends Phaser.Scene {
 
         const waypoints: { x: number; y: number }[] = [];
 
+        // Check if player is already near the top row (near Leo/Draco)
+        const playerNearTop = this.player.y < ROAD_TOP_Y + 30;
+
         if (npcId === 'leo') {
-            // Walk up vertical road, then along top path to Leo
-            waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
-            waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
-            waypoints.push({ x: target.x, y: target.y + 25 });
+            if (playerNearTop) {
+                // Already up top — just walk directly to Leo
+                waypoints.push({ x: target.x, y: target.y + 25 });
+            } else {
+                // Walk up vertical road, then to Leo
+                waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
+                waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
+                waypoints.push({ x: target.x, y: target.y + 25 });
+            }
         } else if (npcId === 'draco') {
-            // Walk up vertical road, then left along top path to Draco
-            waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
-            waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
-            waypoints.push({ x: target.x, y: ROAD_TOP_Y });
-            waypoints.push({ x: target.x, y: target.y + 25 });
+            if (playerNearTop) {
+                // Already up top — just walk horizontally to Draco
+                waypoints.push({ x: target.x, y: target.y + 25 });
+            } else {
+                // Walk up vertical road, then left to Draco
+                waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
+                waypoints.push({ x: ROAD_X, y: ROAD_TOP_Y });
+                waypoints.push({ x: target.x, y: target.y + 25 });
+            }
         } else if (npcId === 'arena') {
             // Walk up to middle path, then right along it to Arena
             waypoints.push({ x: ROAD_X, y: ROAD_MID_Y });
