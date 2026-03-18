@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
+import { NPC_CONFIGS } from '@/data/npcConfig';
+import { broadcastAISource } from './AIStatusBadge';
 
 // --- LOCATION DATA ---
 interface ExplorationLocation {
@@ -199,6 +201,15 @@ export default function Exploration() {
   const totalBonusDef = companions.reduce((acc, c) => acc + getBondBonus(c.id).def, 0);
   const kanePower = 15 + totalBonusAtk; // base + bond bonus
 
+  // Find highest-bond god to narrate exploration events
+  const guideGod = (() => {
+    const gods = companions.filter(c => c.id !== 'kane');
+    if (gods.length === 0) return null;
+    const best = gods.reduce((a, b) => a.bond >= b.bond ? a : b);
+    const config = NPC_CONFIGS[best.id];
+    return config ? { id: best.id, name: best.name, thaiName: best.name, config } : null;
+  })();
+
   const handleExplore = async (location: ExplorationLocation) => {
     if (choicesLeft <= 0) {
       setDialogue({
@@ -294,24 +305,30 @@ export default function Exploration() {
         }
 
         try {
+          const narrateNpcName = guideGod?.name || 'เลโอ';
           const res = await fetch('/api/narrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'exploration_event',
+              playerName: 'Minju',
+              npcName: narrateNpcName,
+              npcPersonality: guideGod?.config.personality || '',
+              npcSpeechStyle: guideGod?.config.speechStyle || '',
               location: location.name,
               foundItem: `ต่อสู้กับ ${monster.name} ${won ? 'และชนะ' : 'แต่ต้องถอยหนี'}`
             })
           });
           const data = await res.json();
+          if (data.source) broadcastAISource(data.source);
           setDialogue({
-            speaker: 'Minju',
+            speaker: guideGod?.name || 'Minju',
             text: data.narrative || (won ? `เก่งมากเคน! ${monster.name} ไม่ใช่คู่ต่อสู้ของเรา!` : `ระวังนะเคน! ${monster.name} แข็งแกร่งเกินไป!`),
             portrait: won ? 'happy' : 'shock'
           });
         } catch {
           setDialogue({
-            speaker: 'Minju',
+            speaker: guideGod?.name || 'Minju',
             text: won ? `เก่งมากเคน! ชนะ ${monster.name} ได้ ${goldEarned} ทอง!` : `ไม่เป็นไรนะเคน... ไว้กลับมาสู้ใหม่!`,
             portrait: won ? 'happy' : 'shock'
           });
@@ -365,24 +382,30 @@ export default function Exploration() {
         setExploreResult({ type: 'gather', item });
 
         try {
+          const narrateNpcName = guideGod?.name || 'เลโอ';
           const res = await fetch('/api/narrate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'exploration_event',
+              playerName: 'Minju',
+              npcName: narrateNpcName,
+              npcPersonality: guideGod?.config.personality || '',
+              npcSpeechStyle: guideGod?.config.speechStyle || '',
               location: location.name,
               foundItem: item.name
             })
           });
           const data = await res.json();
+          if (data.source) broadcastAISource(data.source);
           setDialogue({
-            speaker: 'Minju',
+            speaker: guideGod?.name || 'Minju',
             text: data.narrative || `เจอ ${item.emoji} ${item.name} ใน${location.name} ด้วยล่ะเคน!`,
             portrait: 'happy'
           });
         } catch {
           setDialogue({
-            speaker: 'Minju',
+            speaker: guideGod?.name || 'Minju',
             text: `เจอ ${item.emoji} ${item.name} ใน${location.name} ด้วยล่ะเคน! เก็บไว้ขายที่ร้านเรานะ`,
             portrait: 'happy'
           });

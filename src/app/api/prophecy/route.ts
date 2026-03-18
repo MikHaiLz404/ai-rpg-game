@@ -175,6 +175,108 @@ async function generateViaOpenRouter(godId: string, gameState: GameState, apiKey
   }
 }
 
+// --- God-to-God Council Dialogue (Sequential) ---
+// Each god sees what previous gods said, creating a conversational flow
+async function generateCouncilDialogue(gameState: GameState, apiKey: string): Promise<{ godId: string; text: string }[]> {
+  const godOrder = ['leo', 'arena', 'draco'];
+  const results: { godId: string; text: string }[] = [];
+  const priorStatements: string[] = [];
+
+  const bondLevel = (id: string) => gameState.bonds[id] || 0;
+  const totalSkills = gameState.skills.length;
+  const urgency = gameState.turnsLeft <= 5 ? 'วิกฤต เหลือเวลาน้อยมาก' : gameState.turnsLeft <= 10 ? 'เร่งด่วน' : 'ยังมีเวลา';
+
+  const gameContext = `สถานะเกม:
+- วัน: ${gameState.day}/20 (${urgency} — เหลือ ${gameState.turnsLeft} วัน)
+- ทอง: ${gameState.gold}
+- Bond: เลโอ=${bondLevel('leo')}, อารีน่า=${bondLevel('arena')}, ดราโก้=${bondLevel('draco')}
+- สกิลของ Kane: ${totalSkills} ชิ้น (${gameState.skills.join(', ') || 'ยังไม่มี'})
+- เป้าหมาย: เอาชนะ Vampire Lord ภายใน 20 วัน`;
+
+  if (!apiKey || apiKey.includes('000000')) {
+    // Fallback: use conversation-style hardcoded fallbacks
+    return generateCouncilFallback(gameState);
+  }
+
+  for (const godId of godOrder) {
+    const god = GOD_PROMPTS[godId];
+    if (!god) continue;
+
+    const councilContext = priorStatements.length > 0
+      ? `\n\n=== คำพูดของเทพองค์ก่อน ===\n${priorStatements.join('\n')}\n\nตอบโต้หรือเสริมความเห็นของเทพองค์ก่อน ตามสไตล์ของคุณ เช่น เห็นด้วย โต้แย้ง หรือเพิ่มมุมมองใหม่`
+      : '';
+
+    const systemPrompt = `คุณคือ ${god.name} (${god.role}) ในสภาแห่งทวยเทพ เกม "Gods' Arena"
+สไตล์: ${god.style}
+
+คุณกำลังประชุมร่วมกับเทพองค์อื่นเพื่อหารือเรื่องสถานการณ์ของ Minju (ผู้เล่น)
+พูด 1-2 ประโยค ตามสไตล์ของคุณ ภาษาไทย อยู่ในบทบาท
+ห้ามพูดว่าตัวเองเป็น AI ห้ามออกนอกเรื่อง`;
+
+    const userPrompt = `${gameContext}${councilContext}
+
+${priorStatements.length === 0 ? 'คุณเป็นคนเริ่มพูดก่อน — เปิดประเด็นเรื่องสถานการณ์ของ Minju' : ''}`;
+
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'http://localhost:3000',
+          'X-Title': 'AI RPG Game - Divine Council',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.0-flash-001',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: 120,
+          temperature: 0.9,
+        }),
+      });
+      if (!response.ok) throw new Error('API failed');
+      const data = await response.json();
+      const text = data.choices?.[0]?.message?.content || getFallback(godId, gameState);
+      results.push({ godId, text });
+      priorStatements.push(`${god.name}: ${text}`);
+    } catch {
+      const text = getFallback(godId, gameState);
+      results.push({ godId, text });
+      priorStatements.push(`${god.name}: ${text}`);
+    }
+  }
+
+  return results;
+}
+
+function generateCouncilFallback(gameState: GameState): { godId: string; text: string }[] {
+  const turnsLeft = gameState.turnsLeft;
+  const totalSkills = (gameState.skills || []).length;
+  const bondLeo = gameState.bonds['leo'] || 0;
+
+  if (turnsLeft <= 5) {
+    return [
+      { godId: 'leo', text: '"เวลาเหลือน้อยแล้ว! เราต้องหยุดถกเถียงและลงมือสู้ได้แล้ว!"' },
+      { godId: 'arena', text: '"เลโอพูดถูก... แต่ความเร่งร้อนก็เป็นศัตรูได้เหมือนกัน — Minju ต้องใช้ทุกสิ่งที่มีอย่างฉลาด"' },
+      { godId: 'draco', text: '"ฮึ่ม... ข้าเห็นด้วยกับทั้งสอง เวลาเหลือน้อย แต่การวางแผนดีหนึ่งครั้ง ดีกว่าการบุกไปตายสิบครั้ง"' },
+    ];
+  } else if (totalSkills < 2) {
+    return [
+      { godId: 'leo', text: '"Kane ยังมีสกิลน้อยเกินไป — ถ้าไม่มีอาวุธที่ดี จะสู้ Vampire Lord ได้ยังไง?"' },
+      { godId: 'arena', text: '"ข้าเห็นด้วย... สายสัมพันธ์ยังไม่แน่นแฟ้นพอ Minju ควรมาหาพวกเราบ่อยกว่านี้"' },
+      { godId: 'draco', text: '"ฮึ่ม... อย่ากังวลมากนัก ยังมีเวลา — แต่ต้องใช้อย่างคุ้มค่า"' },
+    ];
+  } else {
+    return [
+      { godId: 'leo', text: `"${bondLeo >= 5 ? 'Minju เริ่มแข็งแกร่งขึ้น ข้าพอใจ' : 'เจ้ายังมาหาข้าไม่พอ'} — แต่ Vampire Lord ไม่ใช่ศัตรูธรรมดา"` },
+      { godId: 'arena', text: '"ข้าเห็นศักยภาพในตัว Minju... แต่ต้องสะสมพลังให้มากกว่านี้ก่อนจะถึงวันชี้ชะตา"' },
+      { godId: 'draco', text: '"ฮึ่ม... ข้าเคยเห็นนักรบที่เก่งกว่านี้ล้มเหลว เพราะประมาท — Minju อย่าทำผิดพลาดเดียวกัน"' },
+    ];
+  }
+}
+
 export async function POST(request: NextRequest) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
@@ -198,21 +300,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Strategy 2: Fallback to OpenRouter API (parallel prompts)
-    console.log('[Prophecy] Falling back to OpenRouter API');
-    const [leoAdvice, arenaAdvice, dracoAdvice] = await Promise.all([
-      generateViaOpenRouter('leo', gameState, OPENROUTER_API_KEY),
-      generateViaOpenRouter('arena', gameState, OPENROUTER_API_KEY),
-      generateViaOpenRouter('draco', gameState, OPENROUTER_API_KEY),
-    ]);
+    // Strategy 2: Fallback to OpenRouter API — God-to-God Council Dialogue
+    console.log('[Prophecy] Falling back to OpenRouter API (council dialogue)');
+    const councilResults = await generateCouncilDialogue(gameState, OPENROUTER_API_KEY);
 
     return NextResponse.json({
       source: 'openrouter',
-      prophecies: [
-        { godId: 'leo', godName: 'เลโอ', emoji: '⚔️', text: leoAdvice },
-        { godId: 'arena', godName: 'อารีน่า', emoji: '👑', text: arenaAdvice },
-        { godId: 'draco', godName: 'ดราโก้', emoji: '🐉', text: dracoAdvice },
-      ],
+      prophecies: councilResults.map(r => ({
+        godId: r.godId,
+        godName: GOD_PROMPTS[r.godId]?.name || r.godId,
+        emoji: r.godId === 'leo' ? '⚔️' : r.godId === 'arena' ? '👑' : '🐉',
+        text: r.text,
+      })),
     });
   } catch (error) {
     console.error('Prophecy error:', error);

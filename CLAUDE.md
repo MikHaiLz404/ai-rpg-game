@@ -89,6 +89,8 @@ Required in `.env.local`:
 - **Deterministic fallback skills** in `/api/narrate` — 5 unique skills per god (Leo=physical, Arena=magical, Draco=mixed), indexed by bond level.
 - **Fallback coverage**: all 6 narrate actions (`shop_talk`, `talk`, `generate_skill`, `gift`, `exploration_event`, combat) have Thai-language hardcoded fallbacks.
 - **AI status badge** (`AIStatusBadge.tsx`) shows current AI source (OpenClaw/OpenRouter/Offline) in header. Probes `/api/narrate` on mount and listens for `ai-source-update` custom events. `broadcastAISource()` exported for components to update the badge after API calls.
+- **Divine Council** (`ProphecyOverlay.tsx`) — fullscreen council scene with bg_council background. Gods speak sequentially; each sees what previous gods said, creating conversational flow. Prophecy API chains sequential OpenRouter calls, passing prior god statements as context.
+- **Dynamic exploration narration** — exploration events are narrated by the companion god with highest bond, using their personality and speech style from `npcConfig.ts`. The `exploration_event` action in `/api/narrate` supports god-specific prompts.
 
 ## Game Design
 

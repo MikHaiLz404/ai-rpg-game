@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
   try {
-    const { action, playerName, npcName, npcMood, godTheme, level, userMessage, enemyName, damage, wantedItem, offeredGold, npcPersonality, npcSpeechStyle, bondLevel } = await request.json();
+    const { action, playerName, npcName, npcMood, godTheme, level, userMessage, enemyName, damage, wantedItem, offeredGold, npcPersonality, npcSpeechStyle, bondLevel, location, foundItem } = await request.json();
 
     const actionDescriptions: Record<string, string> = {
       attack: 'attacks fiercely',
@@ -138,6 +138,28 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
         systemPrompt = `คุณคือ ${npcName} ในเกม RPG "Gods' Arena" คุณเพิ่งได้รับของขวัญจากผู้เล่น`;
         userPrompt = `ผู้เล่นมอบ "${wantedItem || 'ของบางอย่าง'}" ให้คุณ (Bond Level: ${bondLevel})
 แสดงความขอบคุณหรือปฏิกิริยาตามบุคลิกของคุณ 1 ประโยคสั้นๆ ภาษาไทย`;
+    } else if (action === 'exploration_event') {
+      // Dynamic narration by the companion god with highest bond
+      if (npcPersonality) {
+        systemPrompt = `คุณคือ ${npcName} เทพในเกม RPG "Gods' Arena" กำลังคอยดูแลและให้กำลังใจผู้เล่นระหว่างออกสำรวจ
+
+=== บุคลิกภาพ ===
+${npcPersonality}
+
+=== สไตล์การพูด ===
+${npcSpeechStyle || 'พูดให้เข้ากับบุคลิกของเทพ'}
+
+กฎการตอบ:
+- ตอบสั้นๆ 1-2 ประโยค ตามสไตล์ของคุณ
+- แสดงความเป็นห่วงหรือชื่นชม Kane และ Minju ตามบุคลิก
+- ใช้ภาษาไทย ห้ามออกจากบทบาท`;
+        userPrompt = `Minju และ Kane กำลังสำรวจ ${location || 'พื้นที่ลึกลับ'}: ${foundItem || 'ค้นพบสิ่งน่าสนใจ'}
+บรรยายหรือให้กำลังใจตามสไตล์ของคุณ`;
+      } else {
+        systemPrompt = `คุณเป็นผู้บรรยายการผจญภัยในเกม RPG "Gods' Arena" บรรยายสั้น กระชับ 1-2 ประโยค เป็นภาษาไทย`;
+        userPrompt = `${playerName || 'Minju'} กำลังสำรวจ ${location || 'พื้นที่ลึกลับ'}: ${foundItem || 'ค้นพบสิ่งน่าสนใจ'}
+บรรยายให้ตื่นเต้น`;
+      }
     } else {
       systemPrompt = `คุณเป็นผู้บรรยายการต่อสู้ในเกม RPG "Gods' Arena" บรรยายสั้น กระชับ ดราม่า 1-2 ประโยค เป็นภาษาไทย`;
       userPrompt = `${playerName} ${actionDescriptions[action] || 'ลงมือ'} ใส่ ${enemyName || 'ศัตรูปริศนา'} สร้างดาเมจ ${damage || 0}
