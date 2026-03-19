@@ -55,13 +55,9 @@ export default function GamePage() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[#05070a] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30">
-      <ProphecyOverlay />
-      <DialogueOverlay />
-      <AITerminal />
-
+    <main className="h-screen bg-[#020617] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30 overflow-hidden">
       {/* Header Bar */}
-      <header className="sticky top-0 z-50 h-14 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center px-4 md:px-8 justify-between">
+      <header className="shrink-0 h-14 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center px-4 md:px-8 justify-between z-50">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
             <h1 className="text-sm font-black text-white uppercase tracking-tighter italic leading-none">Gods' Arena</h1>
@@ -92,8 +88,8 @@ export default function GamePage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         
         {/* Game View Container (Center) */}
-        <div className="flex-1 relative flex items-center justify-center p-4 lg:p-8 bg-radial-gradient">
-          <div className="relative aspect-[4/3] w-full max-w-[1024px] shadow-2xl shadow-black/50 rounded-2xl overflow-hidden border border-white/10 bg-black">
+        <div className="flex-1 relative flex items-start justify-center p-2 lg:p-4 bg-[#05070a]">
+          <div className="relative aspect-[4/3] w-full max-w-[1024px] shadow-2xl shadow-black/50 rounded-2xl overflow-hidden border border-white/10 bg-black mt-2">
             <PhaserGame />
             
             {/* Phase Overlay Badge */}
@@ -129,7 +125,7 @@ export default function GamePage() {
         </div>
 
         {/* Sidebar Controls (Right) */}
-        <aside className="w-full lg:w-[400px] border-l border-white/5 bg-[#080a0f] overflow-y-auto p-4 md:p-6 custom-scrollbar">
+        <aside className="w-full lg:w-[400px] shrink-0 border-l border-white/5 bg-[#080a0f] overflow-y-auto p-4 md:p-6 custom-scrollbar">
           <div className="space-y-6">
             {/* Phase Tabs */}
             <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/50 rounded-xl border border-white/5">
@@ -150,6 +146,11 @@ export default function GamePage() {
           </div>
         </aside>
       </div>
+
+      {/* Overlays (Keep at bottom for clean stack) */}
+      <ProphecyOverlay />
+      <DialogueOverlay />
+      <AITerminal />
     </main>
   );
 }
