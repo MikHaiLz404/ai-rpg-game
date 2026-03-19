@@ -233,7 +233,13 @@ export default function Shop() {
           <div className="text-[10px] md:text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2 font-serif">
             <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" /> Sanctum is Closed
           </div>
-          <button onClick={startShift} className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest font-serif">Open Shop</button>
+          <button 
+            onClick={startShift} 
+            disabled={choicesLeft <= 0}
+            className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest font-serif"
+          >
+            {choicesLeft > 0 ? 'Open Shop' : 'แต้มหมดแล้ว'}
+          </button>
         </div>
       )}
       {isShiftActive && (

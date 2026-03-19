@@ -23,7 +23,7 @@ export default function GamePage() {
   const { 
     phase, setPhase, gold, day, choicesLeft, gameOver, gameOverReason,
     vampireDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
-    addExplorationLog
+    addExplorationLog, endDay, isBusy
   } = useGameStore();
   
   const [mounted, setLoading] = useState(false);
@@ -71,6 +71,10 @@ export default function GamePage() {
 
   return (
     <main className="h-screen bg-[#020617] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30 overflow-hidden">
+      {/* Global Overlays */}
+      <ProphecyOverlay />
+      <AITerminal />
+
       {/* Header Bar */}
       <header className="shrink-0 h-14 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center px-4 md:px-8 justify-between z-50">
         <div className="flex items-center gap-6">
@@ -107,6 +111,9 @@ export default function GamePage() {
           <div className="relative aspect-[4/3] w-full max-w-[1024px] shadow-2xl shadow-black/50 rounded-2xl overflow-hidden border border-white/10 bg-black mt-2">
             <PhaserGame />
             
+            {/* Dialogue Overlay (Now inside game frame) */}
+            <DialogueOverlay />
+
             {/* Phase Overlay Badge */}
             <div className="absolute top-4 left-4 pointer-events-none">
               <div className="bg-slate-950/80 backdrop-blur px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
@@ -142,6 +149,20 @@ export default function GamePage() {
         {/* Sidebar Controls (Right) */}
         <aside className="w-full lg:w-[400px] shrink-0 border-l border-white/5 bg-[#080a0f] overflow-y-auto p-4 md:p-6 custom-scrollbar">
           <div className="space-y-6">
+            
+            {/* End Day Button (Appears when 0 actions left) */}
+            {choicesLeft <= 0 && !isBusy && !gameOver && (
+              <div className="animate-in fade-in zoom-in duration-500">
+                <button 
+                  onClick={() => endDay()}
+                  className="w-full py-4 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black rounded-2xl shadow-xl shadow-amber-900/20 uppercase tracking-[0.2em] transition-all active:scale-95 border-2 border-white/10"
+                >
+                  💤 สิ้นสุดวัน (พักผ่อน)
+                </button>
+                <p className="text-[10px] text-center text-slate-500 mt-2 font-bold uppercase tracking-widest">คุณใช้แต้มการกระทำหมดแล้ว</p>
+              </div>
+            )}
+
             {/* Phase Tabs */}
             <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/50 rounded-xl border border-white/5">
               <TabButton label="Shop" active={phase === 'shop'} onClick={() => setPhase('shop')} />
