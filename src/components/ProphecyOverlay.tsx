@@ -10,6 +10,8 @@ interface Prophecy {
   emoji: string;
   text: string;
   agentName?: string;
+  usage?: any;
+  prompt?: string;
 }
 
 interface DailyEvent {
@@ -20,7 +22,7 @@ interface DailyEvent {
 }
 
 export default function ProphecyOverlay() {
-  const { day, gold, companions, showProphecy, setShowProphecy, addGold, addItem, addIP, addBond, setLastDailyEvent } = useGameStore();
+  const { day, gold, companions, showProphecy, setShowProphecy, addGold, addItem, addIP, addBond, setLastDailyEvent, addAILog } = useGameStore();
   const [prophecies, setProphecies] = useState<Prophecy[]>([]);
   const [dailyEvent, setDailyEvent] = useState<DailyEvent | null>(null);
   const [eventApplied, setEventApplied] = useState(false);
@@ -61,12 +63,36 @@ export default function ProphecyOverlay() {
         setSource(data.source || '');
         broadcastAISource(data.source || 'fallback');
 
-        // Store daily event
-        if (data.dailyEvent) {
-          setDailyEvent(data.dailyEvent);
+        // Log each god's prophecy
+        if (data.prophecies) {
+          data.prophecies.forEach((p: Prophecy) => {
+            addAILog({
+              action: `prophecy_${p.godId}`,
+              model: data.source === 'openrouter' ? 'google/gemini-2.0-flash-001' : (p.agentName ? `Agent: ${p.agentName}` : 'Fallback'),
+              source: data.source,
+              prompt: p.prompt || 'Sequential context',
+              response: p.text,
+              tokensInput: p.usage?.prompt_tokens || 0,
+              tokensOutput: p.usage?.completion_tokens || 0
+            });
+          });
         }
 
-        // Reveal prophecies one by one, then daily event
+        // Store and log daily event
+        if (data.dailyEvent) {
+          setDailyEvent(data.dailyEvent);
+          addAILog({
+            action: 'daily_event',
+            model: 'google/gemini-2.0-flash-001',
+            source: data.source === 'fallback' ? 'fallback' : 'openrouter',
+            prompt: data.eventPrompt || '',
+            response: JSON.stringify(data.dailyEvent),
+            tokensInput: data.eventUsage?.prompt_tokens || 0,
+            tokensOutput: data.eventUsage?.completion_tokens || 0
+          });
+        }
+
+        // Reveal prophecies one by one
         const totalItems = (data.prophecies?.length || 3) + (data.dailyEvent ? 1 : 0);
         let i = 0;
         const interval = setInterval(() => {
@@ -95,40 +121,25 @@ export default function ProphecyOverlay() {
 
   if (!showProphecy) return null;
 
-  // Urgency-based styling
   const urgencyGlow = urgency === 'critical' ? 'shadow-red-500/30' : urgency === 'warning' ? 'shadow-orange-500/20' : 'shadow-amber-500/10';
   const titleColor = urgency === 'critical' ? 'text-red-400' : urgency === 'warning' ? 'text-orange-400' : 'text-amber-400';
   const subtitleColor = urgency === 'critical' ? 'text-red-500/60' : urgency === 'warning' ? 'text-orange-500/50' : 'text-amber-500/40';
-
-  // Source badge color
   const sourceColor = source === 'openclaw' ? 'text-emerald-400' : source === 'openrouter' ? 'text-sky-400' : 'text-slate-500';
 
   return (
     <div className="fixed inset-0 z-[150] bg-black/90 flex items-center justify-center backdrop-blur-sm">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-30"
-        style={{ backgroundImage: 'url(/images/backgrounds/council/bg_council.png)' }}
-      />
-      {/* Dark gradient overlay for readability */}
+      <div className="absolute inset-0 bg-cover bg-center opacity-30" style={{ backgroundImage: 'url(/images/backgrounds/council/bg_council.png)' }} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/60" />
-
-      {/* Council Content */}
       <div className={`relative z-10 max-w-2xl w-full mx-4 flex flex-col items-center`}>
-        {/* Council Title */}
         <div className="text-center mb-6">
           <div className={`text-[10px] md:text-xs ${subtitleColor} font-bold uppercase tracking-[0.4em] mb-2 ${urgency === 'critical' ? 'animate-pulse' : ''}`}>
             {urgency === 'critical' ? 'สภาฉุกเฉิน' : 'สภาแห่งทวยเทพ'}
           </div>
-          <h2 className={`text-2xl md:text-3xl font-black ${titleColor} uppercase tracking-widest`}>
-            Divine Council
-          </h2>
+          <h2 className={`text-2xl md:text-3xl font-black ${titleColor} uppercase tracking-widest`}>Divine Council</h2>
           <div className={`text-xs md:text-sm ${subtitleColor} font-bold mt-2 tracking-wider`}>
             วันที่ {day} / {MAX_TURNS} — เหลือเวลาอีก {turnsLeft} วัน
           </div>
         </div>
-
-        {/* God Portraits Row */}
         <div className="flex justify-center gap-4 md:gap-8 mb-6">
           {['leo', 'arena', 'draco'].map((godId, i) => {
             const config = NPC_CONFIGS[godId];
@@ -137,44 +148,16 @@ export default function ProphecyOverlay() {
             const isSpeaking = i === revealed - 1 && revealed <= prophecies.length;
             return (
               <div key={godId} className="flex flex-col items-center">
-                <div className={`w-14 h-14 md:w-18 md:h-18 rounded-full border-2 overflow-hidden transition-all duration-700 ${
-                  isRevealed
-                    ? isSpeaking
-                      ? 'border-amber-400 shadow-lg shadow-amber-400/40 scale-110'
-                      : 'border-amber-500/50 opacity-80'
-                    : 'border-slate-700 opacity-30 grayscale'
-                }`}>
-                  {config?.facial ? (
-                    <img src={config.facial} alt={prophecy?.godName || godId} className="w-full h-full object-cover image-pixelated" />
-                  ) : (
-                    <div className="w-full h-full bg-slate-800 flex items-center justify-center text-2xl">
-                      {prophecy?.emoji || '?'}
-                    </div>
-                  )}
+                <div className={`w-14 h-14 md:w-18 md:h-18 rounded-full border-2 overflow-hidden transition-all duration-700 ${isRevealed ? isSpeaking ? 'border-amber-400 shadow-lg shadow-amber-400/40 scale-110' : 'border-amber-500/50 opacity-80' : 'border-slate-700 opacity-30 grayscale'}`}>
+                  {config?.facial ? <img src={config.facial} alt={prophecy?.godName || godId} className="w-full h-full object-cover image-pixelated" /> : <div className="w-full h-full bg-slate-800 flex items-center justify-center text-2xl">{prophecy?.emoji || '?'}</div>}
                 </div>
-                <div className={`text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 transition-all duration-500 ${
-                  isRevealed ? 'text-amber-500/80' : 'text-slate-600'
-                }`}>
-                  {prophecy?.godName || godId}
-                </div>
+                <div className={`text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 transition-all duration-500 ${isRevealed ? 'text-amber-500/80' : 'text-slate-600'}`}>{prophecy?.godName || godId}</div>
               </div>
             );
           })}
         </div>
-
-        {/* Dialogue Panel */}
         <div className={`w-full bg-slate-950/80 backdrop-blur-md border border-amber-500/20 rounded-2xl shadow-2xl ${urgencyGlow} overflow-hidden`}>
-          {/* Loading State */}
-          {loading && prophecies.length === 0 && (
-            <div className="text-center py-12 px-6">
-              <div className="text-4xl mb-4 animate-pulse">🔮</div>
-              <div className="text-amber-500/70 text-xs md:text-sm font-black uppercase tracking-[0.3em] animate-pulse">
-                เหล่าเทพกำลังร่วมประชุมกัน...
-              </div>
-            </div>
-          )}
-
-          {/* Council Dialogue */}
+          {loading && prophecies.length === 0 && <div className="text-center py-12 px-6"><div className="text-4xl mb-4 animate-pulse">🔮</div><div className="text-amber-500/70 text-xs md:text-sm font-black uppercase tracking-[0.3em] animate-pulse">เหล่าเทพกำลังร่วมประชุมกัน...</div></div>}
           {prophecies.length > 0 && (
             <div className="p-5 md:p-6 space-y-4">
               {prophecies.map((p, i) => {
@@ -182,54 +165,23 @@ export default function ProphecyOverlay() {
                 const isRevealed = i < revealed;
                 const isSpeaking = i === revealed - 1;
                 return (
-                  <div
-                    key={p.godId}
-                    className={`transition-all duration-700 ${
-                      isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 h-0 overflow-hidden'
-                    }`}
-                  >
+                  <div key={p.godId} className={`transition-all duration-700 ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 h-0 overflow-hidden'}`}>
                     <div className={`flex gap-3 items-start ${isSpeaking ? '' : 'opacity-75'}`}>
-                      {/* Mini portrait */}
-                      <div className={`w-9 h-9 rounded-lg flex-shrink-0 overflow-hidden border transition-all duration-500 ${
-                        isSpeaking ? 'border-amber-400/60' : 'border-slate-700/50'
-                      }`}>
-                        {config?.facial ? (
-                          <img src={config.facial} alt={p.godName} className="w-full h-full object-cover image-pixelated" />
-                        ) : (
-                          <div className="w-full h-full bg-slate-800 flex items-center justify-center text-sm">{p.emoji}</div>
-                        )}
+                      <div className={`w-9 h-9 rounded-lg flex-shrink-0 overflow-hidden border transition-all duration-500 ${isSpeaking ? 'border-amber-400/60' : 'border-slate-700/50'}`}>
+                        {config?.facial ? <img src={config.facial} alt={p.godName} className="w-full h-full object-cover image-pixelated" /> : <div className="w-full h-full bg-slate-800 flex items-center justify-center text-sm">{p.emoji}</div>}
                       </div>
-
-                      {/* Speech bubble */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-[10px] md:text-xs font-black text-amber-500/80 uppercase tracking-widest">{p.godName}</span>
-                          {i === 0 && (
-                            <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">เริ่มประเด็น</span>
-                          )}
-                          {i > 0 && (
-                            <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">ตอบโต้</span>
-                          )}
+                          {i === 0 ? <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">เริ่มประเด็น</span> : <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">ตอบโต้</span>}
                         </div>
-                        <div className={`text-sm leading-relaxed rounded-xl px-3 py-2 ${
-                          isSpeaking
-                            ? 'bg-amber-500/10 text-slate-100 border border-amber-500/15'
-                            : 'text-slate-300'
-                        }`}>
-                          <span className="italic">{p.text}</span>
-                        </div>
-                        {source === 'openclaw' && p.agentName && (
-                          <div className="text-[9px] md:text-[11px] text-cyan-400/50 mt-1 font-mono ml-3">
-                            via agent: {p.agentName}
-                          </div>
-                        )}
+                        <div className={`text-sm leading-relaxed rounded-xl px-3 py-2 ${isSpeaking ? 'bg-amber-500/10 text-slate-100 border border-amber-500/15' : 'text-slate-300'}`}><span className="italic">{p.text}</span></div>
+                        {source === 'openclaw' && p.agentName && <div className="text-[9px] md:text-[11px] text-cyan-400/50 mt-1 font-mono ml-3">via agent: {p.agentName}</div>}
                       </div>
                     </div>
                   </div>
                 );
               })}
-
-              {/* Daily Event — shown after all prophecies */}
               {dailyEvent && revealed > prophecies.length && (
                 <DailyEventCard
                   event={dailyEvent}
@@ -243,7 +195,7 @@ export default function ProphecyOverlay() {
                       case 'ip': addIP(effect.value); break;
                       case 'item': if (effect.target) addItem(effect.target); break;
                       case 'bond': if (effect.target) addBond(effect.target, effect.value); break;
-                      case 'discount': addGold(effect.value); break; // Simplified: discount = bonus gold
+                      case 'discount': addGold(effect.value); break;
                     }
                     setLastDailyEvent(`${dailyEvent.emoji} ${dailyEvent.title}`);
                   }}
@@ -251,27 +203,15 @@ export default function ProphecyOverlay() {
               )}
             </div>
           )}
-
-          {/* Footer */}
           <div className="px-5 md:px-6 pb-5 md:pb-6 pt-2">
             <div className="flex items-center justify-between mb-3">
-              <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${sourceColor}`}>
-                AI: {source || '...'}
-              </span>
-              {urgency !== 'calm' && (
-                <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${urgency === 'critical' ? 'text-red-400 animate-pulse' : 'text-orange-400'}`}>
-                  {urgency === 'critical' ? 'เวลาใกล้หมด!' : 'เวลาจำกัด'}
-                </span>
-              )}
+              <span className={`text-[8px] md:text-[10px] font-bold uppercase tracking-widest ${sourceColor}`}>AI: {source || '...'}</span>
+              {urgency !== 'calm' && <span className={`text-[8px] md:text-[10px] font-black uppercase tracking-widest ${urgency === 'critical' ? 'text-red-400 animate-pulse' : 'text-orange-400'}`}>{urgency === 'critical' ? 'เวลาใกล้หมด!' : 'เวลาจำกัด'}</span>}
             </div>
             <button
               onClick={() => setShowProphecy(false)}
               disabled={(loading && prophecies.length === 0) || (dailyEvent && !eventApplied && revealed > prophecies.length)}
-              className={`w-full py-3 font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95 disabled:opacity-50 ${
-                urgency === 'critical'
-                  ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20'
-                  : 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20'
-              }`}
+              className={`w-full py-3 font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95 disabled:opacity-50 ${urgency === 'critical' ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20' : 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20'}`}
             >
               {revealed > prophecies.length && (!dailyEvent || eventApplied) ? `เริ่มวันที่ ${day}` : 'กำลังรับฟัง...'}
             </button>
@@ -306,11 +246,7 @@ function DailyEventCard({ event, applied, onApply }: { event: DailyEvent; applie
         <button
           onClick={onApply}
           disabled={applied}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${
-            applied
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-              : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'
-          }`}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${applied ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'}`}
         >
           {applied ? `${effectLabel} ✓` : effectLabel}
         </button>

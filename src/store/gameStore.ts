@@ -43,6 +43,18 @@ interface Dialogue {
   portrait?: string;
 }
 
+export interface AILog {
+  id: string;
+  timestamp: number;
+  action: string;
+  model: string;
+  source: 'openclaw' | 'openrouter' | 'fallback' | 'error';
+  prompt: string;
+  response: string;
+  tokensInput: number;
+  tokensOutput: number;
+}
+
 interface GameStore {
   phase: GamePhase;
   setPhase: (phase: GamePhase) => void;
@@ -94,6 +106,15 @@ interface GameStore {
 
   explorationLog: string[];
   addExplorationLog: (entries: string[]) => void;
+
+  // AI Debugging & Logs
+  aiLogs: AILog[];
+  addAILog: (log: Omit<AILog, 'id' | 'timestamp'>) => void;
+  clearAILogs: () => void;
+  totalTokensInput: number;
+  totalTokensOutput: number;
+  showAITerminal: boolean;
+  setShowAITerminal: (show: boolean) => void;
 
   loadSaveData: (data: any) => void;
   resetGame: () => void;
@@ -256,6 +277,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     explorationLog: [...entries, ...state.explorationLog].slice(0, 20)
   })),
 
+  // AI Logs Implementation
+  aiLogs: [],
+  addAILog: (log) => set((state) => {
+    const newLog: AILog = {
+      ...log,
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
+    return {
+      aiLogs: [newLog, ...state.aiLogs].slice(0, 50),
+      totalTokensInput: state.totalTokensInput + (log.tokensInput || 0),
+      totalTokensOutput: state.totalTokensOutput + (log.tokensOutput || 0),
+    };
+  }),
+  clearAILogs: () => set({ aiLogs: [], totalTokensInput: 0, totalTokensOutput: 0 }),
+  totalTokensInput: 0,
+  totalTokensOutput: 0,
+  showAITerminal: false,
+  setShowAITerminal: (show) => set({ showAITerminal: show }),
+
   resetGame: () => set({
     gold: 500,
     player: { gold: 500, hp: 100, maxHp: 100 },
@@ -277,6 +318,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     showProphecy: false,
     restockCostMultiplier: 1.0,
     explorationLog: [],
+    aiLogs: [],
+    totalTokensInput: 0,
+    totalTokensOutput: 0,
+    showAITerminal: false,
   }),
 
   loadSaveData: (data) => {

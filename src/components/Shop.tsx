@@ -52,19 +52,13 @@ function ItemIcon({ item, size = 'md' }: { item: typeof ITEMS[number], size?: 's
   return <span className={size === 'sm' ? 'text-base' : 'text-xl'}>{item.emoji}</span>;
 }
 
-// Pick a weighted random item based on game day
 function pickWeightedItem(day: number, isGod: boolean): typeof ITEMS[number] {
   const weights = ITEMS.map(item => {
     const tier = item.price <= 50 ? 'common' : item.price <= 150 ? 'uncommon' : 'rare';
     let w: number;
-    if (day <= 7) {
-      w = tier === 'common' ? 60 : tier === 'uncommon' ? 30 : 10;
-    } else if (day <= 14) {
-      w = tier === 'common' ? 30 : tier === 'uncommon' ? 40 : 30;
-    } else {
-      w = tier === 'common' ? 10 : tier === 'uncommon' ? 30 : 60;
-    }
-    // Gods prefer uncommon/rare
+    if (day <= 7) w = tier === 'common' ? 60 : tier === 'uncommon' ? 30 : 10;
+    else if (day <= 14) w = tier === 'common' ? 30 : tier === 'uncommon' ? 40 : 30;
+    else w = tier === 'common' ? 10 : tier === 'uncommon' ? 30 : 60;
     if (isGod && tier === 'common') w *= 0.5;
     if (isGod && tier === 'rare') w *= 1.5;
     return w;
@@ -78,15 +72,9 @@ function pickWeightedItem(day: number, isGod: boolean): typeof ITEMS[number] {
   return ITEMS[ITEMS.length - 1];
 }
 
-// Calculate offered gold based on customer type and day
 function calcOfferedGold(price: number, day: number, isGod: boolean): number {
   let min: number, max: number;
-  if (isGod) {
-    min = 1.0; max = 1.5;
-  } else {
-    min = 0.6; max = 1.0;
-  }
-  // Late game: everyone pays more (desperation)
+  if (isGod) { min = 1.0; max = 1.5; } else { min = 0.6; max = 1.0; }
   if (day >= 15) { min += 0.2; max += 0.3; }
   return Math.floor(price * (min + Math.random() * (max - min)));
 }
@@ -96,20 +84,18 @@ export default function Shop() {
     gold, addGold, spendGold, addItem, items, removeItem,
     currentCustomer, setCustomer, companions, addBond,
     day, choicesLeft, customersServed, isShiftActive, startShift, endShift, incrementServed,
-    setDialogue, restockCostMultiplier
+    setDialogue, restockCostMultiplier, addAILog
   } = useGameStore();
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [incomingProgress, setIncomingProgress] = useState(0);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Dynamic Shift Target: Day 1-4: 3, Day 5-8: 4, Day 9-12: 5, Day 13-16: 6, Day 17-20: 7
   const shiftTarget = Math.min(7, 3 + Math.floor((day - 1) / 4));
 
   useEffect(() => {
     const onArrival = async (npc: { id: string, name: string }) => {
       if (!isShiftActive) return;
-      
       setIsGenerating(true);
       setIncomingProgress(0);
       if (progressInterval.current) clearInterval(progressInterval.current);
@@ -132,6 +118,17 @@ export default function Shop() {
           })
         });
         const data = await res.json();
+        
+        addAILog({
+          action: 'shop_talk',
+          model: data.model || 'AI Model',
+          source: data.source || 'unknown',
+          prompt: data.prompt || '',
+          response: data.narrative || '',
+          tokensInput: data.usage?.prompt_tokens || 0,
+          tokensOutput: data.usage?.completion_tokens || 0
+        });
+
         setCustomer({
           id: npc.id,
           name: npc.name,
@@ -156,94 +153,58 @@ export default function Shop() {
 
     const onIncoming = ({ delay }: { delay: number }) => {
       if (!isShiftActive || currentCustomer || isGenerating) return;
-      
       setIncomingProgress(0);
       if (progressInterval.current) clearInterval(progressInterval.current);
-      
       const startTime = Date.now();
       progressInterval.current = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(100, (elapsed / delay) * 100);
         setIncomingProgress(progress);
-        if (progress >= 100 && progressInterval.current) {
-          clearInterval(progressInterval.current);
-        }
+        if (progress >= 100 && progressInterval.current) clearInterval(progressInterval.current);
       }, 50);
     };
 
     EventBus.on('customer-arrival', onArrival);
     EventBus.on('customer-incoming', onIncoming);
-    
     return () => {
       EventBus.off('customer-arrival', onArrival);
       EventBus.off('customer-incoming', onIncoming);
       if (progressInterval.current) clearInterval(progressInterval.current);
     };
-  }, [setCustomer, companions, isShiftActive, currentCustomer, isGenerating, day]);
+  }, [setCustomer, companions, isShiftActive, currentCustomer, isGenerating, day, addAILog]);
 
   const handleSell = () => {
     if (!currentCustomer) return;
     if (items.includes(currentCustomer.wantedItemId)) {
       removeItem(currentCustomer.wantedItemId);
       addGold(currentCustomer.offeredGold);
-      
-      let bondGain = 0;
       if (currentCustomer.isGod) {
         const companion = companions.find(c => c.name === currentCustomer.name);
-        if (companion) {
-          addBond(companion.id, 2);
-          bondGain = 2;
-        }
+        if (companion) addBond(companion.id, 2);
       }
-      
-      // Minju is happy with the sale
       setDialogue({
         speaker: 'Minju',
         text: `ขายได้แล้ว! ได้ ${currentCustomer.offeredGold} ทองมาเพิ่ม ขอบคุณที่อุดหนุนนะคะ~`,
         portrait: 'happy'
       });
-
       incrementServed();
       setCustomer(null);
       EventBus.emit('clear-customer');
-
-      // Check if shift is done
       if (customersServed + 1 >= shiftTarget) {
         setTimeout(() => {
           endShift();
-          setDialogue({
-            speaker: 'Minju',
-            text: `เฮ้อ! เป็นวันที่วุ่นวายจริงๆ ได้เวลาปิดร้านแล้วมานับเงินกันเถอะค่ะ`,
-            portrait: 'work'
-          });
+          setDialogue({ speaker: 'Minju', text: `เฮ้อ! เป็นวันที่วุ่นวายจริงๆ ได้เวลาปิดร้านแล้วมานับเงินกันเถอะค่ะ`, portrait: 'work' });
         }, 2000);
       }
     } else {
-      // Don't have the item
-      setDialogue({
-        speaker: 'Minju',
-        text: `แย่แล้ว! ของชิ้นนั้นหมดสต็อกพอดีเลยค่ะ ขอโทษด้วยนะคะ!`,
-        portrait: 'shock'
-      });
+      setDialogue({ speaker: 'Minju', text: `แย่แล้ว! ของชิ้นนั้นหมดสต็อกพอดีเลยค่ะ ขอโทษด้วยนะคะ!`, portrait: 'shock' });
     }
   };
 
   const handleDecline = () => {
-    setDialogue({
-      speaker: 'Minju',
-      text: `ขอโทษด้วยนะคะ แต่ฉันรับข้อเสนอนี้ไม่ได้จริงๆ ไว้โอกาสหน้านะคะ!`,
-      portrait: 'angry'
-    });
-
-    incrementServed();
-    setCustomer(null);
-    EventBus.emit('clear-customer');
-    
-    if (customersServed + 1 >= shiftTarget) {
-      setTimeout(() => {
-        endShift();
-      }, 2000);
-    }
+    setDialogue({ speaker: 'Minju', text: `ขอโทษด้วยนะคะ แต่ฉันรับข้อเสนอนี้ไม่ได้จริงๆ ไว้โอกาสหน้านะคะ!`, portrait: 'angry' });
+    incrementServed(); setCustomer(null); EventBus.emit('clear-customer');
+    if (customersServed + 1 >= shiftTarget) setTimeout(() => endShift(), 2000);
   };
 
   const getWholesalePrice = (item: typeof ITEMS[0]) => Math.floor(item.price * 0.6 * restockCostMultiplier);
@@ -253,158 +214,67 @@ export default function Shop() {
     if (gold >= wholesalePrice) {
       if (spendGold(wholesalePrice)) {
         addItem(item.id);
-        setDialogue({
-          speaker: 'Minju',
-          text: `เติมของ ${item.name} เรียบร้อย! ชั้นวางดูดีขึ้นเยอะเลยค่ะ`,
-          portrait: 'work'
-        });
+        setDialogue({ speaker: 'Minju', text: `เติมของ ${item.name} เรียบร้อย! ชั้นวางดูดีขึ้นเยอะเลยค่ะ`, portrait: 'work' });
       }
     } else {
-      setDialogue({
-        speaker: 'Minju',
-        text: `ทองไม่พอค่ะ! เราต้องมีอย่างน้อย ${wholesalePrice} ทองนะคะ`,
-        portrait: 'shock'
-      });
+      setDialogue({ speaker: 'Minju', text: `ทองไม่พอค่ะ! เราต้องมีอย่างน้อย ${wholesalePrice} ทองนะคะ`, portrait: 'shock' });
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Open Shop Button */}
       {!isShiftActive && (
         <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl text-center space-y-3">
           <div className="text-[10px] md:text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2">
-            <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" />
-            Sanctum is Closed
+            <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" /> Sanctum is Closed
           </div>
-          <button
-            onClick={startShift}
-            className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest"
-          >
-            Open Shop
-          </button>
+          <button onClick={startShift} className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest">Open Shop</button>
         </div>
       )}
-
-      {/* Progress & Stats */}
       {isShiftActive && (
         <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 shadow-xl flex items-center justify-between gap-4">
            <div className="flex-1">
              <div className="flex justify-between items-center mb-1.5">
-               <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                 {currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Waiting for Customer'}
-               </span>
-               <span className="text-[10px] md:text-xs font-bold text-amber-500">
-                 {customersServed} / {shiftTarget} Served
-               </span>
+               <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">{currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Waiting for Customer'}</span>
+               <span className="text-[10px] md:text-xs font-bold text-amber-500">{customersServed} / {shiftTarget} Served</span>
              </div>
              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-               <div 
-                 className={`h-full transition-all duration-300 rounded-full ${currentCustomer ? 'bg-amber-500 w-full' : isGenerating ? 'bg-blue-500 w-1/2 animate-pulse' : 'bg-amber-500/40'}`}
-                 style={{ width: !currentCustomer && !isGenerating ? `${incomingProgress}%` : undefined }}
-               />
+               <div className={`h-full transition-all duration-300 rounded-full ${currentCustomer ? 'bg-amber-500 w-full' : isGenerating ? 'bg-blue-500 w-1/2 animate-pulse' : 'bg-amber-500/40'}`} style={{ width: !currentCustomer && !isGenerating ? `${incomingProgress}%` : undefined }} />
              </div>
            </div>
         </div>
       )}
-
-      {/* Customer Interaction */}
       {currentCustomer && isShiftActive && (
         <div className="bg-slate-900/95 p-6 rounded-2xl border-2 border-amber-500/30 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-2xl border border-amber-500/20 shadow-inner">
-              {currentCustomer.isGod ? '✨' : '👤'}
-            </div>
+            <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-2xl border border-amber-500/20 shadow-inner">{currentCustomer.isGod ? '✨' : '👤'}</div>
             <div>
               <div className="font-black text-white uppercase tracking-tight">{currentCustomer.name}</div>
               <div className="text-[10px] md:text-xs text-amber-500/70 font-bold uppercase">{currentCustomer.isGod ? 'Divine Entity' : 'Mortal Soul'}</div>
             </div>
           </div>
-          <p className="text-slate-200 italic text-sm leading-relaxed mb-4 border-l-4 border-amber-500/50 pl-4 py-1">
-            "{currentCustomer.request}"
-          </p>
+          <p className="text-slate-200 italic text-sm leading-relaxed mb-4 border-l-4 border-amber-500/50 pl-4 py-1">"{currentCustomer.request}"</p>
           <div className="flex justify-between items-center bg-black/30 p-3 rounded-xl border border-white/5 mb-4">
             <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Request</div>
-            <div className="flex items-center gap-2">
-              {(() => { const found = ITEMS.find(i => i.id === currentCustomer.wantedItemId); return found ? <><ItemIcon item={found} /><span className="font-bold text-slate-200">{found.name}</span></> : null; })()}
-            </div>
+            <div className="flex items-center gap-2">{(() => { const found = ITEMS.find(i => i.id === currentCustomer.wantedItemId); return found ? <><ItemIcon item={found} /><span className="font-bold text-slate-200">{found.name}</span></> : null; })()}</div>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={handleSell}
-              disabled={!items.includes(currentCustomer.wantedItemId)}
-              className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm
-                ${items.includes(currentCustomer.wantedItemId) 
-                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' 
-                  : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}
-              `}
-            >
-              Sell ({currentCustomer.offeredGold}💰)
-            </button>
-            <button
-              onClick={handleDecline}
-              className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest"
-            >
-              Decline
-            </button>
+            <button onClick={handleSell} disabled={!items.includes(currentCustomer.wantedItemId)} className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm ${items.includes(currentCustomer.wantedItemId) ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>Sell ({currentCustomer.offeredGold}💰)</button>
+            <button onClick={handleDecline} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest">Decline</button>
           </div>
         </div>
       )}
-
-      {/* Inventory Section (E) */}
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center">
-          <span>Inventory</span>
-          <span className="text-amber-500/50 font-bold">{items.length} Units</span>
-        </h3>
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center"><span>Inventory</span><span className="text-amber-500/50 font-bold">{items.length} Units</span></h3>
         <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map(itemType => {
-            const count = items.filter(id => id === itemType.id).length;
-            if (count === 0) return null;
-            return (
-              <div key={itemType.id} className="bg-slate-800/50 px-3 py-2 rounded-lg border border-white/5 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <ItemIcon item={itemType} size="sm" />
-                  <span className="text-[10px] md:text-xs font-bold text-slate-200 uppercase">{itemType.name}</span>
-                  <span className="text-[9px] md:text-[11px] font-bold text-slate-500">(x{count})</span>
-                </div>
-                <span className="text-[9px] md:text-[11px] font-bold text-amber-500">{itemType.price}</span>
-              </div>
-            );
-          })}
+          {ITEMS.map(itemType => { const count = items.filter(id => id === itemType.id).length; if (count === 0) return null; return ( <div key={itemType.id} className="bg-slate-800/50 px-3 py-2 rounded-lg border border-white/5 flex items-center justify-between"><div className="flex items-center gap-2.5"><ItemIcon item={itemType} size="sm" /><span className="text-[10px] md:text-xs font-bold text-slate-200 uppercase">{itemType.name}</span><span className="text-[9px] md:text-[11px] font-bold text-slate-500">(x{count})</span></div><span className="text-[9px] md:text-[11px] font-bold text-amber-500">{itemType.price}</span></div> ); })}
           {items.length === 0 && <div className="py-4 text-center text-[10px] md:text-xs text-slate-600 italic">Inventory is empty. Use Restock below.</div>}
         </div>
       </div>
-
-      {/* Stockroom & Restock Section (F) */}
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">
-          Stockroom & Restock
-        </h3>
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Stockroom & Restock</h3>
         <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map((item) => {
-            const count = items.filter(id => id === item.id).length;
-            const wholesale = getWholesalePrice(item);
-            const isExpensive = restockCostMultiplier > 1.2;
-            return (
-              <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <ItemIcon item={item} size="sm" />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div>
-                    <div className="text-[8px] md:text-[10px] text-slate-500">(x{count})</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleRestock(item)}
-                  disabled={gold < wholesale}
-                  className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600"
-                >
-                  {wholesale}💰 {isExpensive && <span className="text-red-400">↑</span>}
-                </button>
-              </div>
-            );
-          })}
+          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2; return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600">{wholesale}💰 {isExpensive && <span className="text-red-400">↑</span>}</button></div> ); })}
         </div>
       </div>
     </div>
