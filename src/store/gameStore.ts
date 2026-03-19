@@ -115,6 +115,8 @@ interface GameStore {
   totalTokensOutput: number;
   showAITerminal: boolean;
   setShowAITerminal: (show: boolean) => void;
+  hasNewLog: boolean;
+  setHasNewLog: (hasNew: boolean) => void;
 
   loadSaveData: (data: any) => void;
   resetGame: () => void;
@@ -289,13 +291,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
       aiLogs: [newLog, ...state.aiLogs].slice(0, 50),
       totalTokensInput: state.totalTokensInput + (log.tokensInput || 0),
       totalTokensOutput: state.totalTokensOutput + (log.tokensOutput || 0),
+      hasNewLog: !state.showAITerminal, // Only alert if terminal is hidden
     };
   }),
-  clearAILogs: () => set({ aiLogs: [], totalTokensInput: 0, totalTokensOutput: 0 }),
+  clearAILogs: () => set({ aiLogs: [], totalTokensInput: 0, totalTokensOutput: 0, hasNewLog: false }),
   totalTokensInput: 0,
   totalTokensOutput: 0,
   showAITerminal: false,
-  setShowAITerminal: (show) => set({ showAITerminal: show }),
+  setShowAITerminal: (show) => set({ showAITerminal: show, hasNewLog: false }),
+  hasNewLog: false,
+  setHasNewLog: (hasNewLog) => set({ hasNewLog }),
 
   resetGame: () => set({
     gold: 500,
@@ -322,6 +327,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     totalTokensInput: 0,
     totalTokensOutput: 0,
     showAITerminal: false,
+    hasNewLog: false,
   }),
 
   loadSaveData: (data) => {
