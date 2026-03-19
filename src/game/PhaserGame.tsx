@@ -29,6 +29,8 @@ export default function PhaserGame() {
       scale: {
         mode: Phaser.Scale.FIT,
         autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: 384,
+        height: 288,
       },
       scene: [MainScene],
     };
@@ -53,11 +55,9 @@ export default function PhaserGame() {
   }, []);
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <div
-        id="phaser-game-container"
-        className="w-full max-w-[442px] md:max-w-none aspect-[4/3] border-4 border-amber-500/50 rounded-xl overflow-hidden shadow-2xl shadow-amber-500/10 bg-slate-900"
-      />
-    </div>
+    <div 
+      id="phaser-game-container" 
+      className="w-full h-full"
+    />
   );
 }
