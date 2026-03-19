@@ -52,6 +52,21 @@ export default function GamePage() {
     };
   }, []);
 
+  // Sync Phase -> Phaser Room
+  useEffect(() => {
+    if (!mounted) return;
+    const phaseToRoom: Record<string, string> = {
+      shop: 'shop',
+      arena: 'arena',
+      exploration: 'cave_entrance',
+      relationship: 'village'
+    };
+    const targetRoom = phaseToRoom[phase];
+    if (targetRoom) {
+      EventBus.emit('change-room', targetRoom);
+    }
+  }, [phase, mounted]);
+
   if (!mounted) return null;
 
   return (
