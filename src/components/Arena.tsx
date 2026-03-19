@@ -2,381 +2,256 @@
 import { useState, useEffect } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
+import { GoldIcon, HPIcon, SwordIcon, ShieldIcon, IPIcon, SparklesIcon } from './Icons';
 
 const BASE_ENEMIES = [
-  { id: 'slime', name: 'Slime', emoji: '🦠', hp: 30, atk: 5, reward: 20, image: '/images/enemies/slime/idle/enemies-slime1_idle.png', frames: 3 },
-  { id: 'skeleton', name: 'Skeleton', emoji: '💀', hp: 70, atk: 15, reward: 60, image: '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png', frames: 6 },
-  { id: 'demon', name: 'Vampire Lord', emoji: '🧛', hp: 250, atk: 45, reward: 500, image: '/images/enemies/demon/idle/enemies-vampire_idle.png', frames: 6 },
+  { id: 'slime', name: 'Slime', emoji: '💧', baseHp: 50, baseAtk: 8, baseDef: 2, gold: 30, xp: 5 },
+  { id: 'skeleton', name: 'Skeleton', emoji: '💀', baseHp: 80, baseAtk: 12, baseDef: 5, gold: 60, xp: 12 },
+  { id: 'demon', name: 'Demon', emoji: '😈', baseHp: 150, baseAtk: 20, baseDef: 10, gold: 150, xp: 30 },
 ];
 
-type ScaledEnemy = typeof BASE_ENEMIES[number] & { hp: number; atk: number; reward: number };
-
-// Scale enemy stats by day: +5% HP/ATK per day, +3% reward per day
-function getScaledEnemies(day: number): ScaledEnemy[] {
-  const scale = 1 + (day - 1) * 0.05;
-  return BASE_ENEMIES.map(e => ({
-    ...e,
-    hp: Math.floor(e.hp * scale),
-    atk: Math.floor(e.atk * scale),
-    reward: Math.floor(e.reward * (1 + (day - 1) * 0.03)),
-  }));
-}
-
-const CHAMPION = {
-  id: 'kane',
-  name: 'Kane',
-  idleImage: '/images/characters/npcs/kane/idle/hero_idle_RIGHT.png',
-  attackImage: '/images/characters/npcs/kane/attack/hero_bow_RIGHT.png'
-};
-
 export default function Arena() {
-  const {
-    gold, addGold, companions, getBondBonus, addBond, setDialogue,
-    defeatVampire, gameOver, choicesLeft, consumeChoice, endDay, setIsBusy,
-    interventionPoints, addIP, useIP, day
-  } = useGameStore();
-
-  const ENEMIES = getScaledEnemies(day);
-
+  const { choicesLeft, consumeChoice, gold, addGold, day, companions, interventionPoints, useIP, addAILog, setDialogue } = useGameStore();
   const [combatLog, setCombatLog] = useState<string[]>([]);
+  const [isFighting, setIsFighting] = useState(false);
+  const [enemy, setEnemy] = useState<any>(null);
   const [playerHp, setPlayerHp] = useState(100);
-  const [enemyHp, setEnemyHp] = useState(0);
-  const [result, setResult] = useState<'win' | 'lose' | null>(null);
-  const [selectedEnemy, setSelectedEnemy] = useState<ScaledEnemy | null>(null);
-  const [inCombat, setInCombat] = useState(false);
-  const [isAttacking, setIsAttacking] = useState(false);
-  const [spriteFrame, setSpriteFrame] = useState(0);
+  const [playerMaxHp, setPlayerMaxHp] = useState(100);
+  const [turn, setTurn] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => setSpriteFrame(f => f + 1), 150);
-    return () => clearInterval(interval);
-  }, []);
+  const kane = companions.find(c => c.id === 'kane');
+  const gods = companions.filter(c => c.id !== 'kane');
 
-  const availableSkills = companions.flatMap(c => c.unlockedSkills);
+  const startCombat = (baseEnemy: any) => {
+    if (choicesLeft <= 0 || isFighting) return;
+    
+    // Scale enemy by day (5% increase per day)
+    const scale = 1 + (day - 1) * 0.05;
+    const scaledEnemy = {
+      ...baseEnemy,
+      hp: Math.floor(baseEnemy.baseHp * scale),
+      maxHp: Math.floor(baseEnemy.baseHp * scale),
+      atk: Math.floor(baseEnemy.baseAtk * scale),
+      def: Math.floor(baseEnemy.baseDef * scale),
+    };
 
-  const handleRetreat = () => {
-    if (!selectedEnemy || result) return;
-    // Retreating costs half HP as penalty
-    setResult('lose');
-    setCombatLog(prev => ['🏃 Kane ถอยหนีออกจากการต่อสู้!', ...prev]);
-    setDialogue({
-      speaker: 'Minju',
-      text: 'ไม่เป็นไรนะเคน การถอยก็เป็นกลยุทธ์อย่างนึงค่ะ ไว้กลับมาสู้ใหม่!',
-      portrait: 'work'
-    });
-  };
-
-  const startCombat = (enemy: ScaledEnemy) => {
-    if (choicesLeft <= 0) {
-      setDialogue({
-        speaker: 'Minju',
-        text: 'วันนี้เหนื่อยมากแล้วค่ะ... เราพักผ่อนแล้วค่อยลุยใหม่พรุ่งนี้ดีไหมคะ?',
-        portrait: 'work'
-      });
-      return;
-    }
-
-    setSelectedEnemy(enemy);
-    setEnemyHp(enemy.hp);
+    setEnemy(scaledEnemy);
     setPlayerHp(100);
-    setResult(null);
-    setCombatLog([`⚔️ เริ่มการต่อสู้: Kane ปะทะ ${enemy.name}`]);
-    setInCombat(true);
-    setIsBusy(true); // Mark as busy when combat starts
-    consumeChoice();
-
-    // Update Phaser scene enemy sprite
-    EventBus.emit('arena-enemy-change', { enemyType: enemy.id });
-
-    setDialogue({
-      speaker: 'Minju',
-      text: `เคน ตั้งสมาธินะ! ${enemy.name} ตัวนี้ดูอันตรายมาก ถ้าจำเป็นก็ใช้พลังเทพช่วยเลย!`,
-      portrait: 'work'
-    });
+    setPlayerMaxHp(100);
+    setIsFighting(true);
+    setTurn(1);
+    setCombatLog([`⚔️ การต่อสู้กับ ${scaledEnemy.name} เริ่มขึ้นแล้ว!`]);
+    
+    EventBus.emit('arena-enemy-change', { enemyType: baseEnemy.id });
   };
-  
-  const executeAttack = async (skill?: DivineSkill, isDivineIntervention = false) => {
-    if (!selectedEnemy || result || isAttacking) return;
-    
-    if (isDivineIntervention && !useIP(5)) {
-      setDialogue({
-        speaker: 'Minju',
-        text: 'พลังแทรกแซงไม่เพียงพอค่ะ! เราต้องสะสมพลังเพิ่มก่อนนะ',
-        portrait: 'shock'
-      });
-      return;
-    }
 
-    setIsAttacking(true);
-    
-    // Play attack effect in Phaser
-    EventBus.emit('arena-attack', { target: 'enemy', isSpecial: isDivineIntervention });
+  const logAction = (text: string) => {
+    setCombatLog(prev => [text, ...prev].slice(0, 10));
+  };
 
-    const totalBonusAtk = companions.reduce((acc, c) => acc + getBondBonus(c.id).atk, 0);
+  const handleDivineIntervention = async (godId: string, skill: DivineSkill) => {
+    if (!isFighting || !enemy || interventionPoints < 2) return;
     
-    let multiplier = skill ? skill.multiplier : 1.0;
-    if (isDivineIntervention) multiplier *= 2.5;
-
-    const playerDmg = Math.floor((Math.random() * 10 + 15 + totalBonusAtk) * multiplier);
-    
-    const newEnemyHp = Math.max(0, enemyHp - playerDmg);
-    setEnemyHp(newEnemyHp);
-    
-    try {
-      const res = await fetch('/api/narrate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: isDivineIntervention ? 'divine_intervention' : 'attack',
-          playerName: isDivineIntervention ? 'Divine Intervention via Kane' : (skill ? `Kane using ${skill.name}` : 'Kane'),
-          enemyName: selectedEnemy.name,
-          damage: playerDmg
-        })
-      });
-      const data = await res.json();
-      const narrative = data.narrative || (isDivineIntervention ? `✨ พลังแห่งทวยเทพฟาดฟันใส่ ${selectedEnemy.name} อย่างรุนแรง! (${playerDmg} dmg)` : `Kane โจมตีใส่ ${playerDmg}!`);
-      setCombatLog(prev => [isDivineIntervention ? `✨ ${narrative}` : `🏹 ${narrative}`, ...prev]);
+    if (useIP(2)) {
+      logAction(`✨ ${skill.name} ถูกเปิดใช้งานโดยพรแห่งเทพ!`);
       
-      if (skill && !isDivineIntervention) {
-        if (skill.godId) {
-          addBond(skill.godId, 1);
-        }
-        setDialogue({
-          speaker: 'Minju',
-          text: `เยี่ยมมาก! ${skill.name} เมื่อกี้สมบูรณ์แบบที่สุด ลุยต่อเลย!`,
-          portrait: 'happy'
-        });
-      }
+      const damage = Math.floor((15 * skill.multiplier) - enemy.def);
+      const finalDmg = Math.max(5, damage);
+      
+      const newEnemyHp = Math.max(0, enemy.hp - finalDmg);
+      setEnemy({ ...enemy, hp: newEnemyHp });
+      
+      EventBus.emit('arena-attack', { target: 'enemy' });
+      logAction(`💥 ${skill.name} สร้างความเสียหาย ${finalDmg} หน่วย!`);
 
-      if (isDivineIntervention) {
-        setDialogue({
-          speaker: 'Minju',
-          text: `นั่นไง! พลังแทรกแซงของเหล่าเทพทำงานแล้ว! แข็งแกร่งสุดๆ ไปเลยค่ะ!`,
-          portrait: 'happy'
+      // Record to AI Log
+      try {
+        const res = await fetch('/api/narrate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'divine_intervention',
+            playerName: 'Kane',
+            npcName: skill.name,
+            enemyName: enemy.name,
+            damage: finalDmg
+          })
         });
+        const data = await res.json();
+        addAILog({
+          action: 'arena_intervention',
+          model: data.model || 'AI Model',
+          source: data.source || 'unknown',
+          prompt: data.prompt || '',
+          response: data.narrative || '',
+          tokensInput: data.usage?.prompt_tokens || 0,
+          tokensOutput: data.usage?.completion_tokens || 0
+        });
+        if (data.narrative) setDialogue({ speaker: 'Narrator', text: data.narrative });
+      } catch (e) {}
+
+      if (newEnemyHp <= 0) {
+        winCombat();
       }
-    } catch (err) {
-      setCombatLog(prev => [`🏹 Kane โจมตีใส่ ${playerDmg}!`, ...prev]);
     }
-    
+  };
+
+  const executeTurn = () => {
+    if (!isFighting || !enemy) return;
+
+    // Player Turn
+    const pDmg = Math.max(2, 15 - enemy.def);
+    const newEnemyHp = Math.max(0, enemy.hp - pDmg);
+    setEnemy({ ...enemy, hp: newEnemyHp });
+    EventBus.emit('arena-attack', { target: 'enemy' });
+    logAction(`🏹 Kane โจมตี ${enemy.name} สร้างความเสียหาย ${pDmg}`);
+
     if (newEnemyHp <= 0) {
-      setResult('win');
-      addGold(selectedEnemy.reward);
-      addIP(2); // Gain 2 IP on victory
-      setIsAttacking(false);
-
-      // Play death animation in Phaser
-      EventBus.emit('arena-enemy-death');
-
-      // Check if vampire lord defeated
-      if (selectedEnemy.id === 'demon') {
-        defeatVampire();
-        setDialogue({
-          speaker: 'Minju',
-          text: `เรา... เราล้มเจ้าแห่งแวมไพร์ได้จริงๆ ด้วย! พรของเหล่าเทพช่วยเราไว้แท้ๆ เลย!`,
-          portrait: 'happy'
-        });
-      } else {
-        setDialogue({
-          speaker: 'Minju',
-          text: `ชัยชนะเป็นของเรา! ทำได้ดีมากเคน! ทอง ${selectedEnemy.reward} เหรียญนี้จะช่วยร้านเราได้เยอะเลย`,
-          portrait: 'happy'
-        });
-      }
+      winCombat();
       return;
     }
-    
-    // Enemy counter-attack with defense bonus
-    setTimeout(async () => {
-      const totalBonusDef = companions.reduce((acc, c) => acc + getBondBonus(c.id).def, 0);
-      const rawDmg = Math.floor(Math.random() * selectedEnemy.atk) + 5;
-      const enemyDmg = Math.max(1, rawDmg - totalBonusDef);
-      const newPlayerHp = Math.max(0, playerHp - enemyDmg);
+
+    // Enemy Turn
+    setTimeout(() => {
+      if (!isFighting) return;
+      const eDmg = Math.max(1, enemy.atk - 10);
+      const newPlayerHp = Math.max(0, playerHp - eDmg);
       setPlayerHp(newPlayerHp);
-
-      // Show enemy damage in combat log
-      const defText = totalBonusDef > 0 ? ` (ป้องกัน -${totalBonusDef})` : '';
-      setCombatLog(prev => [`💥 ${selectedEnemy.name} โจมตีใส่ Kane ${enemyDmg} dmg${defText}`, ...prev]);
-
-      // Play counter attack effect in Phaser
       EventBus.emit('arena-attack', { target: 'player' });
+      logAction(`👹 ${enemy.name} โจมตี Kane สร้างความเสียหาย ${eDmg}`);
 
       if (newPlayerHp <= 0) {
-        setResult('lose');
-        setDialogue({
-          speaker: 'Minju',
-          text: `เคน! ไม่นะ! เรารีบถอยไปพักผ่อนกันก่อนเถอะ อย่าฝืนตัวเองเกินไปนะ!`,
-          portrait: 'shock'
-        });
-      } else if (enemyDmg > 15) {
-        setDialogue({
-          speaker: 'Minju',
-          text: `ระวัง! โดนเข้าไปเมื่อกี้ดูเจ็บน่าดูเลย!`,
-          portrait: 'shock'
-        });
+        loseCombat();
+      } else {
+        setTurn(prev => prev + 1);
       }
-
-      setIsAttacking(false);
     }, 800);
   };
-  
-  if (inCombat && selectedEnemy) {
-    return (
-      <div className="bg-slate-900/90 p-6 rounded-xl border border-red-500/20 shadow-2xl">
-        <div className="flex justify-around items-center mb-12">
-           <div className="text-center">
-              <div className="w-20 h-20 bg-blue-900/20 rounded-2xl border-2 border-blue-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
-                <div
-                    className="w-8 h-8 image-pixelated scale-[2.5]"
-                    style={{
-                      backgroundImage: `url(${isAttacking ? CHAMPION.attackImage : CHAMPION.idleImage})`,
-                      backgroundSize: 'auto 100%',
-                      backgroundPosition: isAttacking ? `-${(spriteFrame % 7) * 32}px 0` : '0 0'
-                    }}
-                  />
-              </div>
-              <div className="text-[10px] md:text-xs font-black text-blue-400 uppercase">{CHAMPION.name}</div>
-              <div className="w-24 h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${playerHp}%` }} />
-              </div>
-              <div className="text-[9px] md:text-[11px] text-blue-400/70 mt-0.5 font-mono">{playerHp}/100</div>
-           </div>
 
-           <div className="text-2xl font-black text-white italic opacity-20 animate-pulse">VS</div>
+  const winCombat = () => {
+    logAction(`🏆 ชัยชนะ! ได้รับ ${enemy.gold} ทอง`);
+    addGold(enemy.gold);
+    
+    // Visual feedback in Phaser
+    EventBus.emit('spawn-floating-text', { text: `+${enemy.gold} Gold`, color: '#ffd700' });
 
-           <div className="text-center">
-              <div className="w-20 h-20 bg-red-900/20 rounded-2xl border-2 border-red-500/30 overflow-hidden flex items-center justify-center mb-2 shadow-inner">
-                {selectedEnemy.image ? (
-                  <div
-                    className="w-8 h-8 image-pixelated scale-[2.5]"
-                    style={{
-                      backgroundImage: `url(${selectedEnemy.image})`,
-                      backgroundSize: 'auto 100%',
-                      backgroundPosition: `-${(spriteFrame % selectedEnemy.frames) * 32}px 0`
-                    }}
-                  />
-                ) : <span className="text-3xl">{selectedEnemy.emoji}</span>}
-              </div>
-              <div className="text-[10px] md:text-xs font-black text-red-400 uppercase">{selectedEnemy.name}</div>
-              <div className="text-left w-full h-1.5 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                <div className="h-full bg-red-500 transition-all duration-300" style={{ width: `${(enemyHp / selectedEnemy.hp) * 100}%` }} />
-              </div>
-              <div className="text-[9px] md:text-[11px] text-red-400/70 mt-0.5 font-mono">{enemyHp}/{selectedEnemy.hp}</div>
-           </div>
-        </div>
+    setIsFighting(false);
+    consumeChoice();
+    EventBus.emit('arena-enemy-death');
+    setTimeout(() => {
+      setEnemy(null);
+      EventBus.emit('arena-combat-end');
+    }, 2000);
+  };
 
-        <div className="grid grid-cols-2 gap-2 mb-6">
-          <button 
-            onClick={() => executeAttack()}
-            disabled={isAttacking || !!result}
-            className="py-3 bg-slate-800 hover:bg-slate-700 text-white font-black rounded-xl border border-white/10 uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 transition-all"
-          >
-            ยิงธรรมดา
-          </button>
-          <button 
-            onClick={() => executeAttack(undefined, true)}
-            disabled={isAttacking || !!result || interventionPoints < 5}
-            className="py-3 bg-gradient-to-r from-indigo-600 to-purple-700 hover:from-indigo-500 hover:to-purple-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 border border-indigo-400/20 transition-all flex flex-col items-center justify-center leading-tight"
-          >
-            <span>✨ Divine Intervention</span>
-            <span className="text-[8px] md:text-[10px] opacity-70">ใช้ 5 IP (มี {interventionPoints})</span>
-          </button>
-          {availableSkills.map((skill, i) => (
-            <button
-              key={i}
-              onClick={() => executeAttack(skill)}
-              disabled={isAttacking || !!result}
-              className="py-3 bg-gradient-to-r from-amber-600 to-orange-700 hover:from-amber-500 hover:to-orange-600 text-white font-black rounded-xl shadow-lg uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 border border-amber-400/20 transition-all"
-            >
-              🔥 {skill.name}
-            </button>
-          ))}
-          <button
-            onClick={handleRetreat}
-            disabled={isAttacking || !!result}
-            className="py-3 bg-slate-700 hover:bg-slate-600 text-slate-300 font-black rounded-xl border border-white/10 uppercase text-[10px] md:text-xs tracking-widest disabled:opacity-50 transition-all"
-          >
-            🏃 ถอยหนี
-          </button>
-        </div>
-
-        {result && (
-          <div className="space-y-3 mb-4">
-            <button
-              onClick={() => { 
-                setInCombat(false); 
-                setIsBusy(false); // Clear busy state when returning to list
-                EventBus.emit('arena-combat-end'); 
-              }}
-              className={`w-full py-4 font-black rounded-xl uppercase tracking-widest transition-all scale-100 hover:scale-105 active:scale-95
-                ${result === 'win' ? 'bg-amber-500 text-slate-900 shadow-amber-500/20 shadow-xl' : 'bg-slate-700 text-slate-300'}
-              `}
-            >
-              {result === 'win' ? 'รับชัยชนะ' : 'ถอยกลับร้าน'}
-            </button>
-            
-            {choicesLeft <= 0 && (
-              <button
-                onClick={() => { setInCombat(false); setIsBusy(false); endDay(); }}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl uppercase text-[10px] md:text-xs tracking-widest shadow-lg"
-              >
-                💤 แต้มหมดแล้ว ไปพักผ่อนเพื่อเริ่มวันใหม่
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="bg-black/50 p-4 rounded-xl h-24 overflow-y-auto font-mono text-[10px] md:text-xs leading-relaxed scrollbar-thin scrollbar-thumb-slate-800">
-          {combatLog.map((log, i) => (
-            <div key={i} className={i === 0 ? 'text-white font-bold' : 'text-slate-500'}>{log}</div>
-          ))}
-        </div>
-
-      </div>
-    );
-  }
+  const loseCombat = () => {
+    logAction(`💀 พ่ายแพ้... Kane ถอยทัพกลับมาเลียแผล`);
+    setIsFighting(false);
+    consumeChoice();
+    setTimeout(() => {
+      setEnemy(null);
+      EventBus.emit('arena-combat-end');
+    }, 2000);
+  };
 
   return (
-    <div className="bg-slate-900/90 p-6 rounded-2xl border border-slate-800 shadow-2xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-black text-white uppercase tracking-tighter italic font-serif">สนามประลองเทพ</h2>
-        <div className="flex items-center gap-2 bg-indigo-900/30 px-3 py-1.5 rounded-full border border-indigo-500/20">
-          <span className="text-xs md:text-sm">✨</span>
-          <span className="text-[10px] md:text-xs font-black text-indigo-400 uppercase tracking-widest">{interventionPoints} IP</span>
-        </div>
-      </div>
-      <div className="space-y-3">
-        {ENEMIES.map((enemy) => (
+    <div className="p-4 bg-slate-900/95 rounded-xl border border-red-500/20 shadow-2xl space-y-4 h-[600px] flex flex-col font-sans">
+      <h2 className="text-2xl font-black text-red-500 uppercase tracking-tighter italic font-serif">โคลอสเซียมแห่งเกียรติยศ</h2>
+      
+      {isFighting && enemy ? (
+        <div className="flex-1 flex flex-col space-y-4 min-h-0">
+          {/* Battle HUD */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-black/40 p-3 rounded-xl border border-blue-500/20">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-black text-blue-400 uppercase font-serif">Kane</span>
+                <span className="text-[10px] font-bold text-slate-500 font-sans">{playerHp}/{playerMaxHp}</span>
+              </div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(playerHp/playerMaxHp)*100}%` }} />
+              </div>
+            </div>
+            <div className="bg-black/40 p-3 rounded-xl border border-red-500/20">
+              <div className="flex justify-between items-center mb-1 font-serif">
+                <span className="text-[10px] font-black text-red-400 uppercase">{enemy.name}</span>
+                <span className="text-[10px] font-bold text-slate-500 font-sans">{enemy.hp}/{enemy.maxHp}</span>
+              </div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${(enemy.hp/enemy.maxHp)*100}%` }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Divine Skills Grid */}
+          <div className="bg-slate-800/30 p-3 rounded-xl border border-white/5 font-serif">
+            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 flex justify-between">
+              <span>พลังแห่งทวยเทพ</span>
+              <span className="text-purple-400 flex items-center gap-1 font-sans"><IPIcon size={10} /> {interventionPoints} IP</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {gods.map(god => (
+                <div key={god.id} className="space-y-1">
+                  {god.unlockedSkills.slice(0, 1).map((skill, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleDivineIntervention(god.id, skill)}
+                      disabled={interventionPoints < 2}
+                      className="w-full py-1.5 bg-purple-900/20 hover:bg-purple-800/40 border border-purple-500/30 rounded-lg text-[8px] font-black text-purple-300 uppercase transition-all disabled:opacity-30 flex flex-col items-center"
+                    >
+                      <SparklesIcon size={10} className="mb-0.5" />
+                      {skill.name}
+                    </button>
+                  ))}
+                  {god.unlockedSkills.length === 0 && (
+                    <div className="h-full bg-slate-900/50 rounded-lg border border-dashed border-slate-700 flex items-center justify-center">
+                      <span className="text-[7px] text-slate-600 uppercase">ล็อค</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Combat Log */}
+          <div className="flex-1 bg-black/60 rounded-xl p-3 font-mono text-[11px] overflow-y-auto border border-white/5 space-y-1 custom-scrollbar">
+            {combatLog.map((log, i) => (
+              <div key={i} className={i === 0 ? "text-white font-bold" : "text-slate-500"}>{log}</div>
+            ))}
+          </div>
+
+          {/* Action Button */}
           <button
-            key={enemy.id}
-            onClick={() => startCombat(enemy)}
-            className="w-full group p-4 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-red-500/30 rounded-2xl transition-all flex items-center justify-between"
+            onClick={executeTurn}
+            className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl shadow-lg shadow-red-900/20 uppercase tracking-[0.2em] transition-all active:scale-95 font-serif"
           >
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-2xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden shadow-inner">
-                {enemy.image ? (
-                  <div
-                    className="w-8 h-8 image-pixelated"
-                    style={{
-                      backgroundImage: `url(${enemy.image})`,
-                      backgroundSize: 'auto 100%',
-                      backgroundPosition: `-${(spriteFrame % enemy.frames) * 32}px 0`
-                    }}
-                  />
-                ) : enemy.emoji}
-              </div>
-              <div className="text-left">
-                <div className="font-black text-white uppercase tracking-tight">{enemy.name}</div>
-                <div className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase">HP {enemy.hp} · ATK {enemy.atk}</div>
-                <div className="text-[9px] md:text-[11px] font-black text-amber-500/70 uppercase">รางวัล: {enemy.reward} ทอง</div>
-              </div>
-            </div>
-            <div className="text-[10px] md:text-xs font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-              {choicesLeft > 0 ? 'สู้ ⚔️' : 'แต้มหมด'}
-            </div>
+            ดำเนินการต่อ (เทิร์น {turn})
           </button>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 overflow-y-auto pr-1 font-serif">
+          {BASE_ENEMIES.map(be => (
+            <button
+              key={be.id}
+              onClick={() => startCombat(be)}
+              disabled={choicesLeft <= 0}
+              className="group p-4 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-red-500/30 rounded-2xl transition-all flex items-center gap-4 relative overflow-hidden"
+            >
+              <div className="text-4xl group-hover:scale-110 transition-transform">{be.emoji}</div>
+              <div className="flex-1 text-left">
+                <div className="font-black text-white uppercase tracking-tight font-serif">{be.name}</div>
+                <div className="flex gap-3 mt-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1 font-sans"><HPIcon size={10} /> {Math.floor(be.baseHp * (1 + (day - 1) * 0.05))}</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1 font-sans"><SwordIcon size={10} /> {Math.floor(be.baseAtk * (1 + (day - 1) * 0.05))}</span>
+                  <span className="text-[9px] font-bold text-amber-500 flex items-center gap-1 font-sans"><GoldIcon size={10} /> {be.gold}</span>
+                </div>
+              </div>
+              <div className="text-xs font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity font-serif">
+                {choicesLeft > 0 ? 'สู้ ⚔️' : 'แต้มหมด'}
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

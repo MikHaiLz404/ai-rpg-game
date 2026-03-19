@@ -10,7 +10,7 @@
 html, body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   max-width: 100vw;
 }
@@ -40,4 +40,13 @@ html, body {
 
 .canvas-container canvas {
   margin: 0 auto;
+}
+
+@layer utilities {
+  .font-serif {
+    font-family: var(--font-cinzel), serif;
+  }
+  .font-sans {
+    font-family: var(--font-inter), sans-serif;
+  }
 }

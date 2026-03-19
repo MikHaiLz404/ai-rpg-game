@@ -13,10 +13,10 @@ const SOURCE_CONFIG: Record<AISource, { label: string; color: string; dot: strin
 
 export default function AIStatusBadge({ compact }: { compact?: boolean }) {
   const [source, setSource] = useState<AISource>('checking');
-  const { setShowAITerminal, showAITerminal } = useGameStore();
+  const { setShowAITerminal, showAITerminal, hasNewLog } = useGameStore();
 
   useEffect(() => {
-    const checkStatus = async () => {
+    const checkStatus = async ( ) => {
       try {
         const res = await fetch('/api/narrate', {
           method: 'POST',
@@ -44,10 +44,22 @@ export default function AIStatusBadge({ compact }: { compact?: boolean }) {
       </div>
       <button 
         onClick={() => setShowAITerminal(!showAITerminal)}
-        className={`p-1.5 rounded-lg border transition-all ${showAITerminal ? 'bg-amber-500 border-amber-400 text-slate-900 shadow-lg shadow-amber-500/20' : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'}`}
+        className={`p-1.5 rounded-lg border transition-all relative ${
+          showAITerminal 
+            ? 'bg-amber-500 border-amber-400 text-slate-900 shadow-lg shadow-amber-500/20' 
+            : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:text-white hover:bg-slate-700'
+        }`}
         title="AI Neural Link Terminal"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+        
+        {/* Notification Pulse */}
+        {!showAITerminal && hasNewLog && (
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500 border border-slate-900"></span>
+          </span>
+        )}
       </button>
     </div>
   );

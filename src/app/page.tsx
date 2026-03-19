@@ -60,8 +60,8 @@ export default function GamePage() {
       <header className="shrink-0 h-14 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center px-4 md:px-8 justify-between z-50">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
-            <h1 className="text-sm font-black text-white uppercase tracking-tighter italic leading-none">Gods' Arena</h1>
-            <span className="text-[10px] font-bold text-amber-500/50 uppercase tracking-widest leading-none mt-1">วิหารแห่งเทพ</span>
+            <h1 className="text-sm font-black text-white uppercase tracking-tighter italic leading-none font-serif">Gods&apos; Arena</h1>
+            <span className="text-[10px] font-bold text-amber-500/50 uppercase tracking-widest leading-none mt-1 font-serif">วิหารแห่งเทพ</span>
           </div>
           
           <div className="h-8 w-px bg-white/10 hidden md:block" />
@@ -96,14 +96,14 @@ export default function GamePage() {
             <div className="absolute top-4 left-4 pointer-events-none">
               <div className="bg-slate-950/80 backdrop-blur px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">{phase} phase</span>
+                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] font-serif">{phase} phase</span>
               </div>
             </div>
 
             {/* Game Over Overlay */}
             {gameOver && (
               <div className="absolute inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-8 text-center">
-                <h2 className={`text-5xl font-black mb-4 uppercase italic tracking-tighter ${gameOver === 'win' ? 'text-emerald-400' : 'text-rose-500'}`}>
+                <h2 className={`text-5xl font-black mb-4 uppercase italic tracking-tighter font-serif ${gameOver === 'win' ? 'text-emerald-400' : 'text-rose-500'}`}>
                   {gameOver === 'win' ? 'Ascension Complete' : 'Champion Fallen'}
                 </h2>
                 <p className="text-slate-400 max-w-md mb-8 leading-relaxed font-medium">
@@ -115,7 +115,7 @@ export default function GamePage() {
                 </p>
                 <button 
                   onClick={resetGame}
-                  className="px-10 py-4 bg-white text-black font-black rounded-xl hover:bg-amber-400 transition-all uppercase tracking-widest text-sm"
+                  className="px-10 py-4 bg-white text-black font-black rounded-xl hover:bg-amber-400 transition-all uppercase tracking-widest text-sm font-serif"
                 >
                   Return to Beginning
                 </button>
@@ -158,7 +158,7 @@ export default function GamePage() {
 function StatItem({ label, value, color }: { label: string, value: string, color: string }) {
   return (
     <div className="flex flex-col">
-      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] leading-none mb-1">{label}</span>
+      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.2em] leading-none mb-1 font-serif">{label}</span>
       <span className={`text-xs font-black ${color} leading-none tracking-tight`}>{value}</span>
     </div>
   );
@@ -168,7 +168,7 @@ function TabButton({ label, active, onClick }: { label: string, active: boolean,
   return (
     <button
       onClick={onClick}
-      className={`py-2 px-1 text-[9px] font-black uppercase tracking-widest transition-all ${
+      className={`py-2 px-1 text-[9px] font-black uppercase tracking-widest transition-all font-serif ${
         active
           ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20 rounded-lg'
           : 'text-slate-500 hover:text-white'

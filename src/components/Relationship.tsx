@@ -199,6 +199,10 @@ export default function Relationship() {
           const bondChance = Math.max(0.10, (0.4 - companion.bond * 0.02) * godRate);
           if (Math.random() < bondChance) {
             addBond(id, 1);
+            
+            // Visual feedback in Phaser
+            EventBus.emit('spawn-floating-text', { text: `💗 +1 Bond`, color: '#f472b6' });
+            
             setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +1` }]);
             setTimeout(() => checkAutoSkillUnlock(id), 100);
           }
@@ -236,7 +240,7 @@ export default function Relationship() {
         body: JSON.stringify({ action: 'gift', playerName: 'Minju', npcName: companion.name, wantedItem: itemInfo?.name || itemId, bondLevel: companion.level })
       });
       const data = await res.json();
-      addAILog({ action: 'gift', model: data.model || 'AI Model', source: data.source || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0 });
+      addAILog({ action: 'gift', model: data.model || 'AI Model', source: data.source as any || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0 });
       if (data.narrative) { setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]); setDialogue({ speaker: companion.name, text: data.narrative }); }
     } catch (err) {}
     setTimeout(() => checkAutoSkillUnlock(selectedId), 100);
@@ -249,19 +253,19 @@ export default function Relationship() {
   return (
     <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col h-[600px]">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic">สายสัมพันธ์แห่งเทพ</h2>
-        {selectedId && <button onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}} className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors">← กลับ</button>}
+        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic font-serif">สายสัมพันธ์แห่งเทพ</h2>
+        {selectedId && <button onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}} className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors font-serif">← กลับ</button>}
       </div>
       {selectedCompanion && metadata ? (
         <div className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="bg-slate-800/30 p-4 rounded-2xl border border-white/5 flex items-center gap-4 relative overflow-hidden">
             <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0 overflow-hidden">{metadata.facial ? <img src={metadata.facial} alt={selectedCompanion.name} className="w-full h-full object-cover image-pixelated" /> : <span className="text-2xl">{metadata.emoji}</span>}</div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-black text-white uppercase tracking-tight truncate">{selectedCompanion.name}</h3>
+              <h3 className="text-lg font-black text-white uppercase tracking-tight truncate font-serif">{selectedCompanion.name}</h3>
               <div className="flex items-center gap-2"><div className="flex-1 min-w-0"><div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">{(() => { const next = getNextThreshold(selectedCompanion); const thresholds = getSkillThresholds(selectedCompanion.id); const prev = thresholds.filter(t => t <= selectedCompanion.bond).pop() || 0; const progress = next ? ((selectedCompanion.bond - prev) / (next - prev)) * 100 : 100; return <div className="h-full bg-gradient-to-r from-pink-600 to-rose-400 transition-all duration-1000" style={{ width: `${progress}%` }} />; })()}</div><div className="flex justify-between mt-0.5"><span className="text-[8px] md:text-[10px] text-slate-500">ค่าความสนิท: {selectedCompanion.bond}</span>{getNextThreshold(selectedCompanion) && <span className="text-[8px] md:text-[10px] text-amber-500/70">สกิลถัดไป: {getNextThreshold(selectedCompanion)}</span>}</div></div><span className="text-[10px] md:text-xs font-black text-pink-500 shrink-0">LVL {selectedCompanion.level}</span></div>
             </div>
           </div>
-          {isGeneratingSkill && <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse"><span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest">กำลังรวบรวมพลังเทพ...</span></div>}
+          {isGeneratingSkill && <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse"><span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest font-serif">กำลังรวบรวมพลังเทพ...</span></div>}
           <div ref={scrollRef} className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800">{chatLog.length === 0 && <div className="text-center text-slate-600 italic text-xs md:text-sm py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>}{chatLog.map((msg, i) => <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${msg.sender === 'player' ? 'bg-pink-600 text-white rounded-tr-none' : msg.sender === 'npc' ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5' : 'bg-amber-500/10 text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'}`}>{msg.text}</div></div>)}{isTalking && <div className="flex justify-start"><div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs md:text-sm">กำลังคิด...</div></div>}</div>
           {selectedId && !conversationEnded && <div className="flex items-center justify-between px-1 mb-1"><span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest">โอกาสพูดคุย</span><div className="flex items-center gap-1">{Array.from({ length: GOD_CHAT_LIMIT[selectedId] ?? 3 }).map((_, i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < turnsUsed ? 'bg-slate-700' : 'bg-pink-500'}`} />)}<span className="text-[8px] md:text-[10px] text-slate-500 ml-1">{Math.max(0, (GOD_CHAT_LIMIT[selectedId] ?? 3) - turnsUsed)}/{GOD_CHAT_LIMIT[selectedId] ?? 3}</span></div></div>}
           {conversationEnded && <div className="bg-slate-800/50 border border-pink-500/20 rounded-xl px-4 py-3 text-center"><div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">บทสนทนาวันนี้จบลงแล้ว</div><div className="text-[9px] md:text-[11px] text-slate-600 mt-1">ยังมอบของขวัญได้ หรือกลับไปเลือกเทพองค์อื่น</div></div>}
@@ -274,7 +278,7 @@ export default function Relationship() {
               </div>
             )}
             <input type="text" value={userInput} onChange={(e) => setUserMessage(e.target.value)} disabled={conversationEnded} placeholder={conversationEnded ? 'เทพกลับไปแล้ว...' : 'พิมพ์ข้อความคุยกับเทพ...'} className={`flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors ${conversationEnded ? 'opacity-50' : ''}`} />
-            <button type="submit" disabled={isTalking || !userInput.trim() || choicesLeft <= 0 || conversationEnded} className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest transition-all">{conversationEnded ? 'จบ' : choicesLeft > 0 ? 'ส่ง' : 'แต้มหมด'}</button>
+            <button type="submit" disabled={isTalking || !userInput.trim() || choicesLeft <= 0 || conversationEnded} className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest transition-all font-serif">{conversationEnded ? 'จบ' : choicesLeft > 0 ? 'ส่ง' : 'แต้มหมด'}</button>
           </form>
         </div>
       ) : (
@@ -284,9 +288,9 @@ export default function Relationship() {
             const nextThreshold = getSkillThresholds(comp.id).find(t => comp.bond < t);
             return (comp.id !== 'kane' && (
               <button key={comp.id} onClick={() => { setSelectedId(comp.id); EventBus.emit('village-walk-to-npc', { npcId: comp.id }); const onArrival = () => { EventBus.off('village-walk-complete', onArrival); handleTalk(comp.id); }; EventBus.on('village-walk-complete', onArrival); }} className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden h-48">
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity"><span className="text-4xl font-black">{comp.level}</span></div>
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity font-serif"><span className="text-4xl font-black">{comp.level}</span></div>
                 <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">{meta?.facial ? <img src={meta.facial} alt={comp.name} className="w-full h-full object-cover image-pixelated" /> : <span className="text-4xl">{meta?.emoji || '👤'}</span>}</div>
-                <div className="text-center"><div className="font-black text-white uppercase tracking-tight">{comp.name}</div><div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1">ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}</div>{comp.unlockedSkills.length > 0 && <div className="flex flex-wrap gap-1 justify-center mt-2">{comp.unlockedSkills.map((skill, i) => <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20" title={`x${skill.multiplier}`}>🔥 {skill.name}</span>)}</div>}</div>
+                <div className="text-center"><div className="font-black text-white uppercase tracking-tight font-serif">{comp.name}</div><div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1">ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}</div>{comp.unlockedSkills.length > 0 && <div className="flex flex-wrap gap-1 justify-center mt-2">{comp.unlockedSkills.map((skill, i) => <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20 font-serif" title={`x${skill.multiplier}`}>🔥 {skill.name}</span>)}</div>}</div>
               </button>
             ));
           })}

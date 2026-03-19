@@ -265,6 +265,11 @@ export default function Exploration() {
         if (won) {
           addGold(goldEarned);
           addIP(1); // IP gain on exploration monster kill
+          
+          // Visual feedback in Phaser
+          EventBus.emit('spawn-floating-text', { text: `+${goldEarned} Gold`, color: '#ffd700' });
+          setTimeout(() => EventBus.emit('spawn-floating-text', { text: `+1 IP`, color: '#c084fc' }), 500);
+
           // Random god notices your bravery — 50% chance bond +1
           const gods = companions.filter(c => c.id !== 'kane');
           const luckyGod = gods.length > 0 && Math.random() < 0.5
@@ -340,19 +345,28 @@ export default function Exploration() {
         switch (event.type) {
           case 'gold':
             addGold(event.value);
+            EventBus.emit('spawn-floating-text', { text: `+${event.value} Gold`, color: '#ffd700' });
             break;
           case 'item':
-            if (event.itemId) addItem(event.itemId);
+            if (event.itemId) {
+              addItem(event.itemId);
+              EventBus.emit('spawn-floating-text', { text: `Found Item!`, color: '#ffffff' });
+            }
             break;
           case 'ip':
             addIP(event.value);
+            EventBus.emit('spawn-floating-text', { text: `+${event.value} IP`, color: '#c084fc' });
             break;
           case 'trap':
             // Trap costs gold (can't go below 0)
-            if (gold >= event.value) spendGold(event.value);
+            if (gold >= event.value) {
+              spendGold(event.value);
+              EventBus.emit('spawn-floating-text', { text: `-${event.value} Gold`, color: '#ef4444' });
+            }
             break;
           case 'heal':
             addIP(1); // Minor IP recovery as "heal" benefit
+            EventBus.emit('spawn-floating-text', { text: `Healed!`, color: '#10b981' });
             break;
         }
 

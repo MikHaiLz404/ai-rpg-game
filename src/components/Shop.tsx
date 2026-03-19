@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
+import { GoldIcon, PackageIcon } from './Icons';
 
 const ITEM_SPRITES: Record<string, { src: string, fw: number, fh: number, sw: number, sh: number }> = {
   potion_health: { src: '/images/items/potion_health/sprite/potion_health.png', fw: 16, fh: 16, sw: 336, sh: 240 },
@@ -122,7 +123,7 @@ export default function Shop() {
         addAILog({
           action: 'shop_talk',
           model: data.model || 'AI Model',
-          source: data.source || 'unknown',
+          source: data.source as any || 'unknown',
           prompt: data.prompt || '',
           response: data.narrative || '',
           tokensInput: data.usage?.prompt_tokens || 0,
@@ -178,6 +179,10 @@ export default function Shop() {
     if (items.includes(currentCustomer.wantedItemId)) {
       removeItem(currentCustomer.wantedItemId);
       addGold(currentCustomer.offeredGold);
+      
+      // Visual feedback in Phaser
+      EventBus.emit('spawn-floating-text', { text: `+${currentCustomer.offeredGold} Gold`, color: '#ffd700' });
+
       if (currentCustomer.isGod) {
         const companion = companions.find(c => c.name === currentCustomer.name);
         if (companion) addBond(companion.id, 2);
@@ -225,18 +230,18 @@ export default function Shop() {
     <div className="space-y-6">
       {!isShiftActive && (
         <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl text-center space-y-3">
-          <div className="text-[10px] md:text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2">
+          <div className="text-[10px] md:text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2 font-serif">
             <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" /> Sanctum is Closed
           </div>
-          <button onClick={startShift} className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest">Open Shop</button>
+          <button onClick={startShift} className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest font-serif">Open Shop</button>
         </div>
       )}
       {isShiftActive && (
         <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 shadow-xl flex items-center justify-between gap-4">
            <div className="flex-1">
              <div className="flex justify-between items-center mb-1.5">
-               <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">{currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Waiting for Customer'}</span>
-               <span className="text-[10px] md:text-xs font-bold text-amber-500">{customersServed} / {shiftTarget} Served</span>
+               <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif">{currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Waiting for Customer'}</span>
+               <span className="text-[10px] md:text-xs font-bold text-amber-500 font-serif">{customersServed} / {shiftTarget} Served</span>
              </div>
              <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                <div className={`h-full transition-all duration-300 rounded-full ${currentCustomer ? 'bg-amber-500 w-full' : isGenerating ? 'bg-blue-500 w-1/2 animate-pulse' : 'bg-amber-500/40'}`} style={{ width: !currentCustomer && !isGenerating ? `${incomingProgress}%` : undefined }} />
@@ -249,32 +254,37 @@ export default function Shop() {
           <div className="flex items-center gap-4 mb-4">
             <div className="w-12 h-12 bg-slate-800 rounded-full flex items-center justify-center text-2xl border border-amber-500/20 shadow-inner">{currentCustomer.isGod ? '✨' : '👤'}</div>
             <div>
-              <div className="font-black text-white uppercase tracking-tight">{currentCustomer.name}</div>
-              <div className="text-[10px] md:text-xs text-amber-500/70 font-bold uppercase">{currentCustomer.isGod ? 'Divine Entity' : 'Mortal Soul'}</div>
+              <div className="font-black text-white uppercase tracking-tight font-serif">{currentCustomer.name}</div>
+              <div className="text-[10px] md:text-xs text-amber-500/70 font-bold uppercase font-serif">{currentCustomer.isGod ? 'Divine Entity' : 'Mortal Soul'}</div>
             </div>
           </div>
           <p className="text-slate-200 italic text-sm leading-relaxed mb-4 border-l-4 border-amber-500/50 pl-4 py-1">"{currentCustomer.request}"</p>
-          <div className="flex justify-between items-center bg-black/30 p-3 rounded-xl border border-white/5 mb-4">
+          <div className="flex justify-between items-center bg-black/30 p-3 rounded-xl border border-white/5 mb-4 font-serif">
             <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Request</div>
             <div className="flex items-center gap-2">{(() => { const found = ITEMS.find(i => i.id === currentCustomer.wantedItemId); return found ? <><ItemIcon item={found} /><span className="font-bold text-slate-200">{found.name}</span></> : null; })()}</div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleSell} disabled={!items.includes(currentCustomer.wantedItemId)} className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm ${items.includes(currentCustomer.wantedItemId) ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>Sell ({currentCustomer.offeredGold}💰)</button>
-            <button onClick={handleDecline} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest">Decline</button>
+            <button onClick={handleSell} disabled={!items.includes(currentCustomer.wantedItemId)} className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm font-serif flex items-center justify-center gap-2 ${items.includes(currentCustomer.wantedItemId) ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
+              Sell ({currentCustomer.offeredGold} <GoldIcon size={14} className={items.includes(currentCustomer.wantedItemId) ? 'text-slate-900' : 'text-slate-500'} />)
+            </button>
+            <button onClick={handleDecline} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest font-serif">Decline</button>
           </div>
         </div>
       )}
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center"><span>Inventory</span><span className="text-amber-500/50 font-bold">{items.length} Units</span></h3>
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex justify-between items-center font-serif">
+          <span className="flex items-center gap-1.5"><PackageIcon size={14} /> Inventory</span>
+          <span className="text-amber-500/50 font-bold">{items.length} Units</span>
+        </h3>
         <div className="space-y-1.5 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map(itemType => { const count = items.filter(id => id === itemType.id).length; if (count === 0) return null; return ( <div key={itemType.id} className="bg-slate-800/50 px-3 py-2 rounded-lg border border-white/5 flex items-center justify-between"><div className="flex items-center gap-2.5"><ItemIcon item={itemType} size="sm" /><span className="text-[10px] md:text-xs font-bold text-slate-200 uppercase">{itemType.name}</span><span className="text-[9px] md:text-[11px] font-bold text-slate-500">(x{count})</span></div><span className="text-[9px] md:text-[11px] font-bold text-amber-500">{itemType.price}</span></div> ); })}
+          {ITEMS.map(itemType => { const count = items.filter(id => id === itemType.id).length; if (count === 0) return null; return ( <div key={itemType.id} className="bg-slate-800/50 px-3 py-2 rounded-lg border border-white/5 flex items-center justify-between font-serif"><div className="flex items-center gap-2.5"><ItemIcon item={itemType} size="sm" /><span className="text-[10px] md:text-xs font-bold text-slate-200 uppercase">{itemType.name}</span><span className="text-[9px] md:text-[11px] font-bold text-slate-500 font-sans">(x{count})</span></div><span className="text-[9px] md:text-[11px] font-bold text-amber-500 flex items-center gap-1 font-sans">{itemType.price} <GoldIcon size={10} /></span></div> ); })}
           {items.length === 0 && <div className="py-4 text-center text-[10px] md:text-xs text-slate-600 italic">Inventory is empty. Use Restock below.</div>}
         </div>
       </div>
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Stockroom & Restock</h3>
+        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 font-serif">Stockroom & Restock</h3>
         <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2; return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600">{wholesale}💰 {isExpensive && <span className="text-red-400">↑</span>}</button></div> ); })}
+          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2; return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 font-serif"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500 font-sans">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600 font-sans flex items-center justify-center gap-1">{wholesale} <GoldIcon size={10} className={gold >= wholesale ? 'text-amber-400' : 'text-slate-500'} /> {isExpensive && <span className="text-red-400">↑</span>}</button></div> ); })}
         </div>
       </div>
     </div>

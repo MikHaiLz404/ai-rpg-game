@@ -266,6 +266,13 @@ export class MainScene extends Phaser.Scene {
             this.loadRoom(roomName);
         });
 
+        // Listen for floating text events (gold, etc)
+        EventBus.on('spawn-floating-text', (data: { x?: number, y?: number, text: string, color?: string }) => {
+            const x = data.x || this.player.x;
+            const y = data.y || (this.player.y - 20);
+            this.spawnFloatingText(x, y, data.text, data.color);
+        });
+
         // Listen for combat events
         EventBus.on('arena-attack', (data: { target: 'player' | 'enemy' }) => {
             this.playAttackEffect(data.target);
@@ -490,6 +497,26 @@ export class MainScene extends Phaser.Scene {
             onComplete: () => {
                 this.walkWaypoints(waypoints, index + 1);
             }
+        });
+    }
+
+    spawnFloatingText(x: number, y: number, text: string, color: string = '#ffd700') {
+        const floatingText = this.add.text(x, y, text, {
+            fontSize: '16px',
+            fontFamily: 'Arial',
+            color: color,
+            stroke: '#000',
+            strokeThickness: 3,
+            fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(200);
+
+        this.tweens.add({
+            targets: floatingText,
+            y: y - 50,
+            alpha: 0,
+            duration: 1500,
+            ease: 'Cubic.easeOut',
+            onComplete: () => floatingText.destroy()
         });
     }
 

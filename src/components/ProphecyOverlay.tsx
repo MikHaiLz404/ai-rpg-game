@@ -69,7 +69,7 @@ export default function ProphecyOverlay() {
             addAILog({
               action: `prophecy_${p.godId}`,
               model: data.source === 'openrouter' ? 'google/gemini-2.0-flash-001' : (p.agentName ? `Agent: ${p.agentName}` : 'Fallback'),
-              source: data.source,
+              source: data.source as any,
               prompt: p.prompt || 'Sequential context',
               response: p.text,
               tokensInput: p.usage?.prompt_tokens || 0,
@@ -132,10 +132,10 @@ export default function ProphecyOverlay() {
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/60" />
       <div className={`relative z-10 max-w-2xl w-full mx-4 flex flex-col items-center`}>
         <div className="text-center mb-6">
-          <div className={`text-[10px] md:text-xs ${subtitleColor} font-bold uppercase tracking-[0.4em] mb-2 ${urgency === 'critical' ? 'animate-pulse' : ''}`}>
+          <div className={`text-[10px] md:text-xs ${subtitleColor} font-bold uppercase tracking-[0.4em] mb-2 font-serif ${urgency === 'critical' ? 'animate-pulse' : ''}`}>
             {urgency === 'critical' ? 'สภาฉุกเฉิน' : 'สภาแห่งทวยเทพ'}
           </div>
-          <h2 className={`text-2xl md:text-3xl font-black ${titleColor} uppercase tracking-widest`}>Divine Council</h2>
+          <h2 className={`text-2xl md:text-3xl font-black ${titleColor} uppercase tracking-widest font-serif`}>Divine Council</h2>
           <div className={`text-xs md:text-sm ${subtitleColor} font-bold mt-2 tracking-wider`}>
             วันที่ {day} / {MAX_TURNS} — เหลือเวลาอีก {turnsLeft} วัน
           </div>
@@ -151,7 +151,7 @@ export default function ProphecyOverlay() {
                 <div className={`w-14 h-14 md:w-18 md:h-18 rounded-full border-2 overflow-hidden transition-all duration-700 ${isRevealed ? isSpeaking ? 'border-amber-400 shadow-lg shadow-amber-400/40 scale-110' : 'border-amber-500/50 opacity-80' : 'border-slate-700 opacity-30 grayscale'}`}>
                   {config?.facial ? <img src={config.facial} alt={prophecy?.godName || godId} className="w-full h-full object-cover image-pixelated" /> : <div className="w-full h-full bg-slate-800 flex items-center justify-center text-2xl">{prophecy?.emoji || '?'}</div>}
                 </div>
-                <div className={`text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 transition-all duration-500 ${isRevealed ? 'text-amber-500/80' : 'text-slate-600'}`}>{prophecy?.godName || godId}</div>
+                <div className={`text-[9px] md:text-[11px] font-black uppercase tracking-widest mt-2 transition-all duration-500 font-serif ${isRevealed ? 'text-amber-500/80' : 'text-slate-600'}`}>{prophecy?.godName || godId}</div>
               </div>
             );
           })}
@@ -172,7 +172,7 @@ export default function ProphecyOverlay() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] md:text-xs font-black text-amber-500/80 uppercase tracking-widest">{p.godName}</span>
+                          <span className="text-[10px] md:text-xs font-black text-amber-500/80 uppercase tracking-widest font-serif">{p.godName}</span>
                           {i === 0 ? <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">เริ่มประเด็น</span> : <span className="text-[8px] md:text-[10px] text-amber-500/30 font-bold uppercase tracking-wider">ตอบโต้</span>}
                         </div>
                         <div className={`text-sm leading-relaxed rounded-xl px-3 py-2 ${isSpeaking ? 'bg-amber-500/10 text-slate-100 border border-amber-500/15' : 'text-slate-300'}`}><span className="italic">{p.text}</span></div>
@@ -211,7 +211,7 @@ export default function ProphecyOverlay() {
             <button
               onClick={() => setShowProphecy(false)}
               disabled={(loading && prophecies.length === 0) || (dailyEvent && !eventApplied && revealed > prophecies.length)}
-              className={`w-full py-3 font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95 disabled:opacity-50 ${urgency === 'critical' ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20' : 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20'}`}
+              className={`w-full py-3 font-black rounded-xl uppercase text-xs md:text-sm tracking-widest transition-all active:scale-95 disabled:opacity-50 font-serif ${urgency === 'critical' ? 'bg-red-500 hover:bg-red-400 text-white shadow-lg shadow-red-500/20' : 'bg-amber-500 hover:bg-amber-400 text-slate-900 shadow-lg shadow-amber-500/20'}`}
             >
               {revealed > prophecies.length && (!dailyEvent || eventApplied) ? `เริ่มวันที่ ${day}` : 'กำลังรับฟัง...'}
             </button>
@@ -236,17 +236,17 @@ function DailyEventCard({ event, applied, onApply }: { event: DailyEvent; applie
 
   return (
     <div className="mt-3 pt-3 border-t border-amber-500/10 animate-in fade-in duration-700">
-      <div className="text-[9px] md:text-[11px] font-black text-amber-500/40 uppercase tracking-[0.3em] mb-2">เหตุการณ์ประจำวัน</div>
+      <div className="text-[9px] md:text-[11px] font-black text-amber-500/40 uppercase tracking-[0.3em] mb-2 font-serif">เหตุการณ์ประจำวัน</div>
       <div className="flex items-center gap-3 bg-amber-500/5 border border-amber-500/15 rounded-xl px-3 py-2.5">
         <span className="text-2xl shrink-0">{event.emoji}</span>
         <div className="flex-1 min-w-0">
-          <div className="text-xs md:text-sm font-black text-amber-400">{event.title}</div>
+          <div className="text-xs md:text-sm font-black text-amber-400 font-serif">{event.title}</div>
           <div className="text-[11px] md:text-[13px] text-slate-300 leading-snug mt-0.5">{event.description}</div>
         </div>
         <button
           onClick={onApply}
           disabled={applied}
-          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${applied ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'}`}
+          className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider transition-all active:scale-95 font-serif ${applied ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'}`}
         >
           {applied ? `${effectLabel} ✓` : effectLabel}
         </button>
