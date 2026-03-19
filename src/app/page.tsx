@@ -26,7 +26,6 @@ export default function GamePage() {
     addExplorationLog
   } = useGameStore();
   
-  const { currentSlot, saveToSlot, loadFromSlot, slots } = useSaveStore();
   const [mounted, setLoading] = useState(false);
 
   useEffect(() => {
