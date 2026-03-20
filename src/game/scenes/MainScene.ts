@@ -67,6 +67,9 @@ export class MainScene extends Phaser.Scene {
     debugTexts: Phaser.GameObjects.Text[] = [];
     coordText!: Phaser.GameObjects.Text;
 
+    // Exploration
+    explorationTiles!: Phaser.GameObjects.Group;
+
     constructor() {
         super('MainScene');
     }
@@ -323,6 +326,9 @@ export class MainScene extends Phaser.Scene {
         this.debugTexts.forEach(t => t.setVisible(false));
         this.coordText.setVisible(false);
 
+        // Exploration group
+        this.explorationTiles = this.add.group();
+
         EventBus.emit('current-scene-ready', this);
     }
 
@@ -500,7 +506,43 @@ export class MainScene extends Phaser.Scene {
         });
     }
 
-    spawnFloatingText(x: number, y: number, text: string, color: string = '#ffd700') {
+    spawnExplorationTiles() {
+        const tileCount = 6;
+        for (let i = 0; i < tileCount; i++) {
+            const x = 50 + Math.random() * 280;
+            const y = 80 + Math.random() * 150;
+
+            // Randomize type: 70% gathering, 30% enemy
+            const isEnemy = Math.random() < 0.3;
+            const type = isEnemy ? 'enemy' : 'gathering';
+
+            const tile = this.add.sprite(x, y, 'attack_effect', 0); 
+            tile.setInteractive({ useHandCursor: true });
+            tile.setScale(1.5);
+            tile.setTint(isEnemy ? 0xffaaaa : 0xaaffaa);
+            tile.setDepth(45);
+
+            tile.on('pointerdown', () => {
+                tile.destroy();
+                EventBus.emit('exploration-tile-clicked', { type, x, y });
+            });
+
+            this.explorationTiles.add(tile);
+
+            // Floating "Pulse" animation
+            this.tweens.add({
+                targets: tile,
+                y: y - 5,
+                duration: 1500 + Math.random() * 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+    }
+
+    spawnFloatingText(x: number, y: number, text: string, color: string = '#fff') {
+
         const floatingText = this.add.text(x, y, text, {
             fontSize: '16px',
             fontFamily: 'Arial',
@@ -617,6 +659,7 @@ export class MainScene extends Phaser.Scene {
         if (this.walkTween) this.walkTween.stop();
         this.villageNPCs.forEach(n => n.destroy());
         this.villageNPCs = [];
+        this.explorationTiles.clear(true, true);
 
         this.currentRoom = roomName;
         this.roomText.setText(room.name);
@@ -630,6 +673,10 @@ export class MainScene extends Phaser.Scene {
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         } else if (room.bgImage) {
             console.warn(`[MainScene] Texture not found: ${room.bgImage}`);
+        }
+
+        if (room.phase === 'exploration') {
+            this.spawnExplorationTiles();
         }
 
         if (roomName === 'arena') {

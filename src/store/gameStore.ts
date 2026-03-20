@@ -107,6 +107,18 @@ interface GameStore {
   explorationLog: string[];
   addExplorationLog: (entries: string[]) => void;
 
+  // Exploration Room State
+  explorationEnergy: number;
+  setExplorationEnergy: (energy: number) => void;
+  reduceEnergy: (amount: number) => void;
+  isExploringRoom: boolean;
+  setIsExploringRoom: (exploring: boolean) => void;
+
+  // Kane's Stats (For Exploration Scaling)
+  kaneStats: { hp: number; maxHp: number; atk: number; def: number };
+  updateKaneStats: (stats: Partial<{ hp: number; maxHp: number; atk: number; def: number }>) => void;
+  boostSkill: (skillName: string, multiplierAdd: number) => void;
+
   // AI Debugging & Logs
   aiLogs: AILog[];
   addAILog: (log: Omit<AILog, 'id' | 'timestamp'>) => void;
@@ -279,6 +291,31 @@ export const useGameStore = create<GameStore>((set, get) => ({
     explorationLog: [...entries, ...state.explorationLog].slice(0, 20)
   })),
 
+  // Exploration implementation
+  explorationEnergy: 0,
+  setExplorationEnergy: (explorationEnergy) => set({ explorationEnergy }),
+  reduceEnergy: (amount) => set((state) => ({ explorationEnergy: Math.max(0, state.explorationEnergy - amount) })),
+  isExploringRoom: false,
+  setIsExploringRoom: (isExploringRoom) => set({ isExploringRoom }),
+
+  kaneStats: { hp: 100, maxHp: 100, atk: 15, def: 10 },
+  updateKaneStats: (newStats) => set((state) => ({
+    kaneStats: { ...state.kaneStats, ...newStats }
+  })),
+  boostSkill: (skillName, multiplierAdd) => set((state) => ({
+    companions: state.companions.map(c => {
+      if (c.id === 'kane') {
+        return {
+          ...c,
+          unlockedSkills: c.unlockedSkills.map(s => 
+            s.name === skillName ? { ...s, multiplier: s.multiplier + multiplierAdd } : s
+          )
+        };
+      }
+      return c;
+    })
+  })),
+
   // AI Logs Implementation
   aiLogs: [],
   addAILog: (log) => set((state) => {
@@ -323,6 +360,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
     showProphecy: false,
     restockCostMultiplier: 1.0,
     explorationLog: [],
+    explorationEnergy: 0,
+    isExploringRoom: false,
+    kaneStats: { hp: 100, maxHp: 100, atk: 15, def: 10 },
     aiLogs: [],
     totalTokensInput: 0,
     totalTokensOutput: 0,
