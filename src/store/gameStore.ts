@@ -78,6 +78,8 @@ interface GameStore {
   interventionPoints: number;
   addIP: (amount: number) => void;
   useIP: (amount: number) => boolean;
+  arenaWins: number;
+  incrementArenaWins: () => void;
   lastDailyEvent: string | null;
   setLastDailyEvent: (event: string | null) => void;
   consumeChoice: () => void;
@@ -234,6 +236,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
     return false;
   },
+  arenaWins: 0,
+  incrementArenaWins: () => set((state) => ({ arenaWins: state.arenaWins + 1 })),
   lastDailyEvent: null,
   setLastDailyEvent: (event) => set({ lastDailyEvent: event }),
 
@@ -347,6 +351,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     day: 1,
     choicesLeft: MAX_CHOICES_PER_DAY,
     interventionPoints: 10,
+    arenaWins: 0,
     lastDailyEvent: null,
     isBusy: false,
     customersServed: 0,
@@ -384,6 +389,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         claimedThresholds: data.claimedThresholds?.[c.id] || []
       })),
       day: data.day || 1,
+      arenaWins: data.arenaWins || 0,
       choicesLeft: data.choicesLeft !== undefined ? data.choicesLeft : MAX_CHOICES_PER_DAY,
       interventionPoints: data.interventionPoints || 10,
       vampireDefeated: data.vampireDefeated || false,

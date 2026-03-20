@@ -132,6 +132,10 @@ export default function Arena() {
     logAction(`🏆 ชัยชนะ! ได้รับ ${enemy.gold} ทอง`);
     addGold(enemy.gold);
     
+    // Track arena win for Divine Council context
+    const { incrementArenaWins } = useGameStore.getState();
+    incrementArenaWins();
+    
     // Visual feedback in Phaser
     EventBus.emit('spawn-floating-text', { text: `+${enemy.gold} Gold`, color: '#ffd700' });
 
