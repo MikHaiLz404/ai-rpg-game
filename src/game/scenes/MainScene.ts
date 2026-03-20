@@ -241,18 +241,43 @@ export class MainScene extends Phaser.Scene {
         });
 
         this.scheduleNextCustomer();
-        EventBus.on('clear-customer', () => this.clearCustomer());
-        EventBus.on('change-room', (roomName: string) => this.loadRoom(roomName));
-        EventBus.on('spawn-floating-text', (data: { x?: number, y?: number, text: string, color?: string }) => {
+
+        // ---------------------------------------------------------
+        // EventBus Listeners with Cleanup
+        // ---------------------------------------------------------
+        const clearCustomerListener = () => this.clearCustomer();
+        const changeRoomListener = (roomName: string) => this.loadRoom(roomName);
+        const floatingTextListener = (data: { x?: number, y?: number, text: string, color?: string }) => {
             const x = data.x || this.player.x;
             const y = data.y || (this.player.y - 20);
             this.spawnFloatingText(x, y, data.text, data.color);
+        };
+        const arenaAttackListener = (data: { target: 'player' | 'enemy' }) => this.playAttackEffect(data.target);
+        const enemyChangeListener = (data: { enemyType: string }) => this.spawnArenaEnemy(data.enemyType);
+        const enemyDeathListener = () => this.playEnemyDeath();
+        const combatEndListener = () => this.resetArenaIdle();
+        const walkNPCListener = (data: { npcId: string }) => this.walkToVillageNPC(data.npcId);
+
+        EventBus.on('clear-customer', clearCustomerListener);
+        EventBus.on('change-room', changeRoomListener);
+        EventBus.on('spawn-floating-text', floatingTextListener);
+        EventBus.on('arena-attack', arenaAttackListener);
+        EventBus.on('arena-enemy-change', enemyChangeListener);
+        EventBus.on('arena-enemy-death', enemyDeathListener);
+        EventBus.on('arena-combat-end', combatEndListener);
+        EventBus.on('village-walk-to-npc', walkNPCListener);
+
+        // Cleanup on Shutdown
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            EventBus.off('clear-customer', clearCustomerListener);
+            EventBus.off('change-room', changeRoomListener);
+            EventBus.off('spawn-floating-text', floatingTextListener);
+            EventBus.off('arena-attack', arenaAttackListener);
+            EventBus.off('arena-enemy-change', enemyChangeListener);
+            EventBus.off('arena-enemy-death', enemyDeathListener);
+            EventBus.off('arena-combat-end', combatEndListener);
+            EventBus.off('village-walk-to-npc', walkNPCListener);
         });
-        EventBus.on('arena-attack', (data: { target: 'player' | 'enemy' }) => this.playAttackEffect(data.target));
-        EventBus.on('arena-enemy-change', (data: { enemyType: string }) => this.spawnArenaEnemy(data.enemyType));
-        EventBus.on('arena-enemy-death', () => this.playEnemyDeath());
-        EventBus.on('arena-combat-end', () => this.resetArenaIdle());
-        EventBus.on('village-walk-to-npc', (data: { npcId: string }) => this.walkToVillageNPC(data.npcId));
 
         this.debugGraphics = this.add.graphics();
         this.debugGraphics.lineStyle(1, 0x00ff00, 0.2);
