@@ -456,7 +456,10 @@ export class MainScene extends Phaser.Scene {
             const scaleX = 384 / this.bgSprite.width; const scaleY = 288 / this.bgSprite.height;
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
-        if (room.phase === 'exploration') this.spawnExplorationTiles();
+        if (room.phase === 'exploration') {
+            const { isExploringRoom } = (this.game as any).store?.getState() || { isExploringRoom: false };
+            if (isExploringRoom) this.spawnExplorationTiles();
+        }
         if (roomName === 'arena') {
             this.player.setPosition(120, 240); this.player.anims.play('player-down', true);
             this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
