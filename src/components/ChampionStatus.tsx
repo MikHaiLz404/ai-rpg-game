@@ -290,19 +290,13 @@ export default function ChampionStatus() {
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
         </div>
 
-        {/* Reset + Tutorial */}
+        {/* Tutorial Reset */}
         <div className="flex gap-1.5 pt-1 font-serif">
           <button
             onClick={handleResetTutorial}
-            className="flex-1 py-2 bg-slate-800/30 hover:bg-slate-800/50 border border-white/5 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
+            className="w-full py-2 bg-slate-800/30 hover:bg-slate-800/50 border border-white/5 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all text-slate-500 hover:text-slate-300"
           >
-            📖 Tutorial
-          </button>
-          <button
-            onClick={handleReset}
-            className="flex-1 py-2 bg-red-900/30 hover:bg-red-800/50 border border-red-500/30 rounded-lg text-[8px] md:text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 text-red-400"
-          >
-            🗑 เริ่มใหม่
+            📖 Re-enable Tutorial
           </button>
         </div>
       </div>
