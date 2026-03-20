@@ -507,40 +507,52 @@ export class MainScene extends Phaser.Scene {
     }
 
     spawnExplorationTiles() {
+        console.log(`[MainScene] Spawning exploration tiles for room: ${this.currentRoom}`);
         const tileCount = 6;
         for (let i = 0; i < tileCount; i++) {
-            const x = 50 + Math.random() * 280;
-            const y = 80 + Math.random() * 150;
+            const x = 40 + Math.random() * 300;
+            const y = 60 + Math.random() * 180;
 
             // Randomize type: 70% gathering, 30% enemy
             const isEnemy = Math.random() < 0.3;
             const type = isEnemy ? 'enemy' : 'gathering';
 
-            const tile = this.add.sprite(x, y, 'attack_effect', 0); 
-            tile.setInteractive({ useHandCursor: true });
-            tile.setScale(1.5);
-            tile.setTint(isEnemy ? 0xffaaaa : 0xaaffaa);
-            tile.setDepth(45);
+            // Create a container for the tile to handle both the graphic and the interaction
+            const container = this.add.container(x, y);
+            container.setSize(32, 32);
+            container.setInteractive({ useHandCursor: true });
 
-            tile.on('pointerdown', () => {
-                tile.destroy();
+            // Create a glowing circle using Graphics
+            const color = isEnemy ? 0xff4444 : 0x44ff44;
+            const glow = this.add.graphics();
+            glow.fillStyle(color, 0.3);
+            glow.fillCircle(0, 0, 12);
+            glow.fillStyle(color, 1);
+            glow.fillCircle(0, 0, 6);
+
+            container.add(glow);
+            container.setDepth(100); // High depth to be above everything
+
+            container.on('pointerdown', () => {
+                console.log(`[MainScene] Tile clicked: ${type} at ${x},${y}`);
+                container.destroy();
                 EventBus.emit('exploration-tile-clicked', { type, x, y });
             });
 
-            this.explorationTiles.add(tile);
+            this.explorationTiles.add(container);
 
-            // Floating "Pulse" animation
+            // Floating & Pulse animation
             this.tweens.add({
-                targets: tile,
-                y: y - 5,
-                duration: 1500 + Math.random() * 1000,
+                targets: container,
+                y: y - 8,
+                alpha: 0.7,
+                duration: 1000 + Math.random() * 1000,
                 yoyo: true,
                 repeat: -1,
                 ease: 'Sine.easeInOut'
             });
         }
     }
-
     spawnFloatingText(x: number, y: number, text: string, color: string = '#fff') {
 
         const floatingText = this.add.text(x, y, text, {
