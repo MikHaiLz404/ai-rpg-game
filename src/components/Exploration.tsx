@@ -3,71 +3,8 @@ import { useState, useEffect } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 import { NPC_CONFIGS } from '@/data/npcConfig';
-import { broadcastAISource } from './AIStatusBadge';
-import { GoldIcon, HPColorIcon, IPColorIcon, SwordColorIcon, ShieldColorIcon } from './Icons';
-
-// --- LOCATION DATA ---
-interface ExplorationLocation {
-  id: string;
-  name: string;
-  emoji: string;
-  description: string;
-  difficulty: number;
-  unlockDay: number;
-  loot: { id: string; name: string; emoji: string; weight: number }[];
-  monsters: { name: string; emoji: string; hp: number; atk: number; reward: number }[];
-  encounterRate: number;
-  bgColor: string;
-  borderColor: string;
-  bgImage: string;
-}
-
-const LOCATIONS: ExplorationLocation[] = [
-  {
-    id: 'forest',
-    name: 'ป่ามืด',
-    emoji: '🌲',
-    description: 'ป่าทึบที่เต็มไปด้วยสมุนไพรและสิ่งมีชีวิตแปลกประหลาด',
-    difficulty: 1,
-    unlockDay: 1,
-    loot: [
-      { id: 'herbs', name: 'Herbs', emoji: '🌿', weight: 30 },
-      { id: 'wood', name: 'Wood', emoji: '🪵', weight: 30 },
-      { id: 'flower', name: 'Flower', emoji: '🌸', weight: 25 },
-      { id: 'potion_health', name: 'Health Potion', emoji: '❤️', weight: 10 },
-    ],
-    monsters: [
-      { name: 'หมาป่า', emoji: '🐺', hp: 20, atk: 5, reward: 15 },
-      { name: 'สไลม์', emoji: '🦠', hp: 12, atk: 3, reward: 10 },
-    ],
-    encounterRate: 0.35,
-    bgColor: 'from-green-900/50 to-emerald-800/30',
-    borderColor: 'border-green-500/30',
-    bgImage: '/images/backgrounds/exploration/forest/bg_forest.png',
-  },
-  {
-    id: 'mountain',
-    name: 'ภูเขาหมอก',
-    emoji: '🏔️',
-    description: 'ยอดเขาสูงที่เต็มไปด้วยแร่ธาตุล้ำค่าและอากาศหนาวเหน็บ',
-    difficulty: 2,
-    unlockDay: 5,
-    loot: [
-      { id: 'ore', name: 'Ore', emoji: '🪨', weight: 30 },
-      { id: 'cloth', name: 'Cloth', emoji: '🧣', weight: 20 },
-      { id: 'shield', name: 'Shield', emoji: '🛡️', weight: 10 },
-      { id: 'sword', name: 'Sword', emoji: '⚔️', weight: 10 },
-    ],
-    monsters: [
-      { name: 'ก๊อบลิน', emoji: '👺', hp: 35, atk: 9, reward: 25 },
-      { name: 'หมีภูเขา', emoji: '🐻', hp: 55, atk: 13, reward: 40 },
-    ],
-    encounterRate: 0.45,
-    bgColor: 'from-slate-700/50 to-blue-900/30',
-    borderColor: 'border-blue-500/30',
-    bgImage: '/images/backgrounds/exploration/mountain/bg_mountain.png',
-  },
-];
+import { EXPLORATION_LOCATIONS, ExplorationLocation } from '@/data/locations';
+import { HPColorIcon, SwordColorIcon, ShieldColorIcon } from './Icons';
 
 // --- WEIGHTED RANDOM HELPER ---
 function weightedRandom<T extends { weight: number }>(items: T[]): T {
@@ -82,8 +19,8 @@ function weightedRandom<T extends { weight: number }>(items: T[]): T {
 
 export default function Exploration() {
   const {
-    choicesLeft, consumeChoice, addItem, addGold, setDialogue, setIsBusy,
-    day, companions, addIP, addBond, explorationLog, addExplorationLog,
+    choicesLeft, consumeChoice, addItem, addGold, setDialogue,
+    day, companions, addIP, explorationLog, addExplorationLog,
     explorationEnergy, setExplorationEnergy, reduceEnergy, isExploringRoom, setIsExploringRoom,
     kaneStats, updateKaneStats, boostSkill
   } = useGameStore();
@@ -91,6 +28,7 @@ export default function Exploration() {
   const [selectedLocation, setSelectedLocation] = useState<ExplorationLocation | null>(null);
   const [encounter, setEncounter] = useState<{ type: 'enemy' | 'item'; data: any; x: number; y: number } | null>(null);
   const [blessing, setBlessing] = useState<{ god: any; options: any[] } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Listen for tile clicks from Phaser
   useEffect(() => {
@@ -102,7 +40,6 @@ export default function Exploration() {
         setEncounter({ type: 'item', data: item, x: data.x, y: data.y });
         reduceEnergy(1);
       } else {
-        // Generate Enemy with Random Stats
         const baseMonster = selectedLocation.monsters[Math.floor(Math.random() * selectedLocation.monsters.length)];
         const scale = 1 + (day - 1) * 0.05;
         const enemy = {
@@ -133,21 +70,23 @@ export default function Exploration() {
   };
 
   const handleLeaveEncounter = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
     reduceEnergy(1);
     setEncounter(null);
     addExplorationLog(['Kane ตัดสินใจถอยหนีจากศัตรู...']);
+    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const handleFightEncounter = () => {
-    if (!encounter || !selectedLocation) return;
+    if (isProcessing || !encounter || !selectedLocation) return;
+    setIsProcessing(true);
+    
     const enemy = encounter.data;
     reduceEnergy(2);
 
     // Scaling combat logic
     let won = true;
-    const damageToKane = Math.max(5, enemy.atk * 2 - (kaneStats.def * 0.5));
-    
-    // Check if enemy is stronger (HP or ATK)
     const isUnderdog = enemy.atk > kaneStats.atk || enemy.hp > (kaneStats.hp * 0.8);
 
     if (won) {
@@ -164,7 +103,6 @@ export default function Exploration() {
         `ได้รับ +2 IP`
       ]);
 
-      // Visual text
       EventBus.emit('spawn-floating-text', { x: encounter.x, y: encounter.y, text: `+${lootGold} G`, color: '#ffd700' });
 
       if (isUnderdog) {
@@ -173,6 +111,7 @@ export default function Exploration() {
     }
 
     setEncounter(null);
+    setTimeout(() => setIsProcessing(false), 500);
   };
 
   const triggerBlessing = () => {
@@ -180,7 +119,6 @@ export default function Exploration() {
     const randomGod = gods[Math.floor(Math.random() * gods.length)];
     const godMeta = NPC_CONFIGS[randomGod.id];
 
-    // MVP Options
     const options = [
       { type: 'stat', label: 'เสริมพลังกาย (+3 ATK)', action: () => updateKaneStats({ atk: kaneStats.atk + 3 }) },
       { type: 'stat', label: 'เสริมความอดทน (+3 DEF)', action: () => updateKaneStats({ def: kaneStats.def + 3 }) },
@@ -210,12 +148,11 @@ export default function Exploration() {
   };
 
   if (!isExploringRoom) {
-    // --- SELECTION VIEW ---
     return (
       <div className="bg-slate-900/90 p-6 rounded-2xl border border-emerald-500/20 shadow-2xl space-y-6">
         <h2 className="text-3xl font-black text-emerald-400 uppercase tracking-tighter italic font-serif">ดินแดนสำรวจ</h2>
         <div className="space-y-3">
-          {LOCATIONS.map(loc => (
+          {EXPLORATION_LOCATIONS.map(loc => (
             <button
               key={loc.id}
               onClick={() => handleStartExploration(loc)}
@@ -230,14 +167,13 @@ export default function Exploration() {
             </button>
           ))}
         </div>
-        <div className="bg-black/50 p-4 rounded-xl max-h-32 overflow-y-auto font-mono text-[10px] md:text-xs leading-relaxed custom-scrollbar">
-          {explorationLog.map((log, i) => <div key={i} className="text-slate-500">{log}</div>)}
+        <div className="bg-black/50 p-4 rounded-xl max-h-32 overflow-y-auto font-mono text-[10px] md:text-xs leading-relaxed custom-scrollbar text-slate-500">
+          {explorationLog.map((log, i) => <div key={i}>{log}</div>)}
         </div>
       </div>
     );
   }
 
-  // --- ACTIVE EXPLORATION VIEW ---
   return (
     <div className="bg-slate-900/95 p-6 rounded-2xl border-2 border-emerald-500/30 shadow-2xl flex flex-col min-h-[500px] flex-1">
       <div className="flex justify-between items-center mb-6 shrink-0">
@@ -265,9 +201,6 @@ export default function Exploration() {
       <div className="flex-1 flex flex-col justify-center">
         {!encounter && !blessing && (
           <div className="text-center py-12 animate-in fade-in zoom-in">
-            <div className="text-emerald-500/20 mb-4 flex justify-center italic font-serif">
-              <SwordColorIcon size={64} className="opacity-20" />
-            </div>
             <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2 font-serif">กำลังสำรวจ {selectedLocation?.name}</h3>
             <p className="text-slate-500 text-xs italic font-sans">คลิกที่ "กลุ่มพลังงาน" ในฉากเพื่อค้นหาสิ่งต่างๆ</p>
           </div>
@@ -285,14 +218,16 @@ export default function Exploration() {
             <div className="space-y-3">
               <button 
                 onClick={handleFightEncounter}
-                className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-2xl shadow-xl shadow-red-900/20 uppercase tracking-widest transition-all active:scale-95 border-2 border-white/10 font-serif"
+                disabled={isProcessing}
+                className="w-full py-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl shadow-red-900/20 uppercase tracking-widest transition-all active:scale-95 border-2 border-white/10 font-serif"
               >
                 เข้าต่อสู้ (ใช้ 2 พลัง)
                 <div className="text-[9px] opacity-70 mt-0.5 font-sans">รางวัล x2 · โอกาสรับพรเทพ</div>
               </button>
               <button 
                 onClick={handleLeaveEncounter}
-                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-white/5 transition-all uppercase text-[10px] tracking-widest font-serif"
+                disabled={isProcessing}
+                className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 font-bold rounded-xl border border-white/5 transition-all uppercase text-[10px] tracking-widest font-serif"
               >
                 ถอยหนี (ใช้ 1 พลัง)
               </button>
@@ -326,7 +261,7 @@ export default function Exploration() {
                 <button 
                   key={i}
                   onClick={() => claimBlessing(opt)}
-                  className="p-4 bg-slate-900/80 hover:bg-slate-900 border border-amber-500/20 hover:border-amber-500 rounded-xl transition-all text-left group"
+                  className="p-4 bg-slate-900/80 hover:bg-slate-800 border border-amber-500/20 hover:border-amber-500 rounded-xl transition-all text-left group"
                 >
                   <div className="text-xs font-black text-amber-500 uppercase mb-1 font-serif group-hover:text-white transition-colors">{opt.label}</div>
                   <div className="text-[10px] text-slate-500 font-sans">รับการอวยพรเพื่อเพิ่มสถานะถาวร</div>
