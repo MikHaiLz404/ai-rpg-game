@@ -97,6 +97,10 @@ export default function Shop() {
   useEffect(() => {
     const onArrival = async (npc: { id: string, name: string }) => {
       if (!isShiftActive) return;
+      
+      // Clear previous dialogue when new NPC arrives
+      setDialogue(null);
+      
       setIsGenerating(true);
       setIncomingProgress(0);
       if (progressInterval.current) clearInterval(progressInterval.current);
