@@ -23,11 +23,16 @@ export default function GamePage() {
   const { 
     phase, setPhase, gold, day, choicesLeft, gameOver, gameOverReason,
     vampireDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
-    addExplorationLog, endDay, isBusy
+    addExplorationLog, endDay, isBusy, setDialogue
   } = useGameStore();
   const { initializeSave } = useSaveStore();
   
   const [mounted, setLoading] = useState(false);
+
+  // Clear dialogue when phase changes
+  useEffect(() => {
+    setDialogue(null);
+  }, [phase, setDialogue]);
 
   useEffect(() => {
     setLoading(true);
