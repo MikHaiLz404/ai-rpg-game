@@ -269,8 +269,9 @@ export default function Relationship() {
   const getNextThreshold = (c: any) => getSkillThresholds(c.id).find(t => c.bond < t);
 
   return (
-    <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col min-h-[500px] max-h-[800px]">
+    <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col min-h-[500px] flex-1 max-h-[90vh] lg:max-h-none">
       <div className="flex justify-between items-center mb-4 shrink-0">
+
         <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic font-serif">สายสัมพันธ์แห่งเทพ</h2>
         {selectedId && <button onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}} className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors font-serif">← กลับ</button>}
       </div>

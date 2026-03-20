@@ -70,7 +70,7 @@ export default function GamePage() {
   if (!mounted) return null;
 
   return (
-    <main className="h-screen bg-[#020617] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30 overflow-hidden">
+    <main className="min-h-screen lg:h-screen bg-[#020617] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30 lg:overflow-hidden overflow-y-auto">
       {/* Global Overlays (Draggable/Top-level) */}
       <ProphecyOverlay />
       <AITerminal />
@@ -104,7 +104,7 @@ export default function GamePage() {
       </header>
 
       {/* Main Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
+      <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden relative">
         
         {/* Game View Container (Center) */}
         <div className="flex-1 relative flex items-start justify-center p-2 lg:p-4 bg-[#05070a]">
@@ -145,7 +145,7 @@ export default function GamePage() {
         </div>
 
         {/* Sidebar Controls (Right) */}
-        <aside className="w-full lg:w-[400px] shrink-0 border-l border-white/5 bg-[#080a0f] overflow-y-auto p-4 md:p-6 custom-scrollbar">
+        <aside className="w-full lg:w-[400px] shrink-0 border-l border-white/5 bg-[#080a0f] lg:overflow-y-auto p-4 md:p-6 custom-scrollbar">
           <div className="space-y-6">
             
             {/* End Day Button (Appears when 0 actions left) */}
