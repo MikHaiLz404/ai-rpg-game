@@ -71,7 +71,7 @@ export default function GamePage() {
 
   return (
     <main className="h-screen bg-[#020617] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30 overflow-hidden">
-      {/* Global Overlays */}
+      {/* Global Overlays (Draggable/Top-level) */}
       <ProphecyOverlay />
       <AITerminal />
 
@@ -110,10 +110,8 @@ export default function GamePage() {
         <div className="flex-1 relative flex items-start justify-center p-2 lg:p-4 bg-[#05070a]">
           <div className="relative aspect-[4/3] w-full max-w-[1024px] shadow-2xl shadow-black/50 rounded-2xl overflow-hidden border border-white/10 bg-black mt-2">
             <PhaserGame />
-            
-            {/* Dialogue Overlay (Now inside game frame) */}
             <DialogueOverlay />
-
+            
             {/* Phase Overlay Badge */}
             <div className="absolute top-4 left-4 pointer-events-none">
               <div className="bg-slate-950/80 backdrop-blur px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
@@ -182,11 +180,6 @@ export default function GamePage() {
           </div>
         </aside>
       </div>
-
-      {/* Overlays (Keep at bottom for clean stack) */}
-      <ProphecyOverlay />
-      <DialogueOverlay />
-      <AITerminal />
     </main>
   );
 }

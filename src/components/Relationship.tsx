@@ -269,13 +269,13 @@ export default function Relationship() {
   const getNextThreshold = (c: any) => getSkillThresholds(c.id).find(t => c.bond < t);
 
   return (
-    <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col h-[650px] max-h-[80vh]">
+    <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col min-h-[500px] max-h-[800px]">
       <div className="flex justify-between items-center mb-4 shrink-0">
         <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic font-serif">สายสัมพันธ์แห่งเทพ</h2>
         {selectedId && <button onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}} className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors font-serif">← กลับ</button>}
       </div>
       {selectedCompanion && metadata ? (
-        <div className="flex-1 flex flex-col min-h-0 space-y-4 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="bg-slate-800/30 p-4 rounded-2xl border border-white/5 flex items-center gap-4 relative overflow-hidden shrink-0">
             <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0 overflow-hidden">{metadata.facial ? <img src={metadata.facial} alt={selectedCompanion.name} className="w-full h-full object-cover image-pixelated" /> : <span className="text-2xl">{metadata.emoji}</span>}</div>
             <div className="flex-1 min-w-0">
@@ -286,10 +286,10 @@ export default function Relationship() {
           {isGeneratingSkill && <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse shrink-0"><span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest font-serif">กำลังรวบรวมพลังเทพ...</span></div>}
           <div ref={scrollRef} className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 min-h-0">{chatLog.length === 0 && <div className="text-center text-slate-600 italic text-xs md:text-sm py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>}{chatLog.map((msg, i) => <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${msg.sender === 'player' ? 'bg-pink-600 text-white rounded-tr-none' : msg.sender === 'npc' ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5' : 'bg-amber-500/10 text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'}`}>{msg.text}</div></div>)}{isTalking && <div className="flex justify-start"><div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs md:text-sm font-sans">กำลังคิด...</div></div>}</div>
           
-          <div className="shrink-0 space-y-2 pb-2">
+          <div className="shrink-0 space-y-2 pb-4">
             {selectedId && !conversationEnded && <div className="flex items-center justify-between px-1 mb-1"><span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest font-sans">โอกาสพูดคุย</span><div className="flex items-center gap-1">{Array.from({ length: GOD_CHAT_LIMIT[selectedId] ?? 3 }).map((_, i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < turnsUsed ? 'bg-slate-700' : 'bg-pink-500'}`} />)}<span className="text-[8px] md:text-[10px] text-slate-500 ml-1 font-sans">{Math.max(0, (GOD_CHAT_LIMIT[selectedId] ?? 3) - turnsUsed)}/{GOD_CHAT_LIMIT[selectedId] ?? 3}</span></div></div>}
             {conversationEnded && <div className="bg-slate-800/50 border border-pink-500/20 rounded-xl px-4 py-3 text-center"><div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest font-sans">บทสนทนาวันนี้จบลงแล้ว</div><div className="text-[9px] md:text-[11px] text-slate-600 mt-1 font-sans">ยังมอบของขวัญได้ หรือกลับไปเลือกเทพองค์อื่น</div></div>}
-            <form onSubmit={(e) => { e.preventDefault(); if (userInput.trim() && !conversationEnded) handleTalk(selectedCompanion.id, userInput); }} className="flex gap-2 relative font-sans">
+            <form onSubmit={(e) => { e.preventDefault(); if (userInput.trim() && !conversationEnded) handleTalk(selectedCompanion.id, userInput); }} className="flex gap-2 relative">
               <button type="button" onClick={() => setShowGiftModal(!showGiftModal)} disabled={choicesLeft <= 0 || conversationEnded} className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50">🎁</button>
               {showGiftModal && (
                 <div className="absolute bottom-full left-0 w-64 bg-slate-900 border-2 border-pink-500/30 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2">

@@ -18,15 +18,8 @@ export default function DialogueOverlay() {
     ? FACIAL_EXPRESSIONS[dialogue.portrait] 
     : isMinju ? FACIAL_EXPRESSIONS.work : null;
 
-  // Most dialogues should appear at the bottom, but some can be top-aligned
-  const isTop = false; 
-
   return (
-    <div className={`fixed left-4 right-4 md:left-8 md:right-8 z-[100] animate-in duration-300 ${
-      isTop
-        ? 'top-4 slide-in-from-top-4'
-        : 'bottom-4 md:bottom-8 slide-in-from-bottom-4'
-    }`}>
+    <div className="absolute left-4 right-4 bottom-4 z-[100] animate-in slide-in-from-bottom-4 duration-300">
       <div className="max-w-4xl mx-auto flex items-end gap-4">
         {/* Portrait */}
         {portrait && (
