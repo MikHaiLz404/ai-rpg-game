@@ -65,6 +65,11 @@ export default function GamePage() {
     if (targetRoom) {
       EventBus.emit('change-room', targetRoom);
     }
+
+    // Bug Fix: If we leave exploration phase, tell Phaser to clear tiles immediately
+    if (phase !== 'exploration') {
+      EventBus.emit('exploration-ended');
+    }
   }, [phase, mounted]);
 
   if (!mounted) return null;

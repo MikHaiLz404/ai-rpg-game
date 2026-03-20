@@ -270,6 +270,7 @@ export class MainScene extends Phaser.Scene {
         const enemyDeathListener = () => this.playEnemyDeath();
         const combatEndListener = () => this.resetArenaIdle();
         const walkNPCListener = (data: { npcId: string }) => this.walkToVillageNPC(data.npcId);
+        const explorationEndedListener = () => this.explorationTiles.clear(true, true);
 
         EventBus.on('clear-customer', clearCustomerListener);
         EventBus.on('change-room', changeRoomListener);
@@ -279,6 +280,7 @@ export class MainScene extends Phaser.Scene {
         EventBus.on('arena-enemy-death', enemyDeathListener);
         EventBus.on('arena-combat-end', combatEndListener);
         EventBus.on('village-walk-to-npc', walkNPCListener);
+        EventBus.on('exploration-ended', explorationEndedListener);
 
         // Cleanup on Shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -290,6 +292,7 @@ export class MainScene extends Phaser.Scene {
             EventBus.off('arena-enemy-death', enemyDeathListener);
             EventBus.off('arena-combat-end', combatEndListener);
             EventBus.off('village-walk-to-npc', walkNPCListener);
+            EventBus.off('exploration-ended', explorationEndedListener);
         });
 
         this.debugGraphics = this.add.graphics();
