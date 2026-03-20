@@ -33,7 +33,7 @@ export default function Exploration() {
   // Listen for tile clicks from Phaser
   useEffect(() => {
     const onTileClicked = (data: { type: string; x: number; y: number }) => {
-      if (!selectedLocation) return;
+      if (!selectedLocation || isProcessing) return;
 
       if (data.type === 'gathering') {
         const item = weightedRandom(selectedLocation.loot);
@@ -55,7 +55,7 @@ export default function Exploration() {
 
     EventBus.on('exploration-tile-clicked', onTileClicked);
     return () => { EventBus.off('exploration-tile-clicked', onTileClicked); };
-  }, [selectedLocation, day, reduceEnergy]);
+  }, [selectedLocation, day, reduceEnergy, isProcessing]);
 
   const handleStartExploration = (loc: ExplorationLocation) => {
     if (choicesLeft <= 0) {
@@ -72,7 +72,7 @@ export default function Exploration() {
   const handleLeaveEncounter = () => {
     if (isProcessing) return;
     setIsProcessing(true);
-    reduceEnergy(1);
+    reduceEnergy(2); // Leave costs 2 Energy
     setEncounter(null);
     addExplorationLog(['Kane ตัดสินใจถอยหนีจากศัตรู...']);
     setTimeout(() => setIsProcessing(false), 500);
@@ -83,7 +83,7 @@ export default function Exploration() {
     setIsProcessing(true);
     
     const enemy = encounter.data;
-    reduceEnergy(2);
+    reduceEnergy(1); // Fight costs only 1 Energy
 
     // Scaling combat logic
     let won = true;
@@ -218,18 +218,18 @@ export default function Exploration() {
             <div className="space-y-3">
               <button 
                 onClick={handleFightEncounter}
-                disabled={isProcessing}
+                disabled={isProcessing || explorationEnergy < 1}
                 className="w-full py-4 bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black rounded-2xl shadow-xl shadow-red-900/20 uppercase tracking-widest transition-all active:scale-95 border-2 border-white/10 font-serif"
               >
-                เข้าต่อสู้ (ใช้ 2 พลัง)
+                เข้าต่อสู้ (ใช้ 1 พลัง)
                 <div className="text-[9px] opacity-70 mt-0.5 font-sans">รางวัล x2 · โอกาสรับพรเทพ</div>
               </button>
               <button 
                 onClick={handleLeaveEncounter}
-                disabled={isProcessing}
+                disabled={isProcessing || explorationEnergy < 2}
                 className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 font-bold rounded-xl border border-white/5 transition-all uppercase text-[10px] tracking-widest font-serif"
               >
-                ถอยหนี (ใช้ 1 พลัง)
+                ถอยหนี (ใช้ 2 พลัง)
               </button>
             </div>
           </div>

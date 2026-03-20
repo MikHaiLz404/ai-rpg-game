@@ -109,49 +109,62 @@ export class MainScene extends Phaser.Scene {
 
         // Enemy sprites - Slime
         this.load.spritesheet('slime_idle', '/images/enemies/slime/idle/enemies-slime1_idle.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('slime_attack', '/images/enemies/slime/attack/enemies-slime1_attack.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('slime_damage', '/images/enemies/slime/damaged/enemies-slime1_take_damage.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('slime_death', '/images/enemies/slime/death/enemies-slime1_death.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
 
         // Enemy sprites - Skeleton
         this.load.spritesheet('skeleton_idle', '/images/enemies/skeleton/idle/enemies-skeleton2_idle.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('skeleton_attack', '/images/enemies/skeleton/attack/enemies-skeleton2_attack.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('skeleton_damage', '/images/enemies/skeleton/damaged/enemies-skeleton2_take_damage.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('skeleton_death', '/images/enemies/skeleton/death/enemies-skeleton2_death.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
 
         // Enemy sprites - Demon
         this.load.spritesheet('demon_idle', '/images/enemies/demon/idle/enemies-vampire_idle.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('demon_attack', '/images/enemies/demon/attack/enemies-vampire_attack.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('demon_damage', '/images/enemies/demon/damaged/enemies-vampire_take_damage.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('demon_death', '/images/enemies/demon/death/enemies-vamenemies-skeleton2_death.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
 
         // Combat Effects
         this.load.spritesheet('attack_effect', '/images/effects/combat/attack/effect_kane_attack.png', {
-            frameWidth: 32, frameHeight: 32
+            frameWidth: 32,
+            frameHeight: 32
         });
         this.load.spritesheet('enemy_attack_effect', '/images/effects/combat/attack/effect_enemy_attack.png', {
             frameWidth: 64, frameHeight: 64
@@ -386,6 +399,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     spawnExplorationTiles() {
+        // Strict Check: Only spawn if actively exploring
+        const { isExploringRoom } = (this.game as any).store?.getState() || { isExploringRoom: false };
+        if (!isExploringRoom) return;
+
         this.explorationTiles.clear(true, true);
         for (let i = 0; i < 6; i++) {
             const x = 40 + Math.random() * 300;
@@ -394,12 +411,22 @@ export class MainScene extends Phaser.Scene {
             const type = isEnemy ? 'enemy' : 'gathering';
             const container = this.add.container(x, y);
             container.setSize(32, 32); container.setInteractive({ useHandCursor: true });
-            const color = isEnemy ? 0xff4444 : 0x44ff44;
+            
+            // Uniform Mystery Color (Amber Yellow)
+            const color = 0xf59e0b; 
             const glow = this.add.graphics();
             glow.fillStyle(color, 0.3); glow.fillCircle(0, 0, 12);
             glow.fillStyle(color, 1); glow.fillCircle(0, 0, 6);
             container.add(glow); container.setDepth(100); 
-            container.on('pointerdown', () => { container.destroy(); EventBus.emit('exploration-tile-clicked', { type, x, y }); });
+            
+            container.on('pointerdown', () => { 
+                // Strict Energy Check
+                const { explorationEnergy } = (this.game as any).store?.getState() || { explorationEnergy: 0 };
+                if (explorationEnergy <= 0) return;
+                
+                container.destroy(); 
+                EventBus.emit('exploration-tile-clicked', { type, x, y }); 
+            });
             this.explorationTiles.add(container);
             this.tweens.add({ targets: container, y: y - 8, alpha: 0.7, duration: 1000 + Math.random() * 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
@@ -456,10 +483,13 @@ export class MainScene extends Phaser.Scene {
             const scaleX = 384 / this.bgSprite.width; const scaleY = 288 / this.bgSprite.height;
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
+        
+        // Only spawn tiles if room is exploration AND the player clicked "Explore"
         if (room.phase === 'exploration') {
             const { isExploringRoom } = (this.game as any).store?.getState() || { isExploringRoom: false };
             if (isExploringRoom) this.spawnExplorationTiles();
         }
+
         if (roomName === 'arena') {
             this.player.setPosition(120, 240); this.player.anims.play('player-down', true);
             this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
