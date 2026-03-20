@@ -25,15 +25,15 @@ export default function GamePage() {
     vampireDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
     addExplorationLog, endDay, isBusy
   } = useGameStore();
+  const { initializeSave } = useSaveStore();
   
   const [mounted, setLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    const saved = localStorage.getItem('gods-arena-save-quick');
-    if (saved) {
-      try { loadSaveData(JSON.parse(saved)); } catch(e) {}
-    }
+    
+    // Use the robust save system initializer (IndexedDB + Fallback)
+    initializeSave();
 
     const onPhaseChange = (newPhase: string) => {
       setPhase(newPhase as any);
