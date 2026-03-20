@@ -55,6 +55,13 @@ export default function Arena() {
     if (useIP(2)) {
       logAction(`✨ ${skill.name} ถูกเปิดใช้งานโดยพรแห่งเทพ!`);
       
+      // Bonus: Using skill increases bond with that God
+      const { addBond } = useGameStore.getState();
+      addBond(godId, 1);
+      
+      // Visual feedback for bond gain
+      EventBus.emit('spawn-floating-text', { text: `💗 +1 Bond`, color: '#f472b6' });
+
       const damage = Math.floor((15 * skill.multiplier) - enemy.def);
       const finalDmg = Math.max(5, damage);
       
