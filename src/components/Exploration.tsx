@@ -201,8 +201,12 @@ export default function Exploration() {
       <div className="flex-1 flex flex-col justify-center">
         {!encounter && !blessing && (
           <div className="text-center py-12 animate-in fade-in zoom-in">
-            <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2 font-serif">กำลังสำรวจ {selectedLocation?.name}</h3>
-            <p className="text-slate-500 text-xs italic font-sans">คลิกที่ "กลุ่มพลังงาน" ในฉากเพื่อค้นหาสิ่งต่างๆ</p>
+            <h3 className="text-lg font-black text-white uppercase tracking-widest mb-2 font-serif">
+              {explorationEnergy > 0 ? `กำลังสำรวจ ${selectedLocation?.name}` : 'การสำรวจเสร็จสิ้น'}
+            </h3>
+            <p className="text-slate-500 text-xs italic font-sans">
+              {explorationEnergy > 0 ? 'คลิกที่ "กลุ่มพลังงาน" ในฉากเพื่อค้นหาสิ่งต่างๆ' : 'คุณสำรวจพื้นที่นี้จนหมดพลังแล้ว กลับไปพักผ่อนเถอะ'}
+            </p>
           </div>
         )}
 
