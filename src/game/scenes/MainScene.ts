@@ -247,17 +247,16 @@ export class MainScene extends Phaser.Scene {
 
         this.loadRoom('shop');
 
-        this.input.keyboard?.on('keydown-G', () => {
-            this.debugMode = !this.debugMode;
-            this.debugGraphics.setVisible(this.debugMode);
-            this.coordText.setVisible(this.debugMode);
-        });
-
         this.scheduleNextCustomer();
 
         // ---------------------------------------------------------
         // EventBus Listeners with Cleanup
         // ---------------------------------------------------------
+        const toggleDebugListener = (enabled?: boolean) => {
+            this.debugMode = enabled !== undefined ? enabled : !this.debugMode;
+            if (this.debugGraphics) this.debugGraphics.setVisible(this.debugMode);
+            if (this.coordText) this.coordText.setVisible(this.debugMode);
+        };
         const clearCustomerListener = () => this.clearCustomer();
         const changeRoomListener = (roomName: string) => this.loadRoom(roomName);
         const floatingTextListener = (data: { x?: number, y?: number, text: string, color?: string }) => {
@@ -273,6 +272,7 @@ export class MainScene extends Phaser.Scene {
         const explorationEndedListener = () => this.explorationTiles.clear(true, true);
         const arenaGodSupportListener = (data: { godId: string, skillName: string }) => this.playGodSupport(data.godId, data.skillName);
 
+        EventBus.on('toggle-debug', toggleDebugListener);
         EventBus.on('clear-customer', clearCustomerListener);
         EventBus.on('change-room', changeRoomListener);
         EventBus.on('spawn-floating-text', floatingTextListener);
@@ -286,6 +286,7 @@ export class MainScene extends Phaser.Scene {
 
         // Cleanup on Shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            EventBus.off('toggle-debug', toggleDebugListener);
             EventBus.off('clear-customer', clearCustomerListener);
             EventBus.off('change-room', changeRoomListener);
             EventBus.off('spawn-floating-text', floatingTextListener);

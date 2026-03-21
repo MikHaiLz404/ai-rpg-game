@@ -105,6 +105,12 @@ export default function GamePage() {
         <div className="flex items-center gap-4">
           <AIStatusBadge />
           <button 
+            onClick={() => { EventBus.emit('toggle-debug'); }}
+            className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors border border-white/10 px-2 py-1 rounded hover:border-white/30"
+          >
+            Debug Grid
+          </button>
+          <button 
             onClick={() => { if(confirm('Reset game?')) resetGame(); }}
             className="text-[10px] font-black text-slate-500 hover:text-white uppercase tracking-widest transition-colors"
           >
