@@ -360,8 +360,8 @@ export class MainScene extends Phaser.Scene {
             this.arenaEnemy.destroy();
         }
 
-        // Adjust Y for slime to make it look grounded
-        const yPos = enemyType === 'slime' ? 164 : 154;
+        // Adjust Y for slime: Move it UP (smaller Y) if it looks too low
+        const yPos = enemyType === 'slime' ? 148 : 154;
         this.arenaEnemy = this.add.sprite(200, yPos, `${enemyType}_idle`).setScale(1.5).setDepth(40);
         this.arenaEnemy.play(`${enemyType}-idle`);
         this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: yPos - 2, duration: 800, yoyo: true, repeat: -1 });
@@ -511,10 +511,10 @@ export class MainScene extends Phaser.Scene {
             this.player.setPosition(120, 240); this.player.anims.play('player-down', true);
             this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
             this.currentEnemyType = 'slime';
-            // Adjusted slime Y from 154 to 164 to be grounded
-            this.arenaEnemy = this.add.sprite(200, 164, 'slime_idle').setScale(1.5).setDepth(40); this.arenaEnemy.play('slime-idle', true);
+            // Adjusted slime Y from 164 to 148 to be higher
+            this.arenaEnemy = this.add.sprite(200, 148, 'slime_idle').setScale(1.5).setDepth(40); this.arenaEnemy.play('slime-idle', true);
             this.kaneBobTween = this.tweens.add({ targets: this.kaneFighter, y: 152, duration: 1000, yoyo: true, repeat: -1 });
-            this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: 162, duration: 800, yoyo: true, repeat: -1 });
+            this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: 146, duration: 800, yoyo: true, repeat: -1 });
         }
  else if (roomName === 'village') {
             this.player.setPosition(205, 240); this.player.anims.play('player-down', true);
