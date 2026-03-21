@@ -256,7 +256,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'bankruptcy' as const, isBusy: false };
     }
     const restockCostMultiplier = 1.0 + (newDay - 1) * 0.03;
-    return { choicesLeft: MAX_CHOICES_PER_DAY, day: newDay, restockCostMultiplier, showProphecy: true, isBusy: false, lastDailyEvent: null };
+    
+    // Bug Fix: Reset exploration states on day change
+    return { 
+      choicesLeft: MAX_CHOICES_PER_DAY, 
+      day: newDay, 
+      restockCostMultiplier, 
+      showProphecy: true, 
+      isBusy: false, 
+      lastDailyEvent: null,
+      isExploringRoom: false,
+      explorationEnergy: 0
+    };
   }),
 
   isBusy: false,
