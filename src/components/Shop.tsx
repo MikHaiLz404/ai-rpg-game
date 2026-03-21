@@ -85,7 +85,8 @@ export default function Shop() {
     gold, addGold, spendGold, addItem, items, removeItem,
     currentCustomer, setCustomer, companions, addBond,
     day, choicesLeft, customersServed, isShiftActive, startShift, endShift, incrementServed,
-    setDialogue, restockCostMultiplier, addAILog
+    setDialogue, restockCostMultiplier, addAILog,
+    currentDailyEventEffect
   } = useGameStore();
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -97,10 +98,7 @@ export default function Shop() {
   useEffect(() => {
     const onArrival = async (npc: { id: string, name: string }) => {
       if (!isShiftActive) return;
-      
-      // Clear previous dialogue when new NPC arrives
       setDialogue(null);
-      
       setIsGenerating(true);
       setIncomingProgress(0);
       if (progressInterval.current) clearInterval(progressInterval.current);
@@ -176,16 +174,23 @@ export default function Shop() {
       EventBus.off('customer-incoming', onIncoming);
       if (progressInterval.current) clearInterval(progressInterval.current);
     };
-  }, [setCustomer, companions, isShiftActive, currentCustomer, isGenerating, day, addAILog]);
+  }, [setCustomer, companions, isShiftActive, currentCustomer, isGenerating, day, addAILog, setDialogue]);
 
   const handleSell = () => {
     if (!currentCustomer) return;
     if (items.includes(currentCustomer.wantedItemId)) {
       removeItem(currentCustomer.wantedItemId);
-      addGold(currentCustomer.offeredGold);
+      
+      // Apply Dynamic Gold Boost
+      let finalGold = currentCustomer.offeredGold;
+      if (currentDailyEventEffect?.type === 'gold_boost') {
+        finalGold = Math.floor(finalGold * currentDailyEventEffect.value);
+      }
+      
+      addGold(finalGold);
       
       // Visual feedback in Phaser
-      EventBus.emit('spawn-floating-text', { text: `+${currentCustomer.offeredGold} Gold`, color: '#ffd700' });
+      EventBus.emit('spawn-floating-text', { text: `+${finalGold} Gold`, color: '#ffd700' });
 
       if (currentCustomer.isGod) {
         const companion = companions.find(c => c.name === currentCustomer.name);
@@ -193,7 +198,7 @@ export default function Shop() {
       }
       setDialogue({
         speaker: 'Minju',
-        text: `ขายได้แล้ว! ได้ ${currentCustomer.offeredGold} ทองมาเพิ่ม ขอบคุณที่อุดหนุนนะคะ~`,
+        text: `ขายได้แล้ว! ได้ ${finalGold} ทองมาเพิ่ม ขอบคุณที่อุดหนุนนะคะ~`,
         portrait: 'happy'
       });
       incrementServed();
@@ -216,7 +221,13 @@ export default function Shop() {
     if (customersServed + 1 >= shiftTarget) setTimeout(() => endShift(), 2000);
   };
 
-  const getWholesalePrice = (item: typeof ITEMS[0]) => Math.floor(item.price * 0.6 * restockCostMultiplier);
+  const getWholesalePrice = (item: typeof ITEMS[0]) => {
+    let price = Math.floor(item.price * 0.6 * restockCostMultiplier);
+    if (currentDailyEventEffect?.type === 'restock_penalty' || currentDailyEventEffect?.type === 'restock_discount') {
+      price = Math.floor(price * currentDailyEventEffect.value);
+    }
+    return price;
+  };
 
   const handleRestock = (item: typeof ITEMS[0]) => {
     const wholesalePrice = getWholesalePrice(item);
@@ -294,7 +305,7 @@ export default function Shop() {
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
         <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 font-serif">Stockroom & Restock</h3>
         <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2; return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 font-serif"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500 font-sans">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600 font-sans flex items-center justify-center gap-1">{wholesale} <GoldIcon size={10} className={gold >= wholesale ? 'text-amber-400' : 'text-slate-500'} /> {isExpensive && <span className="text-red-400">↑</span>}</button></div> ); })}
+          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2 || (currentDailyEventEffect?.type === 'restock_penalty'); return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 font-serif"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500 font-sans">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600 font-sans flex items-center justify-center gap-1">{wholesale} <GoldIcon size={10} className={gold >= wholesale ? 'text-amber-400' : 'text-slate-500'} /> {(isExpensive || currentDailyEventEffect?.type === 'restock_discount') && <span className={currentDailyEventEffect?.type === 'restock_discount' ? "text-emerald-400" : "text-red-400"}>{currentDailyEventEffect?.type === 'restock_discount' ? '↓' : '↑'}</span>}</button></div> ); })}
         </div>
       </div>
     </div>

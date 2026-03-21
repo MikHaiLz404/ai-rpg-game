@@ -18,13 +18,13 @@ interface DailyEvent {
   title: string;
   description: string;
   emoji: string;
-  effect: { type: 'gold' | 'item' | 'ip' | 'bond' | 'discount'; value: number; target?: string };
+  effect: { type: any; value: number; target?: string };
 }
 
 export default function ProphecyOverlay() {
-  const { day, gold, companions, showProphecy, setShowProphecy, addGold, addItem, addIP, addBond, setLastDailyEvent, addAILog } = useGameStore();
+  const { day, gold, companions, showProphecy, setShowProphecy, addGold, addItem, addIP, addBond, setDailyEvent, addAILog } = useGameStore();
   const [prophecies, setProphecies] = useState<Prophecy[]>([]);
-  const [dailyEvent, setDailyEvent] = useState<DailyEvent | null>(null);
+  const [dailyEvent, setDailyEventLocal] = useState<DailyEvent | null>(null);
   const [eventApplied, setEventApplied] = useState(false);
   const [source, setSource] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ export default function ProphecyOverlay() {
   useEffect(() => {
     if (!showProphecy) {
       setProphecies([]);
-      setDailyEvent(null);
+      setDailyEventLocal(null);
       setEventApplied(false);
       setSource('');
       setRevealed(0);
@@ -63,7 +63,6 @@ export default function ProphecyOverlay() {
         setSource(data.source || '');
         broadcastAISource(data.source || 'fallback');
 
-        // Log each god's prophecy
         if (data.prophecies) {
           data.prophecies.forEach((p: Prophecy) => {
             addAILog({
@@ -78,9 +77,8 @@ export default function ProphecyOverlay() {
           });
         }
 
-        // Store and log daily event
         if (data.dailyEvent) {
-          setDailyEvent(data.dailyEvent);
+          setDailyEventLocal(data.dailyEvent);
           addAILog({
             action: 'daily_event',
             model: 'google/gemini-2.0-flash-001',
@@ -92,7 +90,6 @@ export default function ProphecyOverlay() {
           });
         }
 
-        // Reveal prophecies one by one
         const totalItems = (data.prophecies?.length || 3) + (data.dailyEvent ? 1 : 0);
         let i = 0;
         const interval = setInterval(() => {
@@ -189,15 +186,12 @@ export default function ProphecyOverlay() {
                   onApply={() => {
                     if (eventApplied) return;
                     setEventApplied(true);
+                    setDailyEvent(dailyEvent.title, dailyEvent.effect);
                     const { effect } = dailyEvent;
-                    switch (effect.type) {
-                      case 'gold': addGold(effect.value); break;
-                      case 'ip': addIP(effect.value); break;
-                      case 'item': if (effect.target) addItem(effect.target); break;
-                      case 'bond': if (effect.target) addBond(effect.target, effect.value); break;
-                      case 'discount': addGold(effect.value); break;
-                    }
-                    setLastDailyEvent(`${dailyEvent.emoji} ${dailyEvent.title}`);
+                    if (effect.type === 'gold') addGold(effect.value);
+                    else if (effect.type === 'ip') addIP(effect.value);
+                    else if (effect.type === 'item' && effect.target) addItem(effect.target);
+                    else if (effect.type === 'bond' && effect.target) addBond(effect.target, effect.value);
                   }}
                 />
               )}
@@ -225,12 +219,12 @@ export default function ProphecyOverlay() {
 function DailyEventCard({ event, applied, onApply }: { event: DailyEvent; applied: boolean; onApply: () => void }) {
   const effectLabel = (() => {
     switch (event.effect.type) {
-      case 'gold': return `+${event.effect.value} ทอง`;
-      case 'ip': return `+${event.effect.value} IP`;
-      case 'item': return `ได้ของ!`;
-      case 'bond': return `+${event.effect.value} Bond`;
-      case 'discount': return `ลด ${event.effect.value}%`;
-      default: return '';
+      case 'gold_boost': return `Boost ยอดขาย x${event.effect.value}`;
+      case 'restock_penalty': return `ค่าส่งเพิ่ม ${Math.round((event.effect.value - 1) * 100)}%`;
+      case 'restock_discount': return `ลดค่าส่ง ${Math.round((1 - event.effect.value) * 100)}%`;
+      case 'ip_boost': return `+${event.effect.value} IP Bonus`;
+      case 'bond_penalty': return `สนิทช้าลง ${Math.round((1 - event.effect.value) * 100)}%`;
+      default: return 'รับผลของเหตุการณ์';
     }
   })();
 
@@ -248,7 +242,7 @@ function DailyEventCard({ event, applied, onApply }: { event: DailyEvent; applie
           disabled={applied}
           className={`shrink-0 px-3 py-1.5 rounded-lg text-[10px] md:text-xs font-black uppercase tracking-wider transition-all active:scale-95 font-serif ${applied ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500 text-slate-900 hover:bg-amber-400 shadow-md shadow-amber-500/20'}`}
         >
-          {applied ? `${effectLabel} ✓` : effectLabel}
+          {applied ? `เปิดใช้งาน ✓` : effectLabel}
         </button>
       </div>
     </div>

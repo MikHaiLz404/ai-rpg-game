@@ -47,9 +47,9 @@ export class MainScene extends Phaser.Scene {
     currentRoom = 'shop';
     bgSprite: Phaser.GameObjects.Image | null = null;
     roomText!: Phaser.GameObjects.Text;
-    
+
     customerNPC: Phaser.GameObjects.Sprite | null = null;
-    
+
     // Arena Fighters
     kaneFighter: Phaser.GameObjects.Sprite | null = null;
     arenaEnemy: Phaser.GameObjects.Sprite | null = null;
@@ -169,7 +169,7 @@ export class MainScene extends Phaser.Scene {
         this.load.spritesheet('enemy_attack_effect', '/images/effects/combat/attack/effect_enemy_attack.png', {
             frameWidth: 64, frameHeight: 64
         });
-        
+
         // Backgrounds
         this.load.image('bg_shop', '/images/backgrounds/shop/interior/bg_shop_interior.png');
         this.load.image('bg_arena', '/images/backgrounds/arena/interior/bg_arena_interior.png');
@@ -271,6 +271,7 @@ export class MainScene extends Phaser.Scene {
         const combatEndListener = () => this.resetArenaIdle();
         const walkNPCListener = (data: { npcId: string }) => this.walkToVillageNPC(data.npcId);
         const explorationEndedListener = () => this.explorationTiles.clear(true, true);
+        const arenaGodSupportListener = (data: { godId: string, skillName: string }) => this.playGodSupport(data.godId, data.skillName);
 
         EventBus.on('clear-customer', clearCustomerListener);
         EventBus.on('change-room', changeRoomListener);
@@ -281,6 +282,7 @@ export class MainScene extends Phaser.Scene {
         EventBus.on('arena-combat-end', combatEndListener);
         EventBus.on('village-walk-to-npc', walkNPCListener);
         EventBus.on('exploration-ended', explorationEndedListener);
+        EventBus.on('arena-god-support', arenaGodSupportListener);
 
         // Cleanup on Shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -293,6 +295,7 @@ export class MainScene extends Phaser.Scene {
             EventBus.off('arena-combat-end', combatEndListener);
             EventBus.off('village-walk-to-npc', walkNPCListener);
             EventBus.off('exploration-ended', explorationEndedListener);
+            EventBus.off('arena-god-support', arenaGodSupportListener);
         });
 
         this.debugGraphics = this.add.graphics();
@@ -414,19 +417,19 @@ export class MainScene extends Phaser.Scene {
             const type = isEnemy ? 'enemy' : 'gathering';
             const container = this.add.container(x, y);
             container.setSize(32, 32); container.setInteractive({ useHandCursor: true });
-            
+
             // Uniform Mystery Color (Amber Yellow)
             const color = 0xf59e0b; 
             const glow = this.add.graphics();
             glow.fillStyle(color, 0.3); glow.fillCircle(0, 0, 12);
             glow.fillStyle(color, 1); glow.fillCircle(0, 0, 6);
             container.add(glow); container.setDepth(100); 
-            
+
             container.on('pointerdown', () => { 
                 // Strict Energy Check
                 const { explorationEnergy } = (this.game as any).store?.getState() || { explorationEnergy: 0 };
                 if (explorationEnergy <= 0) return;
-                
+
                 container.destroy(); 
                 EventBus.emit('exploration-tile-clicked', { type, x, y }); 
             });
@@ -450,9 +453,16 @@ export class MainScene extends Phaser.Scene {
     }
 
     trySpawnCustomer() {
+        // Stability Fix: Only spawn if we are actually in the shop scene and scene is active
+        if (this.currentRoom !== 'shop' || !this.scene.isActive()) return;
+
         const { isShiftActive } = (this.game as any).store?.getState() || { isShiftActive: true };
-        if (this.currentRoom !== 'shop' || !isShiftActive || this.customerNPC) return;
-        const pool = Math.random() < 0.5 ? [{ id: 'leo', name: 'เลโอ', texture: 'npc_leo', anim: 'leo' }, { id: 'arena', name: 'อารีน่า', texture: 'npc_arena', anim: 'arena' }, { id: 'draco', name: 'ดราโก้', texture: 'npc_draco', anim: 'draco' }] : [{ id: 'mortal_farmer', name: 'ชาวนาฟลอร่า', texture: 'npc_leo', anim: 'leo' }, { id: 'mortal_merchant', name: 'พ่อค้าเดินทาง', texture: 'npc_arena', anim: 'arena' }, { id: 'mortal_soldier', name: 'ทหารรับจ้าง', texture: 'npc_draco', anim: 'draco' }];
+        if (!isShiftActive || this.customerNPC) return;
+
+        const pool = Math.random() < 0.5 
+            ? [{ id: 'leo', name: 'เลโอ', texture: 'npc_leo', anim: 'leo' }, { id: 'arena', name: 'อารีน่า', texture: 'npc_arena', anim: 'arena' }, { id: 'draco', name: 'ดราโก้', texture: 'npc_draco', anim: 'draco' }] 
+            : [{ id: 'mortal_farmer', name: 'ชาวนาฟลอร่า', texture: 'npc_leo', anim: 'leo' }, { id: 'mortal_merchant', name: 'พ่อค้าเดินทาง', texture: 'npc_arena', anim: 'arena' }, { id: 'mortal_soldier', name: 'ทหารรับจ้าง', texture: 'npc_draco', anim: 'draco' }];
+
         const selected = pool[Math.floor(Math.random() * pool.length)];
         this.customerNPC = this.add.sprite(180, 263, selected.texture).setScale(1.5).setDepth(45);
         this.customerNPC.anims.play(`${selected.anim}-up`, true);
@@ -486,7 +496,7 @@ export class MainScene extends Phaser.Scene {
             const scaleX = 384 / this.bgSprite.width; const scaleY = 288 / this.bgSprite.height;
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
-        
+
         // Only spawn tiles if room is exploration AND the player clicked "Explore"
         if (room.phase === 'exploration') {
             const { isExploringRoom } = (this.game as any).store?.getState() || { isExploringRoom: false };
@@ -513,5 +523,29 @@ export class MainScene extends Phaser.Scene {
         if (roomName !== 'shop' && this.customerNPC) { this.customerNPC.destroy(); this.customerNPC = null; }
     }
 
+    // Arena Support Visuals
+    playGodSupport(godId: string, skillName: string) {
+        if (this.currentRoom !== 'arena') return;
+        const godConfig: Record<string, { texture: string, anim: string }> = {
+            leo: { texture: 'npc_leo', anim: 'leo' },
+            arena: { texture: 'npc_arena', anim: 'arena' },
+            draco: { texture: 'npc_draco', anim: 'draco' }
+        };
+        const config = godConfig[godId];
+        if (!config) return;
+        const godSprite = this.add.sprite(130, 154, config.texture).setScale(1.5).setAlpha(0).setDepth(35);
+        godSprite.anims.play(`${config.anim}-down`, true);
+        this.tweens.add({
+            targets: godSprite, alpha: 1, x: 145, duration: 500, ease: 'Back.easeOut',
+            onComplete: () => {
+                this.spawnFloatingText(godSprite.x, godSprite.y - 30, skillName, '#f472b6');
+                this.time.delayedCall(1200, () => {
+                    this.tweens.add({ targets: godSprite, alpha: 0, y: 140, duration: 500, onComplete: () => godSprite.destroy() });
+                });
+            }
+        });
+    }
+
     update() { if (this.debugMode) this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`); }
 }
+

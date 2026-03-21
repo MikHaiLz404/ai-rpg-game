@@ -55,6 +55,12 @@ export interface AILog {
   tokensOutput: number;
 }
 
+export interface DailyEventEffect {
+  type: 'gold_boost' | 'restock_penalty' | 'restock_discount' | 'ip_boost' | 'bond_penalty' | 'none';
+  value: number;
+  target?: string;
+}
+
 interface GameStore {
   phase: GamePhase;
   setPhase: (phase: GamePhase) => void;
@@ -81,6 +87,8 @@ interface GameStore {
   arenaWins: number;
   incrementArenaWins: () => void;
   lastDailyEvent: string | null;
+  currentDailyEventEffect: DailyEventEffect | null;
+  setDailyEvent: (title: string, effect: DailyEventEffect) => void;
   setLastDailyEvent: (event: string | null) => void;
   consumeChoice: () => void;
   endDay: () => void;
@@ -121,7 +129,7 @@ interface GameStore {
   updateKaneStats: (stats: Partial<{ hp: number; maxHp: number; atk: number; def: number }>) => void;
   boostSkill: (skillName: string, multiplierAdd: number) => void;
 
-  // AI Debugging & Logs
+  // AI Logs Implementation
   aiLogs: AILog[];
   addAILog: (log: Omit<AILog, 'id' | 'timestamp'>) => void;
   clearAILogs: () => void;
@@ -179,16 +187,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   companions: INITIAL_COMPANIONS,
 
-  addBond: (id, amount) => set((state) => ({
-    companions: state.companions.map(c => {
-      if (c.id === id) {
-        const newBond = c.bond + amount;
-        const newLevel = Math.floor(newBond / 10) + 1;
-        return { ...c, bond: newBond, level: newLevel };
-      }
-      return c;
-    })
-  })),
+  addBond: (id, amount) => set((state) => {
+    const effect = state.currentDailyEventEffect;
+    let finalAmount = amount;
+    if (effect?.type === 'bond_penalty') finalAmount = Math.floor(amount * effect.value);
+    
+    return {
+      companions: state.companions.map(c => {
+        if (c.id === id) {
+          const newBond = c.bond + finalAmount;
+          const newLevel = Math.floor(newBond / 10) + 1;
+          return { ...c, bond: newBond, level: newLevel };
+        }
+        return c;
+      })
+    };
+  }),
 
   unlockSkill: (godId, skill) => set((state) => ({
     companions: state.companions.map(c => {
@@ -227,7 +241,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   day: 1,
   choicesLeft: MAX_CHOICES_PER_DAY,
   interventionPoints: 10,
-  addIP: (amount) => set((state) => ({ interventionPoints: state.interventionPoints + amount })),
+  addIP: (amount) => set((state) => {
+    const effect = state.currentDailyEventEffect;
+    let finalAmount = amount;
+    if (effect?.type === 'ip_boost') finalAmount += effect.value;
+    return { interventionPoints: state.interventionPoints + finalAmount };
+  }),
   useIP: (amount) => {
     const state = get();
     if (state.interventionPoints >= amount) {
@@ -239,6 +258,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   arenaWins: 0,
   incrementArenaWins: () => set((state) => ({ arenaWins: state.arenaWins + 1 })),
   lastDailyEvent: null,
+  currentDailyEventEffect: null,
+  setDailyEvent: (title, effect) => set({ lastDailyEvent: title, currentDailyEventEffect: effect }),
   setLastDailyEvent: (event) => set({ lastDailyEvent: event }),
 
   consumeChoice: () => set((state) => {
@@ -247,17 +268,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
   
   endDay: () => set((state) => {
     const newDay = state.day + 1;
-    // Time's up
     if (newDay > MAX_TURNS && !state.vampireDefeated) {
       return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'time' as const, isBusy: false };
     }
-    // Bankruptcy: no gold AND no items — can't recover
     if (state.gold <= 0 && state.items.length === 0) {
       return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'bankruptcy' as const, isBusy: false };
     }
     const restockCostMultiplier = 1.0 + (newDay - 1) * 0.03;
-    
-    // Bug Fix: Reset exploration states on day change
     return { 
       choicesLeft: MAX_CHOICES_PER_DAY, 
       day: newDay, 
@@ -265,6 +282,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       showProphecy: true, 
       isBusy: false, 
       lastDailyEvent: null,
+      currentDailyEventEffect: null,
       isExploringRoom: false,
       explorationEnergy: 0
     };
@@ -277,10 +295,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   isShiftActive: false,
   startShift: () => set({ isShiftActive: true, isBusy: true, customersServed: 0 }),
   endShift: () => {
-    const { consumeChoice, endDay } = get();
+    const { consumeChoice, endDay, setDialogue } = get();
     set({ isShiftActive: false, isBusy: false });
     consumeChoice();
-    
+    setDialogue(null);
     if (get().choicesLeft <= 0) {
       setTimeout(() => endDay(), 2000);
     }
@@ -343,7 +361,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       aiLogs: [newLog, ...state.aiLogs].slice(0, 50),
       totalTokensInput: state.totalTokensInput + (log.tokensInput || 0),
       totalTokensOutput: state.totalTokensOutput + (log.tokensOutput || 0),
-      hasNewLog: !state.showAITerminal, // Only alert if terminal is hidden
+      hasNewLog: !state.showAITerminal, 
     };
   }),
   clearAILogs: () => set({ aiLogs: [], totalTokensInput: 0, totalTokensOutput: 0, hasNewLog: false }),
@@ -364,6 +382,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     interventionPoints: 10,
     arenaWins: 0,
     lastDailyEvent: null,
+    currentDailyEventEffect: null,
     isBusy: false,
     customersServed: 0,
     isShiftActive: false,

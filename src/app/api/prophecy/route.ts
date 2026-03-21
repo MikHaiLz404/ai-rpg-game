@@ -39,26 +39,16 @@ const GOD_PROMPTS: Record<string, { name: string; role: string; style: string; a
 function buildPromptForGod(godId: string, gameState: GameState): string {
   const god = GOD_PROMPTS[godId];
   if (!god) return '';
-
   const bondLevel = gameState.bonds[godId] || 0;
   const totalSkills = gameState.skills.length;
-  const urgency = gameState.turnsLeft <= 5 ? 'วิกฤต' : 'ปกติ';
-
   return `[ROLEPLAY MODE] คุณคือ ${god.name} (${god.role})
 สไตล์: ${god.style}
-
-สถานะปัจจุบัน:
-- วัน: ${gameState.day}/20
-- ทอง: ${gameState.gold}
-- สกิลที่ Kane มี: ${totalSkills} ชิ้น
-- ระดับความสนิทกับคุณ: ${bondLevel}
-
-หน้าที่: ในสภาทวยเทพวันนี้ ให้คำแนะนำเชิงกลยุทธ์ 1 ประโยคสั้นๆ โดยเน้นเรื่อง: ${god.adviceFocus}
-*** กฎ: ต้องวิเคราะห์จากข้อมูล "สถานะปัจจุบัน" จริงๆ (เช่น ถ้าทองน้อยให้เตือนเรื่องเงิน, ถ้าสกิลน้อยให้เตือนเรื่องความแข็งแกร่ง) ***
+สถานะ: วัน ${gameState.day}/20, ทอง ${gameState.gold}, สกิล ${totalSkills}, Bond ${bondLevel}
+หน้าที่: ให้คำแนะนำเชิงกลยุทธ์ 1 ประโยคสั้นๆ โดยเน้น: ${god.adviceFocus}
 ตอบเป็นภาษาไทย อยู่ในบทบาทเทพเจ้าเท่านั้น`;
 }
 
-function getFallback(godId: string, gameState: GameState): string {
+function getFallback(godId: string): string {
   const fallbacks: Record<string, string> = {
     leo: '"เจ้าต้องฝึกให้หนักกว่านี้ ถ้าอยากรอดจากเงื้อมมือ Vampire Lord"',
     arena: '"หัวใจที่ว่างเปล่าไม่อาจสัมผัสถึงพลังที่แท้จริง จงสร้างสายสัมพันธ์เถิด"',
@@ -66,6 +56,14 @@ function getFallback(godId: string, gameState: GameState): string {
   };
   return fallbacks[godId] || '"..."';
 }
+
+const DAILY_EVENT_TEMPLATES = [
+  { title: 'เทศกาลจาริกแสวงบุญ', description: 'เหล่าสาวกแห่กันมาที่วิหาร! วันนี้ยอดขายทองจะเพิ่มขึ้นเป็น 2 เท่า', emoji: '🎊', effect: { type: 'gold_boost', value: 2.0 } },
+  { title: 'มาตรการคว่ำบาตรจากสภา', description: 'สภาเทพสั่งจำกัดทรัพยากร! วันนี้ต้นทุนการเติมของเพิ่มขึ้น 50%', emoji: '🛑', effect: { type: 'restock_penalty', value: 1.5 } },
+  { title: 'ความโปรดปรานจากเบื้องบน', description: 'ทวยเทพมอบความเมตตา! วันนี้ต้นทุนการเติมของลดลง 30%', emoji: '✨', effect: { type: 'restock_discount', value: 0.7 } },
+  { title: 'ช่วงเวลาแห่งการฝึกฝน', description: 'สนามรบกำลังเรียกร้อง! วันนี้การชนะใน Arena จะได้รับ IP เพิ่มขึ้น', emoji: '⚔️', effect: { type: 'ip_boost', value: 5 } },
+  { title: 'วันหยุดพักผ่อนของเหล่าเทพ', description: 'เหล่าเทพออกไปพักผ่อน... วันนี้การเพิ่ม Bond จากการคุยจะยากขึ้น', emoji: '💤', effect: { type: 'bond_penalty', value: 0.5 } },
+];
 
 async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: string; text: string; usage: any; prompt: string }[] | null> {
   const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL;
@@ -80,48 +78,34 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
       try {
         const response = await client.sendChatAndWait(sessionKey, prompt, 25000);
         return { godId, text: response, prompt, usage: { total_tokens: Math.ceil((prompt.length + response.length) / 2) } };
-      } catch { return { godId, text: getFallback(godId, gameState), usage: { total_tokens: 0 }, prompt: '' }; }
+      } catch { return { godId, text: getFallback(godId), usage: { total_tokens: 0 }, prompt: '' }; }
     }));
     return results.map(r => r.status === 'fulfilled' ? r.value : { godId: 'unknown', text: '"..."', usage: { total_tokens: 0 }, prompt: '' });
   } catch { return null; }
 }
 
-async function generateCouncilDialogue(gameState: GameState, apiKey: string): Promise<{ godId: string; text: string; usage: any; prompt: string }[]> {
-  const godOrder = ['leo', 'arena', 'draco'];
-  const results: { godId: string; text: string; usage: any; prompt: string }[] = [];
-  for (const godId of godOrder) {
-    const god = GOD_PROMPTS[godId];
-    if (!god) continue;
-    const systemPrompt = `คุณคือ ${god.name} (${god.role}) สไตล์: ${god.style}`;
-    const userPrompt = `ให้คำแนะนำ 1 ประโยคสั้นๆ ภาษาไทย จากสถานะ: วัน ${gameState.day}, ทอง ${gameState.gold}, สกิล ${gameState.skills.length}. เน้นเรื่อง: ${god.adviceFocus}`;
-    const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-    try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI RPG Game' },
-        body: JSON.stringify({ model: 'google/gemini-2.0-flash-001', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], max_tokens: 100 })
-      });
-      const data = await response.json();
-      results.push({ godId, text: data.choices?.[0]?.message?.content || getFallback(godId, gameState), usage: data.usage || { total_tokens: 0 }, prompt: fullPrompt });
-    } catch { results.push({ godId, text: getFallback(godId, gameState), usage: { total_tokens: 0 }, prompt: fullPrompt }); }
-  }
-  return results;
-}
-
 async function generateAIDailyEvent(gameState: GameState, apiKey: string): Promise<{ event: any; usage: any; prompt: string }> {
-  const systemPrompt = `สร้าง Daily Event RPG JSON ภาษาไทย: {"title": "...", "description": "...", "effect": "..."}`;
-  const userPrompt = `วัน ${gameState.day}/20`;
-  const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+  const selectedTemplate = DAILY_EVENT_TEMPLATES[Math.floor(Math.random() * DAILY_EVENT_TEMPLATES.length)];
+  
+  if (!apiKey || apiKey.includes('000000')) {
+    return { event: selectedTemplate, usage: { total_tokens: 0 }, prompt: 'Template fallback' };
+  }
+
+  const systemPrompt = `คุณคือผู้ดูแลระบบเหตุการณ์ในเกม RPG "Gods' Arena" หน้าที่ของคุณคือสุ่มเลือก 1 เหตุการณ์จากรายการที่กำหนด และบรรยายให้ดูน่าตื่นเต้น 1 ประโยค`;
+  const userPrompt = `เลือกจาก: ${JSON.stringify(DAILY_EVENT_TEMPLATES)}\n\nตอบเป็น JSON เท่านั้น: {"title": "...", "description": "...", "effect": {"type": "...", "value": 1.0}, "emoji": "..."}`;
+  
   try {
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': 'http://localhost:3000', 'X-Title': 'AI RPG Game' },
-      body: JSON.stringify({ model: 'google/gemini-2.0-flash-001', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], max_tokens: 100 })
+      body: JSON.stringify({ model: 'google/gemini-2.0-flash-001', messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }], max_tokens: 150 })
     });
     const data = await response.json();
     const cleaned = data.choices?.[0]?.message?.content.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '').trim();
-    return { event: JSON.parse(cleaned), usage: data.usage || { total_tokens: 0 }, prompt: fullPrompt };
-  } catch { return { event: null, usage: { total_tokens: 0 }, prompt: fullPrompt }; }
+    return { event: JSON.parse(cleaned), usage: data.usage || { total_tokens: 0 }, prompt: userPrompt };
+  } catch {
+    return { event: selectedTemplate, usage: { total_tokens: 0 }, prompt: 'Error fallback' };
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -129,11 +113,39 @@ export async function POST(request: NextRequest) {
   try {
     const gameState: GameState = await request.json();
     const openclawResult = await generateViaOpenClaw(gameState);
+    
+    const dailyEventData = await generateAIDailyEvent(gameState, OPENROUTER_API_KEY);
+
     if (openclawResult) {
-      const dailyEventData = await generateAIDailyEvent(gameState, OPENROUTER_API_KEY);
-      return NextResponse.json({ source: 'openclaw', prophecies: openclawResult.map(r => ({ godId: r.godId, godName: GOD_PROMPTS[r.godId]?.name, text: r.text, usage: r.usage, prompt: r.prompt })), dailyEvent: dailyEventData.event, eventUsage: dailyEventData.usage, eventPrompt: dailyEventData.prompt });
+      return NextResponse.json({
+        source: 'openclaw',
+        prophecies: openclawResult.map(r => ({ godId: r.godId, godName: GOD_PROMPTS[r.godId]?.name, text: r.text, usage: r.usage, prompt: r.prompt })),
+        dailyEvent: dailyEventData.event,
+        eventUsage: dailyEventData.usage,
+        eventPrompt: dailyEventData.prompt
+      });
     }
-    const [councilResults, dailyEventData] = await Promise.all([ generateCouncilDialogue(gameState, OPENROUTER_API_KEY), generateAIDailyEvent(gameState, OPENROUTER_API_KEY) ]);
-    return NextResponse.json({ source: 'openrouter', prophecies: councilResults, dailyEvent: dailyEventData.event, eventUsage: dailyEventData.usage, eventPrompt: dailyEventData.prompt });
+
+    const results: any[] = [];
+    for (const godId of ['leo', 'arena', 'draco']) {
+        const prompt = buildPromptForGod(godId, gameState);
+        try {
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: 'google/gemini-2.0-flash-001', messages: [{role:'system', content:prompt}], max_tokens: 100 })
+            });
+            const data = await response.json();
+            results.push({ godId, text: data.choices?.[0]?.message?.content || getFallback(godId), usage: data.usage });
+        } catch { results.push({ godId, text: getFallback(godId), usage: { total_tokens: 0 } }); }
+    }
+
+    return NextResponse.json({
+      source: 'openrouter',
+      prophecies: results,
+      dailyEvent: dailyEventData.event,
+      eventUsage: dailyEventData.usage,
+      eventPrompt: dailyEventData.prompt
+    });
   } catch { return NextResponse.json({ source: 'fallback', prophecies: [] }); }
 }
