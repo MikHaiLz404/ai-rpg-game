@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-
-export type GamePhase = 'shop' | 'arena' | 'exploration' | 'relationship';
+import { GamePhase } from '@/types';
 
 export const MAX_TURNS = 20;
 export const MAX_CHOICES_PER_DAY = 3;

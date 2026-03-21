@@ -69,7 +69,8 @@ export default function Arena() {
       // Feature: God Visual Manifestation
       EventBus.emit('arena-god-support', { godId, skillName: skill.name });
 
-      const damage = Math.floor((15 * skill.multiplier) - enemy.def);
+      // Improved: Use actual Kane stats for divine damage
+      const damage = Math.floor((kaneStats.atk * skill.multiplier) - enemy.def);
       const finalDmg = Math.max(5, damage);
       
       const newEnemyHp = Math.max(0, enemy.hp - finalDmg);
@@ -96,7 +97,8 @@ export default function Arena() {
   const executeTurn = () => {
     if (!isFighting || !enemy) return;
 
-    const pDmg = Math.max(2, 15 - enemy.def);
+    // Improved: Use actual Kane stats
+    const pDmg = Math.max(2, kaneStats.atk - enemy.def);
     const newEnemyHp = Math.max(0, enemy.hp - pDmg);
     setEnemy({ ...enemy, hp: newEnemyHp });
     EventBus.emit('arena-attack', { target: 'enemy' });
@@ -109,7 +111,8 @@ export default function Arena() {
 
     setTimeout(() => {
       if (!isFighting) return;
-      const eDmg = Math.max(1, enemy.atk - 10);
+      // Improved: Use actual Kane defense
+      const eDmg = Math.max(1, enemy.atk - kaneStats.def);
       const newPlayerHp = Math.max(0, playerHp - eDmg);
       setPlayerHp(newPlayerHp);
       EventBus.emit('arena-attack', { target: 'player' });

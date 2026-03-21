@@ -45,7 +45,8 @@
 ---
 
 ## 🧠 Development Conventions
--   **Type Safety**: Always use types from `src/types/game.ts` for game entities.
+- **Type Safety**: Always use types from `src/types/index.ts` for game entities.
+
 -   **State Management**: Use `useGameStore` (Zustand) for reactive UI state.
 -   **Phaser Integration**: Game-specific rendering and physics happen in Phaser scenes, communicating with React via `EventBus.ts`.
 -   **Localization**: The project includes Thai (`novel/`) and English content. Use `scripts/localizer.py` for managing translations.

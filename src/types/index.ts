@@ -26,7 +26,8 @@ export type GamePhase =
   | 'relationship' 
   | 'exploration'
   | 'victory' 
-  | 'defeat';
+  | 'defeat'
+  | 'loading';
 
 /** ผลลัพธ์ของ combat */
 export type CombatResult = 'win' | 'lose' | 'draw' | null;

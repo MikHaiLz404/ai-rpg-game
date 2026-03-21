@@ -478,6 +478,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     loadRoom(roomName: string) {
+        if (this.currentRoom === roomName && this.bgSprite) return;
         const room = WORLD[roomName];
         if (!room) return;
         if (this.bgSprite) this.bgSprite.destroy();

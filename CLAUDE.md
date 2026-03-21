@@ -69,7 +69,7 @@ Rooms: `shop`, `arena`, `village`, `cave_entrance`, `cave_inside` — each with 
 
 ## Types & Data
 
-- **Types**: `src/types/index.ts` is the comprehensive type file (God, Enemy, Item, NPC, Companion, SaveData, GameData). `src/types/game.ts` has legacy types with partial overlap — prefer `index.ts`.
+- **Types**: `src/types/index.ts` is the comprehensive type file (God, Enemy, Item, NPC, Companion, SaveData, GameData).
 - **Game data**: `src/data/` — TypeScript files exporting gods (Zeus, Athena, Ares), enemies, items, NPCs, and NPC personality configs (`npcConfig.ts`).
 - **Path alias**: `@/*` maps to `./src/*`
 
