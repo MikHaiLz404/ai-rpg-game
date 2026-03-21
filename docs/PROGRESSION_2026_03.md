@@ -7,8 +7,9 @@ This document summarizes the game's current technical state, design strengths, a
 ### ✅ Pros (Strengths)
 1. **Hybrid Architecture (React + Phaser)**: Successfully bridges high-complexity UI (management) with a visual game engine using `EventBus.ts`.
 2. **Deep AI Integration**: AI is a core mechanic, generating combat skills and providing contextual tactical advice based on real game state.
-3. **Resilient Fallbacks**: Multi-tier strategy (OpenClaw → OpenRouter → Offline) ensures playability under any network condition.
-4. **Dynamic Balancing**: Shop pacing and enemy scaling (5% HP/ATK increase per day) provide a meaningful difficulty curve.
+3. **Divine Orchestrator**: Centralized AI Brain (`src/lib/ai/orchestrator.ts`) enables rule-based model switching and multi-agent simulation.
+4. **Resilient Fallbacks**: Multi-tier strategy (OpenClaw → OpenRouter → Offline) ensures playability.
+5. **Simulated Multi-Agent**: "Council Chat" allows gods to interact with each other, enhancing world-building.
 
 ### ❌ Cons (Technical Debt / Weaknesses)
 1. **Interaction Gap**: Phaser scenes are currently "view-only"; most interaction is limited to React buttons.

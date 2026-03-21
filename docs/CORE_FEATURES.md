@@ -138,13 +138,25 @@ Locations gate by day number. Each has unique loot tables, monsters, encounter r
 
 ## 6. AI Integration
 
-### Architecture
+### Architecture (Divine Orchestrator)
+The game uses a centralized **Divine Orchestrator** (`src/lib/ai/orchestrator.ts`) to manage all AI requests. It handles provider routing, model selection based on rules, and multi-agent simulations.
+
 ```
 Component → /api/narrate or /api/prophecy
-    → Try OpenClaw Gateway (WebSocket, multi-agent)
-    → Fallback to OpenRouter (Gemini Flash REST API)
+    → Divine Orchestrator (Rules Engine)
+        → Rule A: Speed (Gemini 2.0 Flash) for shop/combat
+        → Rule B: Quality (Claude 3.5 Sonnet) for Bond Level >= 12
+        → Rule C: Intelligence (GPT-4o mini) for Prophecies
+        → Rule D: Simulation (Multi-agent chains) for "Council" trigger
+    → Try OpenClaw Gateway (if enabled)
+    → Fallback to OpenRouter
     → Fallback to hardcoded Thai responses
 ```
+
+### Multi-Agent Simulation (Agent-to-Agent)
+The orchestrator simulates agent-to-agent communication by chaining API calls. 
+- **Trigger**: Using keywords like **"สภาเทพ"** or **"Council"** in conversation.
+- **Flow**: Leo provides an initial opinion → Arena (The Queen) responds to Leo's statement → Player receives the full "consensus" dialogue.
 
 ### Narrate Actions
 | Action | Used By | Purpose |
@@ -206,7 +218,7 @@ All 6 actions have Thai-language hardcoded fallbacks. Skill generation has 5 uni
 - Version: `1.0.0`
 
 ### Save Data Structure
-Includes: player gold, inventory, companion bonds, unlocked skills, claimed thresholds, day, choicesLeft, interventionPoints, vampireDefeated, gameOver, explorationLog.
+Includes: player gold, inventory, companion bonds, unlocked skills, claimed thresholds, day, choicesLeft, interventionPoints, vampireDefeated, gameOver, explorationLog, **kaneStats** (persisted progression).
 
 ### Reset
 - Full game reset: clears all saves, resets to initial state
@@ -232,9 +244,9 @@ Includes: player gold, inventory, companion bonds, unlocked skills, claimed thre
 ### Phaser Integration
 - 384x288px pixel art canvas, arcade physics
 - Rooms: shop, arena, village, cave_entrance, cave_inside
-- NPC positions mapped to actual background art paths
+- **Debug System**: Controlled via "Debug Grid" button in the top navigation (replaces legacy 'G' shortcut)
 - Communication via EventBus (EventEmitter)
-- React↔Phaser: `phase-change` and `change-room` events
+- React↔Phaser: `phase-change`, `change-room`, and `toggle-debug` events
 
 ### Tutorial
 - First-day overlay explaining all 4 phases and the objective

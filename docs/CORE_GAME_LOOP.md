@@ -113,6 +113,7 @@ Morning Prophecy → 3 Actions → End Day → Next Day
 3. Bond increases based on interaction
 4. At bond thresholds [3, 5, 8, 12, 17], a new combat skill is unlocked via AI generation
 5. Favorite gifts give +3 bonus bond
+6. **Divine Council**: Use keywords like "สภาเทพ" or "Council" to trigger a simulated conversation between gods.
 
 **Companions**:
 
@@ -166,4 +167,4 @@ Arena ──→ Gold + IP ──→ Victory (defeat Vampire Lord)
 - **Auto-save**: Every 30 seconds to localStorage
 - **Manual save**: 3 slots in ChampionStatus tab
 - **Export/Import**: JSON file download/upload
-- **Save data includes**: gold, items, bonds, skills, day, choices, IP, vampireDefeated, explorationLog
+- **Save data includes**: gold, items, bonds, skills, day, choices, IP, vampireDefeated, explorationLog, **kaneStats**

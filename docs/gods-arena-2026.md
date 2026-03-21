@@ -113,15 +113,17 @@ public/
 - [x] Novel (25 chapters + Lore)
 - [x] UI/UX Components
 - [x] Data Structure (JSON, Types, Validation)
-- [x] Save/Load System
+- [x] Save/Load System (including kaneStats persistence)
 - [x] Editor Tools
 - [x] Asset Folders (MVP)
 - [x] Integration (Phaser + Next.js)
 - [x] Deployment (Vercel)
-- [x] Debug System (Toggle Grid/Coords with 'G')
+- [x] Debug System (Toggle Grid/Coords via UI button)
+- [x] Divine Orchestrator (Rule-based AI routing)
+- [x] Council Simulation (Multi-agent AI interaction)
 
 ## Debug Controls
-- **G:** Toggle Debug Mode (Shows 48px Grid and Player X,Y coordinates)
+- **UI Button:** "Debug Grid" in top navigation toggles 48px Grid and Player X,Y coordinates.
 
 ### 🔄 In Progress
 - [ ] Refined Asset Polish (Waiting for P'Jo)
