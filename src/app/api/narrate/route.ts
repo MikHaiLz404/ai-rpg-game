@@ -32,6 +32,9 @@ const NPC_TO_AGENT: Record<string, string> = {
   'ดราโก้': 'mochi',
 };
 
+// Configuration: Set to true to use OpenRouter directly for gods (bypassing OpenClaw)
+const USE_OPENROUTER_FOR_GODS = true;
+
 async function generateViaOpenClaw(npcName: string, prompt: string): Promise<string | null> {
   const agentName = NPC_TO_AGENT[npcName];
   if (!agentName) return null;
@@ -120,7 +123,8 @@ Bond Level: ${bondLevel || 1} — ${bondDesc}
 
     const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
-    if (NPC_TO_AGENT[npcName]) {
+    // Try OpenClaw if configured and NOT disabled for gods
+    if (NPC_TO_AGENT[npcName] && !USE_OPENROUTER_FOR_GODS) {
         const openclawNarrative = await generateViaOpenClaw(npcName, fullPrompt);
         if (openclawNarrative) {
             return NextResponse.json({ narrative: openclawNarrative, source: 'openclaw', model: `OpenClaw: ${NPC_TO_AGENT[npcName]}`, prompt: fullPrompt, usage: { prompt_tokens: Math.ceil(fullPrompt.length/2), completion_tokens: Math.ceil(openclawNarrative.length/2), total_tokens: Math.ceil((fullPrompt.length + openclawNarrative.length)/2) } });
