@@ -156,7 +156,7 @@ export class MainScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
-        this.load.spritesheet('demon_death', '/images/enemies/demon/death/enemies-vamenemies-skeleton2_death.png', {
+        this.load.spritesheet('demon_death', '/images/enemies/demon/death/enemies-vampire_death.png', {
             frameWidth: 32,
             frameHeight: 32
         });
