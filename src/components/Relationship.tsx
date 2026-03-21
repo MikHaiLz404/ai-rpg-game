@@ -197,7 +197,11 @@ export default function Relationship() {
             gold,
             day,
             arenaWins,
-            items: items.map(id => ITEMS_MAP[id]?.name || id).join(', ')
+            items: items.map(id => ITEMS_MAP[id]?.name || id).join(', '),
+            relationships: companions
+              .filter(c => c.id !== id)
+              .map(c => `${c.name} (Bond: ${c.bond})`)
+              .join(', ')
           }
         })
       });
