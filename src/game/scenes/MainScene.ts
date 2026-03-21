@@ -359,9 +359,12 @@ export class MainScene extends Phaser.Scene {
             if (this.enemyBobTween) this.enemyBobTween.stop();
             this.arenaEnemy.destroy();
         }
-        this.arenaEnemy = this.add.sprite(200, 154, `${enemyType}_idle`).setScale(1.5).setDepth(40);
+
+        // Adjust Y for slime to make it look grounded
+        const yPos = enemyType === 'slime' ? 164 : 154;
+        this.arenaEnemy = this.add.sprite(200, yPos, `${enemyType}_idle`).setScale(1.5).setDepth(40);
         this.arenaEnemy.play(`${enemyType}-idle`);
-        this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: 152, duration: 800, yoyo: true, repeat: -1 });
+        this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: yPos - 2, duration: 800, yoyo: true, repeat: -1 });
         if (this.kaneFighter) this.kaneFighter.setTexture('kane_idle');
     }
 
@@ -508,10 +511,12 @@ export class MainScene extends Phaser.Scene {
             this.player.setPosition(120, 240); this.player.anims.play('player-down', true);
             this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
             this.currentEnemyType = 'slime';
-            this.arenaEnemy = this.add.sprite(200, 154, 'slime_idle').setScale(1.5).setDepth(40); this.arenaEnemy.play('slime-idle', true);
+            // Adjusted slime Y from 154 to 164 to be grounded
+            this.arenaEnemy = this.add.sprite(200, 164, 'slime_idle').setScale(1.5).setDepth(40); this.arenaEnemy.play('slime-idle', true);
             this.kaneBobTween = this.tweens.add({ targets: this.kaneFighter, y: 152, duration: 1000, yoyo: true, repeat: -1 });
-            this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: 152, duration: 800, yoyo: true, repeat: -1 });
-        } else if (roomName === 'village') {
+            this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: 162, duration: 800, yoyo: true, repeat: -1 });
+        }
+ else if (roomName === 'village') {
             this.player.setPosition(205, 240); this.player.anims.play('player-down', true);
             const villageNPCList = [{ id: 'draco', texture: 'npc_draco', anim: 'draco', x: 134, y: 75 }, { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 177, y: 75 }, { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 336, y: 183 }];
             for (const npc of villageNPCList) {
