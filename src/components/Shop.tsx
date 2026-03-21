@@ -125,7 +125,7 @@ export default function Shop() {
         addAILog({
           action: 'shop_talk',
           model: data.model || 'AI Model',
-          source: data.source as any || 'unknown',
+          source: (data.source as any) || 'unknown',
           prompt: data.prompt || '',
           response: data.narrative || '',
           tokensInput: data.usage?.prompt_tokens || 0,

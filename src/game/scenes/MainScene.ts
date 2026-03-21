@@ -409,7 +409,9 @@ export class MainScene extends Phaser.Scene {
 
     spawnExplorationTiles() {
         // Strict Check: Only spawn if actively exploring
-        const { isExploringRoom } = (this.game as any).store?.getState() || { isExploringRoom: false };
+        const store = (this.game as any).store;
+        if (!store) return;
+        const { isExploringRoom } = store.getState() || { isExploringRoom: false };
         if (!isExploringRoom) return;
 
         this.explorationTiles.clear(true, true);
@@ -430,7 +432,7 @@ export class MainScene extends Phaser.Scene {
 
             container.on('pointerdown', () => { 
                 // Strict Energy Check
-                const { explorationEnergy } = (this.game as any).store?.getState() || { explorationEnergy: 0 };
+                const { explorationEnergy } = store.getState() || { explorationEnergy: 0 };
                 if (explorationEnergy <= 0) return;
 
                 container.destroy(); 
@@ -449,7 +451,9 @@ export class MainScene extends Phaser.Scene {
     resetArenaIdle() { if (this.currentRoom === 'arena') { this.spawnArenaEnemy('slime'); if (this.kaneFighter) this.kaneFighter.setTexture('kane_idle'); } }
 
     scheduleNextCustomer() {
-        const { day } = (this.game as any).store?.getState() || { day: 1 };
+        const store = (this.game as any).store;
+        if (!store) return;
+        const { day } = store.getState() || { day: 1 };
         const delay = (day <= 5 ? 6000 : day <= 14 ? 4000 : 3000) + Math.random() * 4000;
         EventBus.emit('customer-incoming', { delay });
         this.time.delayedCall(delay, () => { this.trySpawnCustomer(); this.scheduleNextCustomer(); });
@@ -459,7 +463,9 @@ export class MainScene extends Phaser.Scene {
         // Stability Fix: Only spawn if we are actually in the shop scene and scene is active
         if (this.currentRoom !== 'shop' || !this.scene.isActive()) return;
 
-        const { isShiftActive } = (this.game as any).store?.getState() || { isShiftActive: true };
+        const store = (this.game as any).store;
+        if (!store) return;
+        const { isShiftActive } = store.getState() || { isShiftActive: true };
         if (!isShiftActive || this.customerNPC) return;
 
         const pool = Math.random() < 0.5 
@@ -552,6 +558,10 @@ export class MainScene extends Phaser.Scene {
         });
     }
 
-    update() { if (this.debugMode) this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`); }
+    update() { 
+        if (this.debugMode && this.player) {
+            this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`); 
+        }
+    }
 }
 

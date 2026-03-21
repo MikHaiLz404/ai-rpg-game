@@ -15,6 +15,7 @@ export interface SaveData {
   inventory: Item[];
   relationships: Record<string, number>;
   arenaWins: number;
+  kaneStats?: { hp: number; maxHp: number; atk: number; def: number };
   stats: GameStats;
 }
 

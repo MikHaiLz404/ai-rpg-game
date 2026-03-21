@@ -86,7 +86,15 @@ export default function Arena() {
           body: JSON.stringify({ action: 'divine_intervention', playerName: 'Kane', npcName: skill.name, enemyName: enemy.name, damage: finalDmg })
         });
         const data = await res.json();
-        addAILog({ action: 'arena_intervention', model: data.model || 'AI Model', source: data.source || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0 });
+        addAILog({ 
+          action: 'arena_intervention', 
+          model: data.model || 'AI Model', 
+          source: (data.source as any) || 'unknown', 
+          prompt: data.prompt || '', 
+          response: data.narrative || '', 
+          tokensInput: data.usage?.prompt_tokens || 0, 
+          tokensOutput: data.usage?.completion_tokens || 0 
+        });
         if (data.narrative) setDialogue({ speaker: 'Narrator', text: data.narrative });
       } catch (e) {}
 

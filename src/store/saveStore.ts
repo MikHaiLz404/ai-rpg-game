@@ -40,10 +40,10 @@ interface SaveStore {
   initializeSave: () => Promise<void>;
   setAutoSaveEnabled: (enabled: boolean) => void;
   setAutoSaveInterval: (interval: number) => void;
-  saveGame: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, manual?: boolean, slot?: number) => Promise<boolean>;
+  saveGame: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, kaneStats: { hp: number; maxHp: number; atk: number; def: number }, manual?: boolean, slot?: number) => Promise<boolean>;
   loadGame: (slot?: number) => Promise<SaveData | null>;
   loadAutoSaveGame: () => Promise<SaveData | null>;
-  exportGame: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number) => void;
+  exportGame: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, kaneStats: { hp: number; maxHp: number; atk: number; def: number }) => void;
   importGame: (file: File) => Promise<SaveData | null>;
   deleteSave: (slot?: number) => Promise<boolean>;
   deleteAllSaves: () => Promise<void>;
@@ -83,7 +83,7 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
   setAutoSaveEnabled: (enabled: boolean) => set({ autoSaveEnabled: enabled }),
   setAutoSaveInterval: (interval: number) => set({ autoSaveInterval: interval }),
   
-  saveGame: async (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, manual: boolean = false, slot: number = 0) => {
+  saveGame: async (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, kaneStats: { hp: number; maxHp: number; atk: number; def: number }, manual: boolean = false, slot: number = 0) => {
     const { currentSaveData, autoSaveEnabled, sessionStartTime } = get();
     set({ isSaving: true, saveError: null });
     
@@ -103,6 +103,7 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
         inventory,
         relationships,
         arenaWins,
+        kaneStats,
         stats: {
           ...(currentSaveData?.stats || { totalBattles: 0, totalWins: 0, totalLosses: 0, goldEarned: 0, goldSpent: 0, itemsPurchased: 0, playTime: 0 }),
           playTime: newPlayTime,
@@ -159,7 +160,7 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
     }
   },
   
-  exportGame: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number) => {
+  exportGame: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, kaneStats: { hp: number; maxHp: number; atk: number; def: number }) => {
     const { currentSaveData, sessionStartTime } = get();
     const sessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
     const newPlayTime = currentSaveData ? currentSaveData.stats.playTime + sessionDuration : sessionDuration;
@@ -167,7 +168,7 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
     exportToJson({
       version: SAVE_VERSION, timestamp: Date.now(),
       player: { gold: playerGold, god: playerGod ? { id: playerGod.id, name: playerGod.name, nameTH: playerGod.nameTH, hp: playerGod.hp, maxHp: playerGod.maxHp, attack: playerGod.attack, defense: playerGod.defense } : null, level: currentSaveData?.player.level || 1, exp: currentSaveData?.player.exp || 0 },
-      inventory, relationships, arenaWins,
+      inventory, relationships, arenaWins, kaneStats,
       stats: { ...(currentSaveData?.stats || { totalBattles: 0, totalWins: 0, totalLosses: 0, goldEarned: 0, goldSpent: 0, itemsPurchased: 0, playTime: 0 }), playTime: newPlayTime, lastSavedAt: Date.now() }
     });
   },

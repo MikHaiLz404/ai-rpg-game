@@ -25,7 +25,7 @@ const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
 };
 
 export default function ChampionStatus() {
-  const { companions, getBondBonus, items, gold, day, interventionPoints, resetGame, loadSaveData } = useGameStore();
+  const { companions, getBondBonus, items, gold, day, interventionPoints, resetGame, loadSaveData, kaneStats } = useGameStore();
   const { saveGame, loadGame, deleteAllSaves, checkHasSave, exportGame, importGame } = useSaveStore();
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +56,7 @@ export default function ChampionStatus() {
   };
 
   const handleSaveSlot = async (slot: number) => {
-    const success = await saveGame(...buildSaveArgs(), true, slot);
+    const success = await saveGame(...buildSaveArgs(), kaneStats, true, slot);
     flash(success ? `บันทึก Slot ${slot} สำเร็จ!` : 'บันทึกล้มเหลว');
   };
 
@@ -71,7 +71,7 @@ export default function ChampionStatus() {
   };
 
   const handleExport = () => {
-    exportGame(...buildSaveArgs());
+    exportGame(...buildSaveArgs(), kaneStats);
     flash('ส่งออกไฟล์ JSON สำเร็จ!');
   };
 
@@ -128,8 +128,9 @@ export default function ChampionStatus() {
         <div className="bg-black/40 p-3 rounded-xl border border-white/5">
           <div className="text-[9px] md:text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2 font-serif">พลังการต่อสู้</div>
           <div className="space-y-2">
-            <StatRow icon={<SwordIcon size={14} className="text-red-400" />} label="โจมตี" value={15 + bonuses.atk} bonus={bonuses.atk} color="text-red-400" />
-            <StatRow icon={<ShieldIcon size={14} className="text-blue-400" />} label="ป้องกัน" value={10 + bonuses.def} bonus={bonuses.def} color="text-blue-400" />
+            <StatRow icon={<HPIcon size={14} className="text-rose-500" />} label="พลังชีวิต" value={kaneStats.hp} bonus={0} color="text-rose-500" />
+            <StatRow icon={<SwordIcon size={14} className="text-red-400" />} label="โจมตี" value={kaneStats.atk + bonuses.atk} bonus={bonuses.atk} color="text-red-400" />
+            <StatRow icon={<ShieldIcon size={14} className="text-blue-400" />} label="ป้องกัน" value={kaneStats.def + bonuses.def} bonus={bonuses.def} color="text-blue-400" />
             <StatRow icon={<IPIcon size={14} className="text-purple-400" />} label="IP" value={interventionPoints} bonus={0} color="text-purple-400" />
           </div>
         </div>

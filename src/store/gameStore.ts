@@ -1,14 +1,8 @@
 import { create } from 'zustand';
-import { GamePhase } from '@/types';
+import { GamePhase, Player } from '@/types';
 
 export const MAX_TURNS = 20;
 export const MAX_CHOICES_PER_DAY = 3;
-
-interface Player {
-  gold: number;
-  hp: number;
-  maxHp: number;
-}
 
 export interface DivineSkill {
   name: string;
@@ -47,7 +41,7 @@ export interface AILog {
   timestamp: number;
   action: string;
   model: string;
-  source: 'openclaw' | 'openrouter' | 'fallback' | 'error';
+  source: 'openclaw' | 'openrouter' | 'fallback' | 'error' | 'unknown';
   prompt: string;
   response: string;
   tokensInput: number;
@@ -63,7 +57,6 @@ export interface DailyEventEffect {
 interface GameStore {
   phase: GamePhase;
   setPhase: (phase: GamePhase) => void;
-  player: Player;
   gold: number;
   addGold: (amount: number) => void;
   spendGold: (amount: number) => boolean;
@@ -154,18 +147,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
   phase: 'shop',
   setPhase: (phase) => set({ phase }),
 
-  player: { gold: 500, hp: 100, maxHp: 100 },
   gold: 500,
   addGold: (amount) => set((state) => ({
     gold: state.gold + amount,
-    player: { ...state.player, gold: state.player.gold + amount }
   })),
   spendGold: (amount) => {
     const state = get();
     if (state.gold >= amount) {
       set({
         gold: state.gold - amount,
-        player: { ...state.player, gold: state.player.gold - amount }
       });
       return true;
     }
@@ -240,7 +230,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   day: 1,
   choicesLeft: MAX_CHOICES_PER_DAY,
   interventionPoints: 10,
-  addIP: (amount) => set((state) => {
+  addIP: (amount: number) => set((state) => {
     const effect = state.currentDailyEventEffect;
     let finalAmount = amount;
     if (effect?.type === 'ip_boost') finalAmount += effect.value;
@@ -373,7 +363,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   resetGame: () => set({
     gold: 500,
-    player: { gold: 500, hp: 100, maxHp: 100 },
     items: ['potion_health', 'potion_health', 'soap', 'mirror', 'flower', 'flower'],
     companions: INITIAL_COMPANIONS.map(c => ({ ...c, unlockedSkills: [], claimedThresholds: [] })),
     day: 1,
@@ -408,7 +397,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!data) return;
     set({
       gold: data.player.gold,
-      player: { ...get().player, gold: data.player.gold },
       items: data.inventory.map((i: any) => i.id || i),
       companions: get().companions.map(c => ({
         ...c,
@@ -424,6 +412,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       vampireDefeated: data.vampireDefeated || false,
       gameOver: data.gameOver || null,
       explorationLog: data.explorationLog || [],
+      kaneStats: data.kaneStats || get().kaneStats,
       isBusy: false,
     });
   },
