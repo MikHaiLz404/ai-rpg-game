@@ -243,6 +243,10 @@ export class MainScene extends Phaser.Scene {
         this.player = this.physics.add.sprite(195, 143, 'player');
         this.player.setScale(1.5).setDepth(50);
         this.player.anims.play('player-down', true);
+        this.player.setCollideWorldBounds(true);
+
+        this.cursors = this.input.keyboard!.createCursorKeys();
+        this.wasdKeys = this.input.keyboard!.addKeys('W,A,S,D');
         this.input.keyboard!.disableGlobalCapture();
 
         this.loadRoom('shop');
@@ -421,8 +425,14 @@ export class MainScene extends Phaser.Scene {
             const y = 60 + Math.random() * 180;
             const isEnemy = Math.random() < 0.3;
             const type = isEnemy ? 'enemy' : 'gathering';
-            const container = this.add.container(x, y);
-            container.setSize(32, 32); container.setInteractive({ useHandCursor: true });
+            
+            // Use physics container for overlap detection
+            const container = this.add.container(x, y) as any;
+            this.physics.add.existing(container);
+            container.body.setCircle(16, -16, -16); // Center the hit area
+            
+            container.setData('type', type);
+            container.setData('triggered', false);
 
             // Uniform Mystery Color (Amber Yellow)
             const color = 0xf59e0b; 
@@ -431,14 +441,6 @@ export class MainScene extends Phaser.Scene {
             glow.fillStyle(color, 1); glow.fillCircle(0, 0, 6);
             container.add(glow); container.setDepth(100); 
 
-            container.on('pointerdown', () => { 
-                // Strict Energy Check
-                const { explorationEnergy } = store.getState() || { explorationEnergy: 0 };
-                if (explorationEnergy <= 0) return;
-
-                container.destroy(); 
-                EventBus.emit('exploration-tile-clicked', { type, x, y }); 
-            });
             this.explorationTiles.add(container);
             this.tweens.add({ targets: container, y: y - 8, alpha: 0.7, duration: 1000 + Math.random() * 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
         }
@@ -487,7 +489,7 @@ export class MainScene extends Phaser.Scene {
         this.tweens.add({ targets: this.customerNPC, y: 280, duration: 2000, onComplete: () => { this.customerNPC?.destroy(); this.customerNPC = null; } });
     }
 
-    loadRoom(roomName: string) {
+    loadRoom(roomName: string, entrySide?: 'left' | 'right' | 'up' | 'down') {
         if (this.currentRoom === roomName && this.bgSprite) return;
         const room = WORLD[roomName];
         if (!room) return;
@@ -508,6 +510,12 @@ export class MainScene extends Phaser.Scene {
             this.bgSprite.setScale(Math.max(scaleX, scaleY)).setDepth(-1);
         }
 
+        // Handle Entry Position
+        if (entrySide === 'left') this.player.setPosition(25, 144);
+        else if (entrySide === 'right') this.player.setPosition(359, 144);
+        else if (entrySide === 'up') this.player.setPosition(192, 25);
+        else if (entrySide === 'down') this.player.setPosition(192, 263);
+
         // Only spawn tiles if room is exploration AND the player clicked "Explore"
         if (room.phase === 'exploration') {
             const { isExploringRoom } = (this.game as any).store?.getState() || { isExploringRoom: false };
@@ -515,7 +523,8 @@ export class MainScene extends Phaser.Scene {
         }
 
         if (roomName === 'arena') {
-            this.player.setPosition(120, 240); this.player.anims.play('player-down', true);
+            if (!entrySide) this.player.setPosition(120, 240); 
+            this.player.anims.play('player-down', true);
             this.kaneFighter = this.add.sprite(165, 154, 'kane_idle').setScale(1.5).setDepth(40);
             this.currentEnemyType = 'slime';
             // Adjusted slime Y from 164 to 148 to be higher
@@ -524,7 +533,8 @@ export class MainScene extends Phaser.Scene {
             this.enemyBobTween = this.tweens.add({ targets: this.arenaEnemy, y: 146, duration: 800, yoyo: true, repeat: -1 });
         }
  else if (roomName === 'village') {
-            this.player.setPosition(205, 240); this.player.anims.play('player-down', true);
+            if (!entrySide) this.player.setPosition(205, 240);
+            this.player.anims.play('player-down', true);
             const villageNPCList = [{ id: 'draco', texture: 'npc_draco', anim: 'draco', x: 134, y: 75 }, { id: 'leo', texture: 'npc_leo', anim: 'leo', x: 177, y: 75 }, { id: 'arena', texture: 'npc_arena', anim: 'arena', x: 336, y: 183 }];
             for (const npc of villageNPCList) {
                 const sprite = this.add.sprite(npc.x, npc.y, npc.texture).setScale(1.5).setDepth(40);
@@ -532,28 +542,63 @@ export class MainScene extends Phaser.Scene {
                 sprite.on('pointerdown', () => { EventBus.emit('village-npc-clicked', { npcId: npc.id }); this.walkToVillageNPC(npc.id); });
                 this.villageNPCs.push(sprite);
             }
-        } else { this.player.setPosition(195, 143); this.player.anims.play('player-down', true); }
+        } else { 
+            if (!entrySide) this.player.setPosition(195, 143);
+            this.player.anims.play('player-down', true); 
+        }
         if (roomName !== 'shop' && this.customerNPC) { this.customerNPC.destroy(); this.customerNPC = null; }
     }
 
     // Arena Support Visuals
     playGodSupport(godId: string, skillName: string) {
         if (this.currentRoom !== 'arena') return;
-        const godConfig: Record<string, { texture: string, anim: string }> = {
-            leo: { texture: 'npc_leo', anim: 'leo' },
-            arena: { texture: 'npc_arena', anim: 'arena' },
-            draco: { texture: 'npc_draco', anim: 'draco' }
+        const godConfig: Record<string, { texture: string, anim: string, color: number }> = {
+            leo: { texture: 'npc_leo', anim: 'leo', color: 0xff4444 },
+            arena: { texture: 'npc_arena', anim: 'arena', color: 0xffffff },
+            draco: { texture: 'npc_draco', anim: 'draco', color: 0x44ff44 }
         };
         const config = godConfig[godId];
         if (!config) return;
-        const godSprite = this.add.sprite(130, 154, config.texture).setScale(1.5).setAlpha(0).setDepth(35);
+
+        // 1. Screen Flash
+        const flash = this.add.rectangle(192, 144, 384, 288, config.color, 0.3).setDepth(2000);
+        this.tweens.add({ targets: flash, alpha: 0, duration: 400, onComplete: () => flash.destroy() });
+        this.cameras.main.shake(200, 0.005);
+
+        // 2. Magic Circle / Glow Base
+        const circle = this.add.graphics().setDepth(34);
+        circle.fillStyle(config.color, 0.4);
+        circle.fillCircle(145, 175, 25);
+        circle.setScale(1, 0.4); // Flat perspective
+        circle.setAlpha(0);
+        
+        // 3. Summon God Sprite
+        const godSprite = this.add.sprite(145, 140, config.texture).setScale(1.5).setAlpha(0).setDepth(35);
         godSprite.anims.play(`${config.anim}-down`, true);
+
+        // Entrance Sequence
+        this.tweens.add({ targets: [godSprite, circle], alpha: 1, duration: 400 });
         this.tweens.add({
-            targets: godSprite, alpha: 1, x: 145, duration: 500, ease: 'Back.easeOut',
+            targets: godSprite, y: 154, duration: 600, ease: 'Back.easeOut',
             onComplete: () => {
-                this.spawnFloatingText(godSprite.x, godSprite.y - 30, skillName, '#f472b6');
-                this.time.delayedCall(1200, () => {
-                    this.tweens.add({ targets: godSprite, alpha: 0, y: 140, duration: 500, onComplete: () => godSprite.destroy() });
+                // Floating Pulse Effect
+                this.tweens.add({ targets: godSprite, y: 150, duration: 1000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+                
+                // Show Skill Name with extra flair
+                this.spawnFloatingText(godSprite.x, godSprite.y - 40, skillName, '#f59e0b');
+                
+                // Delay then exit
+                this.time.delayedCall(1500, () => {
+                    this.tweens.add({
+                        targets: [godSprite, circle],
+                        alpha: 0,
+                        scale: 0.5,
+                        duration: 500,
+                        onComplete: () => {
+                            godSprite.destroy();
+                            circle.destroy();
+                        }
+                    });
                 });
             }
         });
@@ -563,6 +608,76 @@ export class MainScene extends Phaser.Scene {
         if (this.debugMode && this.player) {
             this.coordText.setText(`X: ${Math.round(this.player.x)} Y: ${Math.round(this.player.y)}`); 
         }
+
+        if (!this.player || !this.cursors) return;
+
+        // Reset velocity
+        this.player.setVelocity(0);
+
+        const speed = 160;
+        let moving = false;
+
+        if (this.cursors.left.isDown || this.wasdKeys.A.isDown) {
+            this.player.setVelocityX(-speed);
+            this.player.anims.play('player-left', true);
+            moving = true;
+        } else if (this.cursors.right.isDown || this.wasdKeys.D.isDown) {
+            this.player.setVelocityX(speed);
+            this.player.anims.play('player-right', true);
+            moving = true;
+        }
+
+        if (this.cursors.up.isDown || this.wasdKeys.W.isDown) {
+            this.player.setVelocityY(-speed);
+            if (!moving) this.player.anims.play('player-up', true);
+            moving = true;
+        } else if (this.cursors.down.isDown || this.wasdKeys.S.isDown) {
+            this.player.setVelocityY(speed);
+            if (!moving) this.player.anims.play('player-down', true);
+            moving = true;
+        }
+
+        if (!moving) {
+            this.player.anims.stop();
+        }
+
+        // Proximity Detection for Exploration
+        if (this.currentRoom.startsWith('cave') || WORLD[this.currentRoom].phase === 'exploration') {
+            const store = (this.game as any).store;
+            this.explorationTiles.getChildren().forEach((tile: any) => {
+                if (tile.getData('triggered')) return;
+                
+                const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, tile.x, tile.y);
+                if (distance < 20) {
+                    tile.setData('triggered', true);
+                    const type = tile.getData('type');
+                    
+                    if (store) {
+                        const { explorationEnergy } = store.getState() || { explorationEnergy: 0 };
+                        if (explorationEnergy > 0) {
+                            EventBus.emit('exploration-tile-clicked', { type, x: tile.x, y: tile.y });
+                        }
+                    }
+                    
+                    this.tweens.add({
+                        targets: tile,
+                        scale: 2,
+                        alpha: 0,
+                        duration: 300,
+                        onComplete: () => tile.destroy()
+                    });
+                }
+            });
+        }
+
+        // Exit Detection
+        const room = WORLD[this.currentRoom];
+        if (!room) return;
+
+        if (this.player.x < 10 && room.exits.left) this.loadRoom(room.exits.left, 'right');
+        else if (this.player.x > 374 && room.exits.right) this.loadRoom(room.exits.right, 'left');
+        else if (this.player.y < 10 && room.exits.up) this.loadRoom(room.exits.up, 'down');
+        else if (this.player.y > 278 && room.exits.down) this.loadRoom(room.exits.down, 'up');
     }
 }
 
