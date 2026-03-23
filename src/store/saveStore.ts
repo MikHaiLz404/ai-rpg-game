@@ -51,6 +51,7 @@ interface SaveStore {
   checkHasAutoSave: () => boolean;
   updateSessionTime: () => void;
   resetSaveData: () => void;
+  requestAutoSave: (playerGold: number, playerGod: God | null, inventory: Item[], relationships: Record<string, number>, arenaWins: number, kaneStats: { hp: number; maxHp: number; atk: number; def: number }) => void;
 }
 
 export const useSaveStore = create<SaveStore>((set, get) => ({
@@ -214,6 +215,18 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
     set({ currentSaveData: updatePlayTime(currentSaveData, sessionDuration), sessionStartTime: Date.now() });
   },
   resetSaveData: () => set({ currentSaveData: createEmptySaveData(), lastSaveTime: null, hasUnsavedChanges: false, sessionStartTime: Date.now() }),
+  requestAutoSave: (playerGold, playerGod, inventory, relationships, arenaWins, kaneStats) => {
+    const { saveGame, autoSaveEnabled } = get();
+    if (!autoSaveEnabled) return;
+
+    if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+      saveGame(playerGold, playerGod, inventory, relationships, arenaWins, kaneStats);
+      console.log('SaveStore: Surgical auto-save triggered');
+    }, 2000); // 2 second debounce
+  },
 }));
+
+let autoSaveTimeout: NodeJS.Timeout | null = null;
 
 export default useSaveStore;

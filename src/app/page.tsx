@@ -24,11 +24,24 @@ export default function GamePage() {
     phase, setPhase, gold, day, choicesLeft, gameOver, gameOverReason,
     vampireDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
     addExplorationLog, endDay, isBusy, setDialogue, addAILog, interventionPoints,
-    arenaWins, items, companions
+    arenaWins, items, companions, kaneStats
   } = useGameStore();
-  const { initializeSave } = useSaveStore();
+  const { initializeSave, requestAutoSave } = useSaveStore();
   
   const [mounted, setLoading] = useState(false);
+
+  // Feature: Surgical Save System (Auto-save on meaningful change)
+  useEffect(() => {
+    if (!mounted) return;
+    
+    // Convert current items IDs to Item objects for SaveData compatibility
+    // In a real app, we'd fetch the full objects, here we mock for the orchestrator/save compatibility
+    const itemObjects = items.map(id => ({ id, name: id, price: 0 } as any));
+    const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {});
+    const playerGod = companions.find(c => c.bond > 10) || null; // Simplified logic
+
+    requestAutoSave(gold, playerGod as any, itemObjects, relationships, arenaWins, kaneStats);
+  }, [gold, items, companions, arenaWins, kaneStats, day, mounted, requestAutoSave]);
 
   // Feature: Autonomous Divine Council (Every 5 days)
   useEffect(() => {
