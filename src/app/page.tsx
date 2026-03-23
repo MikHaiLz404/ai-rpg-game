@@ -23,11 +23,59 @@ export default function GamePage() {
   const { 
     phase, setPhase, gold, day, choicesLeft, gameOver, gameOverReason,
     vampireDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
-    addExplorationLog, endDay, isBusy, setDialogue
+    addExplorationLog, endDay, isBusy, setDialogue, addAILog, interventionPoints,
+    arenaWins, items, companions
   } = useGameStore();
   const { initializeSave } = useSaveStore();
   
   const [mounted, setLoading] = useState(false);
+
+  // Feature: Autonomous Divine Council (Every 5 days)
+  useEffect(() => {
+    if (mounted && !showProphecy && day > 1 && day % 5 === 0) {
+      triggerDivineCouncil();
+    }
+  }, [showProphecy, day, mounted]);
+
+  const triggerDivineCouncil = async () => {
+    try {
+      const res = await fetch('/api/narrate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'talk',
+          npcName: 'Divine Council',
+          playerName: 'Minju',
+          userMessage: 'สภาเทพ (The Divine Council Meeting)',
+          playerContext: {
+            gold, day, arenaWins, 
+            items: items.join(', '),
+            relationships: companions.map(c => `${c.name} (Bond: ${c.bond})`).join(', ')
+          }
+        })
+      });
+      const data = await res.json();
+      
+      addAILog({
+        action: 'divine_council',
+        model: data.model || 'AI Model',
+        source: data.source || 'unknown',
+        prompt: data.prompt || '',
+        response: data.narrative || '',
+        tokensInput: data.usage?.prompt_tokens || 0,
+        tokensOutput: data.usage?.completion_tokens || 0
+      });
+
+      if (data.narrative) {
+        setDialogue({
+          speaker: 'สภาเทพ (Divine Council)',
+          text: data.narrative
+        });
+      }
+    } catch (e) {
+      console.error('Failed to trigger Council:', e);
+    }
+  };
 
   // Clear dialogue when phase changes
   useEffect(() => {
