@@ -146,8 +146,34 @@ class DivineOrchestrator {
   private async callOpenRouter(model: string, req: OrchestratorRequest): Promise<OrchestratorResponse> {
     const apiKey = process.env.OPENROUTER_API_KEY;
     if (!apiKey || apiKey.includes('000000')) {
+        // Feature: Expanded Offline Variety (Randomized Fallbacks)
+        const fallbacks: Record<string, string[]> = {
+          talk: [
+            `"เจ้ากำลังก้าวไปข้างหน้าในเส้นทางที่ข้าจับตามองอยู่"`,
+            `"พลังของเจ้าเพิ่มพูนขึ้น แต่จงอย่าประมาทศัตรูในเงามืด"`,
+            `"วิหารแห่งนี้จะต้อนรับผู้ที่คู่ควรเสมอ เจ้าคือหนึ่งในนั้นหรือไม่?"`,
+            `"เรื่องราวของเจ้ากำลังถูกบันทึกไว้ในตำนานแห่งโอลิมปัส"`,
+            `"จงรักษาสายสัมพันธ์นี้ไว้ เพราะมันจะเป็นพลังให้เจ้าในยามวิกฤต"`
+          ],
+          shop_talk: [
+            `"เจ้ามีของที่ข้ากำลังตามหาอยู่หรือไม่?"`,
+            `"ราคาไม่ใช่ปัญหา ถ้าของชิ้นนั้นคุ้มค่าพอ"`,
+            `"ร้านของเจ้าเริ่มเป็นที่เลื่องลือไปถึงหูของเหล่าทวยเทพแล้วนะ"`,
+            `"ข้าหวังว่าการค้าขายในวันนี้จะนำพาโชคลาภมาให้เจ้า"`
+          ],
+          gift: [
+            `"ของชิ้นนี้ถูกใจข้ายิ่งนัก เจ้าช่างรู้ใจข้าจริงๆ"`,
+            `"ข้าขอรับไว้ด้วยความยินดี พลังของข้าจะคุ้มครองเจ้า"`,
+            `"ช่างเป็นน้ำใจที่ประเสริฐ ข้าจะจดจำการกระทำนี้ไว้"`,
+            `"ของขวัญที่ล้ำค่าที่สุดคือความจริงใจที่เจ้ามอบให้"`
+          ]
+        };
+
+        const category = fallbacks[req.action] || fallbacks.talk;
+        const randomText = category[Math.floor(Math.random() * category.length)];
+
         return { 
-            narrative: req.userMessage ? `"ฮึ... ก็พอฟังได้ เล่าต่อเถอะ"` : `"ยินดีต้อนรับ..."`, 
+            narrative: req.userMessage ? randomText : `"ยินดีต้อนรับสู่โชคชะตาของเจ้า..."`, 
             source: 'fallback', 
             model: 'Hardcoded' 
         };
