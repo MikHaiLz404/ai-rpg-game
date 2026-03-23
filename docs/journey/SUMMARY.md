@@ -4,6 +4,7 @@ This directory contains the detailed development logs for the Gods' Arena projec
 
 ## 📁 Feature Breakdown
 
+0.  **[Initial Integration](./00-initial-integration.md)**: Foundation of Phaser-React communication.
 1.  **[Architectural Cleanup](./01-architectural-cleanup.md)**: Type unification and stability fixes.
 2.  **[Asset Optimization](./02-asset-optimization.md)**: Background resizing and sprite polishing.
 3.  **[AI Divine Orchestrator](./03-ai-divine-orchestrator.md)**: Multi-agent logic and rule-based routing.
