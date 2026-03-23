@@ -104,8 +104,24 @@ export default function Shop() {
       if (progressInterval.current) clearInterval(progressInterval.current);
 
       const isGod = companions.some(c => c.name === npc.name);
-      const wantedItem = pickWeightedItem(day, isGod);
-      const offeredGold = calcOfferedGold(wantedItem.price, day, isGod);
+      
+      // Feature: Bundle Requests (multiple items)
+      // Chance increases with day: Day 1-5 (5%), Day 6-10 (15%), Day 11+ (30%)
+      const bundleChance = day <= 5 ? 0.05 : day <= 10 ? 0.15 : 0.30;
+      const isBundle = Math.random() < bundleChance;
+      const itemCount = isBundle ? (day >= 15 ? 3 : 2) : 1;
+      
+      const wantedItems: typeof ITEMS[0][] = [];
+      let totalValue = 0;
+      
+      for (let i = 0; i < itemCount; i++) {
+        const item = pickWeightedItem(day, isGod);
+        wantedItems.push(item);
+        totalValue += item.price;
+      }
+
+      const offeredGold = calcOfferedGold(totalValue, day, isGod);
+      const wantedItemNames = wantedItems.map(i => i.name).join(' และ ');
 
       try {
         const res = await fetch('/api/narrate', {
@@ -116,7 +132,7 @@ export default function Shop() {
             playerName: 'Minju',
             npcName: npc.name,
             npcMood: isGod ? 'เทพผู้สง่างาม มาซื้อของด้วยท่าทีเหนือมนุษย์' : 'ชาวบ้านธรรมดา อัธยาศัยดี',
-            wantedItem: wantedItem.name,
+            wantedItem: wantedItemNames,
             offeredGold
           })
         });
@@ -135,18 +151,18 @@ export default function Shop() {
         setCustomer({
           id: npc.id,
           name: npc.name,
-          request: data.narrative || `สวัสดีค่ะ มี ${wantedItem.name} มั้ยคะ?`,
+          request: data.narrative || `สวัสดีค่ะ มี ${wantedItemNames} มั้ยคะ?`,
           offeredGold,
-          wantedItemId: wantedItem.id,
+          wantedItemIds: wantedItems.map(i => i.id),
           isGod
         });
       } catch (err) {
         setCustomer({
           id: npc.id,
           name: npc.name,
-          request: `สวัสดี! มี ${wantedItem.name} ขายมั้ย? จ่ายได้ ${offeredGold} gold เลยนะ`,
+          request: `สวัสดี! มี ${wantedItemNames} ขายมั้ย? จ่ายได้ ${offeredGold} gold เลยนะ`,
           offeredGold,
-          wantedItemId: wantedItem.id,
+          wantedItemIds: wantedItems.map(i => i.id),
           isGod
         });
       } finally {
@@ -178,8 +194,20 @@ export default function Shop() {
 
   const handleSell = () => {
     if (!currentCustomer) return;
-    if (items.includes(currentCustomer.wantedItemId)) {
-      removeItem(currentCustomer.wantedItemId);
+    
+    // Check if player has all items in the bundle
+    const inventory = [...items];
+    const canSell = currentCustomer.wantedItemIds.every(id => {
+      const idx = inventory.indexOf(id);
+      if (idx > -1) {
+        inventory.splice(idx, 1);
+        return true;
+      }
+      return false;
+    });
+
+    if (canSell) {
+      currentCustomer.wantedItemIds.forEach(id => removeItem(id));
       
       // Apply Dynamic Gold Boost
       let finalGold = currentCustomer.offeredGold;
@@ -211,7 +239,7 @@ export default function Shop() {
         }, 2000);
       }
     } else {
-      setDialogue({ speaker: 'Minju', text: `แย่แล้ว! ของชิ้นนั้นหมดสต็อกพอดีเลยค่ะ ขอโทษด้วยนะคะ!`, portrait: 'shock' });
+      setDialogue({ speaker: 'Minju', text: `แย่แล้ว! ของในสต็อกไม่ครบตามที่ลูกค้าต้องการเลยค่ะ ขอโทษด้วยนะคะ!`, portrait: 'shock' });
     }
   };
 
@@ -280,14 +308,50 @@ export default function Shop() {
             </div>
           </div>
           <p className="text-slate-200 italic text-sm leading-relaxed mb-4 border-l-4 border-amber-500/50 pl-4 py-1">"{currentCustomer.request}"</p>
-          <div className="flex justify-between items-center bg-black/30 p-3 rounded-xl border border-white/5 mb-4 font-serif">
-            <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase">Request</div>
-            <div className="flex items-center gap-2">{(() => { const found = ITEMS.find(i => i.id === currentCustomer.wantedItemId); return found ? <><ItemIcon item={found} /><span className="font-bold text-slate-200">{found.name}</span></> : null; })()}</div>
+          <div className="bg-black/30 p-3 rounded-xl border border-white/5 mb-4 font-serif">
+            <div className="text-[10px] md:text-xs font-bold text-slate-500 uppercase mb-2">Request</div>
+            <div className="space-y-2">
+              {currentCustomer.wantedItemIds.map((itemId, idx) => {
+                const found = ITEMS.find(i => i.id === itemId);
+                if (!found) return null;
+                const hasItem = items.includes(itemId);
+                return (
+                  <div key={idx} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ItemIcon item={found} />
+                      <span className={`font-bold ${hasItem ? 'text-slate-200' : 'text-rose-500/70'}`}>{found.name}</span>
+                    </div>
+                    {hasItem ? (
+                      <span className="text-[8px] text-emerald-500 font-black uppercase">In Stock</span>
+                    ) : (
+                      <span className="text-[8px] text-rose-500 font-black uppercase">Missing</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={handleSell} disabled={!items.includes(currentCustomer.wantedItemId)} className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm font-serif flex items-center justify-center gap-2 ${items.includes(currentCustomer.wantedItemId) ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}>
-              Sell ({currentCustomer.offeredGold} <GoldIcon size={14} className={items.includes(currentCustomer.wantedItemId) ? 'text-slate-900' : 'text-slate-500'} />)
-            </button>
+            {(() => {
+              const inventory = [...items];
+              const canSellAll = currentCustomer.wantedItemIds.every(id => {
+                const idx = inventory.indexOf(id);
+                if (idx > -1) {
+                  inventory.splice(idx, 1);
+                  return true;
+                }
+                return false;
+              });
+              return (
+                <button 
+                  onClick={handleSell} 
+                  disabled={!canSellAll} 
+                  className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm font-serif flex items-center justify-center gap-2 ${canSellAll ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
+                >
+                  Sell ({currentCustomer.offeredGold} <GoldIcon size={14} className={canSellAll ? 'text-slate-900' : 'text-slate-500'} />)
+                </button>
+              );
+            })()}
             <button onClick={handleDecline} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest font-serif">Decline</button>
           </div>
         </div>

@@ -26,7 +26,7 @@ interface Customer {
   name: string;
   request: string;
   offeredGold: number;
-  wantedItemId: string;
+  wantedItemIds: string[];
   isGod: boolean;
 }
 
