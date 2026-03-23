@@ -23,6 +23,10 @@ export default function Arena() {
   const [playerHp, setPlayerHp] = useState(100);
   const [playerMaxHp, setPlayerMaxHp] = useState(100);
   const [turn, setTurn] = useState(0);
+  const [wave, setWave] = useState(1);
+  const [totalWaves, setTotalWaves] = useState(1);
+  const [pendingGold, setPendingGold] = useState(0);
+  const [baseEnemyPool, setBaseEnemyPool] = useState<any>(null);
 
   const kane = companions.find(c => c.id === 'kane');
   const gods = companions.filter(c => c.id !== 'kane');
@@ -30,7 +34,27 @@ export default function Arena() {
   const startCombat = (baseEnemy: any) => {
     if (choicesLeft <= 0 || isFighting) return;
     
-    const scale = 1 + (day - 1) * 0.05;
+    // Wave System: Determine wave count based on day and enemy difficulty
+    // High difficulty enemies or late game = more waves
+    const numWaves = day >= 15 ? 3 : day >= 8 ? 2 : 1;
+    setWave(1);
+    setTotalWaves(numWaves);
+    setPendingGold(0);
+    setBaseEnemyPool(baseEnemy);
+
+    spawnWaveEnemy(baseEnemy, 1);
+    
+    // Fix: Sync with actual Kane stats
+    setPlayerHp(kaneStats.hp);
+    setPlayerMaxHp(kaneStats.maxHp);
+    
+    setIsFighting(true);
+    setTurn(1);
+    setCombatLog([`⚔️ การต่อสู้เริ่มขึ้นแล้ว! (Wave 1/${numWaves})`]);
+  };
+
+  const spawnWaveEnemy = (baseEnemy: any, currentWave: number) => {
+    const scale = (1 + (day - 1) * 0.05) * (1 + (currentWave - 1) * 0.2); // Each wave is 20% stronger
     const scaledEnemy = {
       ...baseEnemy,
       hp: Math.floor(baseEnemy.baseHp * scale),
@@ -40,15 +64,6 @@ export default function Arena() {
     };
 
     setEnemy(scaledEnemy);
-    
-    // Fix: Sync with actual Kane stats
-    setPlayerHp(kaneStats.hp);
-    setPlayerMaxHp(kaneStats.maxHp);
-    
-    setIsFighting(true);
-    setTurn(1);
-    setCombatLog([`⚔️ การต่อสู้กับ ${scaledEnemy.name} เริ่มขึ้นแล้ว!`]);
-    
     EventBus.emit('arena-enemy-change', { enemyType: baseEnemy.id });
   };
 
@@ -131,15 +146,29 @@ export default function Arena() {
   };
 
   const winCombat = () => {
-    logAction(`🏆 ชัยชนะ! ได้รับ ${enemy.gold} ทอง`);
-    addGold(enemy.gold);
-    const { incrementArenaWins } = useGameStore.getState();
-    incrementArenaWins();
-    EventBus.emit('spawn-floating-text', { text: `+${enemy.gold} Gold`, color: '#ffd700' });
-    setIsFighting(false);
-    consumeChoice();
+    // Collect gold for this wave
+    const waveGold = enemy.gold;
+    setPendingGold(prev => prev + waveGold);
     EventBus.emit('arena-enemy-death');
-    setTimeout(() => { setEnemy(null); EventBus.emit('arena-combat-end'); }, 2000);
+
+    if (wave < totalWaves) {
+      logAction(`✨ Wave ${wave} สำเร็จ! กำลังรอศัตรูถัดไป...`);
+      setTimeout(() => {
+        setWave(prev => prev + 1);
+        spawnWaveEnemy(baseEnemyPool, wave + 1);
+        logAction(`⚔️ Wave ${wave + 1}/${totalWaves} เริ่มต้นขึ้น!`);
+      }, 1500);
+    } else {
+      const finalGold = pendingGold + waveGold;
+      logAction(`🏆 ชัยชนะครั้งยิ่งใหญ่! ได้รับรวม ${finalGold} ทอง`);
+      addGold(finalGold);
+      const { incrementArenaWins } = useGameStore.getState();
+      incrementArenaWins();
+      EventBus.emit('spawn-floating-text', { text: `+${finalGold} Gold`, color: '#ffd700' });
+      setIsFighting(false);
+      consumeChoice();
+      setTimeout(() => { setEnemy(null); EventBus.emit('arena-combat-end'); }, 2000);
+    }
   };
 
   const loseCombat = () => {
@@ -151,7 +180,14 @@ export default function Arena() {
 
   return (
     <div className="p-4 bg-slate-900/95 rounded-xl border border-red-500/20 shadow-2xl space-y-4 h-[600px] flex flex-col font-sans">
-      <h2 className="text-2xl font-black text-red-500 uppercase tracking-tighter italic font-serif">โคลอสเซียมแห่งเกียรติยศ</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-black text-red-500 uppercase tracking-tighter italic font-serif">โคลอสเซียมแห่งเกียรติยศ</h2>
+        {isFighting && (
+          <div className="bg-red-900/30 border border-red-500/30 px-3 py-1 rounded-full">
+            <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Wave {wave}/{totalWaves}</span>
+          </div>
+        )}
+      </div>
       {isFighting && enemy ? (
         <div className="flex-1 flex flex-col space-y-4 min-h-0">
           <div className="grid grid-cols-2 gap-4">
