@@ -6,249 +6,108 @@
 
 ## 1. Shop System
 
-### Customer Generation
-- Customers arrive with a random wanted item and offered gold price
-- Item selection weighted by game day (cheap items early, expensive items late)
-- God customers identified by `isGod: true` — pay 1.5x price
-- 3 customers per shift, 1 shift = 1 action point
+### Customer Generation & Bundle Requests
+- Customers arrive with specific item requests and offered gold.
+- **Bundle Requests**: Customers can ask for **1-3 items** in a single visit.
+- Item selection and bundle size weighted by game day (larger bundles and rarer items appear later).
+- God customers identified by `isGod: true` — pay premium prices and grant bond bonuses on successful sales.
+- 3 customers per shift (standard), 1 shift = 1 action point.
 
 ### Inventory Management
-- Start with: 2x Health Potion, 1x Soap, 1x Mirror, 2x Flower
-- 15 total item types across price tiers (20g - 500g)
-- Restock between customers at any time (cost scales by day)
-- Items used across Shop (sell), Relationship (gift), and earned from Exploration
+- **Starting Stock**: 2x Health Potion, 1x Soap, 1x Mirror, 2x Flower.
+- **Item Tiers**: 15 total item types across price tiers (20g - 500g).
+- **Restocking**: Purchase items between customers (cost scales by day).
+- **Global Utility**: Items are sold for gold, gifted for bond, or discovered during exploration.
 
-### Item Catalog
-
-| Item | Price | Category |
-|------|-------|----------|
-| Flower | 20g | Gift |
-| Wood | 30g | Material |
-| Soap | 30g | Consumable |
-| Herbs | 40g | Material |
-| Health Potion | 50g | Consumable |
-| Mana Potion | 50g | Consumable |
-| Ore | 60g | Material |
-| Basket | 80g | Gift |
-| Cloth | 100g | Material |
-| Perfume | 120g | Gift |
-| Shield | 150g | Weapon |
-| Mirror | 150g | Gift |
-| Bow | 180g | Weapon |
-| Sword | 200g | Weapon |
-| Olympian Coin | 500g | Rare |
-
-### Item Sprites
-Animated sprite sheets exist for: Health Potion, Mana Potion, Basket, Cloth, Sword, Shield. Others use emoji fallback.
+### UI Status Indicators
+- The Shop interface shows real-time inventory status for requests:
+    - **In Stock** (Green): Item is available to sell.
+    - **Missing** (Red): Item must be restocked before selling the bundle.
 
 ---
 
 ## 2. Arena Combat
 
-### Turn-Based System
-- Player selects action each turn: Attack, Skill, or Retreat
-- Base ATK = 15 (Kane's archer power)
-- Bond bonuses from all companions stack additively
-- Enemy counter-attacks after every player action
-- AI narrates combat actions via `/api/narrate`
+### Wave-Based Turn System
+- **Sequential Waves**: Combat now features **1-3 waves** of enemies per action.
+- Wave count scales with game progression:
+    - Days 1-7: 1 wave
+    - Days 8-14: 2 waves
+    - Days 15+: 3 waves
+- **Escalating Power**: Each subsequent wave is **20% stronger** (HP/ATK) than the previous one.
+- AI narrates combat actions and divine interventions via the Orchestrator.
 
-### Skills
-- Unlocked through Relationship bond thresholds
-- Each skill has: name, description, multiplier (1.5x-3.0x), type (physical/magical)
-- AI-generated with validation + deterministic fallback per god per level
-- 5 fallback skills per god (Leo=physical, Arena=magical, Draco=mixed)
+### Divine Manifestation
+- When a Divine Skill is used, the respective God (Leo, Arena, Draco) physically appears in the Arena.
+- Visual effects include Magic Circles, screen flashes, and camera shakes to convey power.
 
-### Enemy Scaling
-- HP and ATK scale +5% per day
-- Rewards scale +3% per day
-- Formula: `stat * (1 + (day-1) * 0.05)`
-
-### Victory Rewards
-- Gold from defeated enemy
-- +2 IP on any enemy kill
-- Defeating Vampire Lord = game win
+### Character Progression (Kane)
+- **Base Stats**: ATK = 15, DEF = 10, HP = 100.
+- **Bond Bonuses**: All active companions grant additive bonuses to Kane's ATK and DEF.
+- **Stat Persistence**: Kane's current HP and stats are saved across sessions.
 
 ---
 
 ## 3. Exploration System
 
-### Location Unlocking
-Locations gate by day number. Each has unique loot tables, monsters, encounter rates, and random events.
+### Interactive Phaser World
+- **Free Movement**: Players control Kane using WASD/Arrows within exploration scenes.
+- **Seamless Transitions**: Directional room entry (e.g., exiting right enters left of the next room).
+- **Proximity Triggers**: Nodes (Resources/Enemies) are triggered by physically walking up to them.
 
-### Outcome Resolution (per expedition)
-1. Roll for monster encounter (location's encounterRate)
-2. If monster: auto-combat using Kane's power (15 + bond ATK bonuses)
-   - Monster stats scale like Arena enemies: HP * (1 + (day-1)*0.05)
-   - Win: +gold reward, +1 IP, +random item from loot table, 50% chance +1 bond to random god
-   - Lose: no penalty, expedition ends
-3. If no monster: trigger random event
-   - Gold find, item discovery, IP gain, trap (lose gold), or heal
-   - Events selected by weighted random from location's event pool
-4. Always: +1 random loot item from location table
-
-### Exploration Log
-- Last 20 entries persisted in gameStore
-- Displays in real-time during expedition
-- Preserved across tab navigation
+### Outcome Resolution
+1. **Nodes**: 6 interactive nodes spawn per expedition.
+2. **Encounters**: Walking to a node triggers either auto-combat or a gathering event.
+3. **Loot**: High-tier locations (Ruins, Cave) yield rarer items like Olympian Coins.
 
 ---
 
 ## 4. Relationship & Bond System
 
 ### Bond Mechanics
-- Each god starts with different bond levels (Leo: 5, Arena: 3, Draco: 2)
-- Bond level = floor(bond / 10) + 1
-- Bond increases from: gifts, exploration kills, events
+- **Tiers**: Bond Level = floor(bond / 10) + 1.
+- **Leveling**: Gains from gifts, exploration kills, and successful shop sales to gods.
 
-### Conversation
-- Free text chat with gods via AI (`/api/narrate` action: `talk`)
-- Bond-level-aware prompts (4 tiers adjust NPC tone from formal to intimate)
-- Per-god personality and speech style defined in `npcConfig.ts`
-
-### Gift System
-- Player gives items from inventory to a god
-- Base bond: +3 for potions, +5 for other items
-- Favorite gift bonus: +3 additional
-- Favorites per god: Leo=weapons, Arena=elegant items, Draco=rare/natural items
-- AI generates thank-you dialogue (`/api/narrate` action: `gift`)
-
-### Skill Threshold System
-- Thresholds: [3, 5, 8, 12, 17]
-- When bond crosses a threshold, triggers AI skill generation
-- Response validated: strip markdown fences, check JSON structure, clamp multiplier 1.5-3.0
-- On parse failure or API failure: deterministic fallback skill granted
-- Skills added to Kane, usable in Arena combat
+### Advanced AI Interactions
+- **Dynamic Heralds**: If Bond Level is low (< 5), gods send a "Herald" sub-agent to handle interactions.
+- **Quality Scaling**: Dialogue quality switches to high-reasoning models (Claude 3.5 Sonnet) at high bond levels (>= 12).
+- **Autonomous Council**: Every 5 days, the "Divine Council" triggers a multi-agent dialogue to judge player progress.
 
 ---
 
-## 5. Prophecy System
+## 5. AI Integration (Divine Orchestrator)
 
-### Daily Prophecy
-- Triggers at start of each new day (`showProphecy` flag)
-- Calls `/api/prophecy` with full game state (day, gold, bonds, skills, turnsLeft)
-- All 3 gods respond in parallel with strategic advice
-- Game-state-aware: adjusts urgency language based on remaining days
+### Architecture
+The game uses a centralized **Divine Orchestrator** to handle all requests with rule-based routing:
+- **Rule A (Speed)**: Gemini 2.0 Flash for standard chatter.
+- **Rule B (Quality)**: Claude 3.5 Sonnet for high bond levels.
+- **Rule C (Intelligence)**: GPT-4o mini for late-game urgency and prophecies.
+- **Rule D (Simulation)**: Multi-agent chaining for Council meetings.
 
-### Prophecy Sources
-- **OpenClaw Gateway**: Multi-agent orchestration (Leo→emily, Arena→ember, Draco→mochi)
-- **OpenRouter**: Fallback to Gemini Flash when Gateway unavailable
-- **Hardcoded**: Per-god, bond-aware fallback text when both AI providers fail
-
----
-
-## 6. AI Integration
-
-### Architecture (Divine Orchestrator)
-The game uses a centralized **Divine Orchestrator** (`src/lib/ai/orchestrator.ts`) to manage all AI requests. It handles provider routing, model selection based on rules, and multi-agent simulations.
-
-```
-Component → /api/narrate or /api/prophecy
-    → Divine Orchestrator (Rules Engine)
-        → Rule A: Speed (Gemini 2.0 Flash) for shop/combat
-        → Rule B: Quality (Claude 3.5 Sonnet) for Bond Level >= 12
-        → Rule C: Intelligence (GPT-4o mini) for Prophecies
-        → Rule D: Simulation (Multi-agent chains) for "Council" trigger
-    → Try OpenClaw Gateway (if enabled)
-    → Fallback to OpenRouter
-    → Fallback to hardcoded Thai responses
-```
-
-### Multi-Agent Simulation (Agent-to-Agent)
-The orchestrator simulates agent-to-agent communication by chaining API calls. 
-- **Trigger**: Using keywords like **"สภาเทพ"** or **"Council"** in conversation.
-- **Flow**: Leo provides an initial opinion → Arena (The Queen) responds to Leo's statement → Player receives the full "consensus" dialogue.
-
-### Narrate Actions
-| Action | Used By | Purpose |
-|--------|---------|---------|
-| `generate_skill` | Relationship | Create combat skill on bond threshold |
-| `shop_talk` | Shop | Customer greeting dialogue |
-| `talk` | Relationship | Free conversation with god |
-| `gift` | Relationship | Thank-you reaction to gift |
-| combat (attack/defend/heal/fireball) | Arena | Combat narration |
-| `exploration_event` | Exploration | Event narration |
-
-### Fallback Coverage
-All 6 actions have Thai-language hardcoded fallbacks. Skill generation has 5 unique deterministic skills per god indexed by level.
-
-### Connection Status
-`AIStatusBadge` component in header shows current AI source:
-- Green (OpenClaw) — multi-agent orchestration active
-- Blue (OpenRouter) — REST API fallback active
-- Gray (Offline) — using hardcoded responses only
+### Fallback Resilience
+- **OpenRouter Priority**: Bypasses gateway connection issues for god dialogues.
+- **Offline Mode**: A pool of randomized Thai fallback dialogues ensures atmosphere without API access.
 
 ---
 
-## 7. Day Cycle & Win/Lose
+## 6. Save/Load System (Surgical)
 
-### Day Progression
-- Max 20 days (configurable via `MAX_TURNS`)
-- 3 action points per day (configurable via `MAX_CHOICES_PER_DAY`)
-- End-of-day triggers: reset choices, increment day, check win/lose, show prophecy
-
-### Win Condition
-- Defeat the Vampire Lord in Arena → `vampireDefeated: true` → game over screen (victory)
-
-### Lose Conditions
-- **Time**: Day exceeds 20 without defeating Vampire Lord
-- **Bankruptcy**: 0 gold AND 0 items at end of day (unrecoverable state)
-
-### Urgency System
-- Warning banner appears when turnsLeft <= 5
-- Critical pulsing red when turnsLeft <= 3
-- Day counter changes from amber to red
-- Prophecy prompts include urgency tier (ยังมีเวลา / เร่งด่วน / วิกฤต)
-
----
-
-## 8. Save/Load System
-
-### Auto-Save
-- Every 30 seconds to localStorage key `gods_arena_autosave`
-- Loads automatically on game start
-
-### Manual Save
-- 3 save slots in ChampionStatus tab
-- localStorage keys: `gods_arena_save_slot_1`, `_2`, `_3`
-- Each slot shows: timestamp, day, gold
-
-### Export/Import
-- Export: downloads full save data as JSON file
-- Import: reads JSON file and loads into game state
-- Version: `1.0.0`
+### Efficient Auto-Save
+- **Surgical Triggers**: Saves only occur when meaningful state changes (gold, items, bonds, day).
+- **Debounced Writes**: A 2-second debounce timer prevents redundant disk operations during rapid changes.
+- **Primary Storage**: IndexedDB (Primary) + LocalStorage (Fallback).
 
 ### Save Data Structure
-Includes: player gold, inventory, companion bonds, unlocked skills, claimed thresholds, day, choicesLeft, interventionPoints, vampireDefeated, gameOver, explorationLog, **kaneStats** (persisted progression).
-
-### Reset
-- Full game reset: clears all saves, resets to initial state
-- Tutorial reset: clears tutorial dismissed flag
+Includes: player gold, inventory, companion bonds, unlocked skills, day, choicesLeft, interventionPoints, vampireDefeated, gameOver, explorationLog, and **kaneStats**.
 
 ---
 
-## 9. UI/UX
+## 7. UI/UX & Debug
 
-### Layout
-- **Desktop**: Sticky header (title, nav tabs, status bar) + 2-column layout (Phaser game left, side panel right) + bottom save/reset buttons
-- **Mobile**: Compact header + single column + fixed bottom tab bar (5 tabs)
+### Layout & Navigation
+- **Hybrid UI**: React manages management menus; Phaser manages visual movement and combat.
+- **Header Status**: Displays Day, Gold, Actions, and AI Connectivity.
 
-### Navigation Tabs
-| Tab | Phase | Room Change |
-|-----|-------|-------------|
-| ร้านค้า | shop | Phaser: shop room |
-| อารีน่า | arena | Phaser: arena room |
-| สำรวจ | exploration | React only |
-| หมู่บ้าน | relationship | Phaser: village room |
-| สถานะ | status | React only |
-
-### Phaser Integration
-- 384x288px pixel art canvas, arcade physics
-- Rooms: shop, arena, village, cave_entrance, cave_inside
-- **Debug System**: Controlled via "Debug Grid" button in the top navigation (replaces legacy 'G' shortcut)
-- Communication via EventBus (EventEmitter)
-- React↔Phaser: `phase-change`, `change-room`, and `toggle-debug` events
-
-### Tutorial
-- First-day overlay explaining all 4 phases and the objective
-- Dismissable, persists via localStorage flag
-- Can be re-triggered from ChampionStatus tab
+### Debug Controls
+- **Debug Grid**: Visible UI button in header to toggle alignment grid and coordinate text (replaces legacy shortcuts).
+- **AITerminal**: Collapsible overlay to view real-time AI prompts, responses, and token usage.
