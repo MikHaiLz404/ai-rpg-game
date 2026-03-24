@@ -48,7 +48,7 @@ const NPC_TO_AGENT: Record<string, string> = {
 
 class DivineOrchestrator {
   private OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-  private USE_OPENROUTER_FOR_GODS = true;
+  private USE_OPENROUTER_FOR_GODS = false;
 
   /**
    * Main entry point for generating AI narratives
@@ -70,14 +70,15 @@ class DivineOrchestrator {
     }
 
     // Try OpenClaw if configured and NOT disabled for gods
-    if (NPC_TO_AGENT[req.npcName] && !this.USE_OPENROUTER_FOR_GODS) {
+    const baseName = req.npcName.replace('ผู้ส่งสารของ', '').replace(' (Herald)', '').trim();
+    if (NPC_TO_AGENT[baseName] && !this.USE_OPENROUTER_FOR_GODS) {
         const fullPrompt = this.buildFullPrompt(req);
         const openclawNarrative = await this.generateViaOpenClaw(req.npcName, fullPrompt);
         if (openclawNarrative) {
             return {
                 narrative: openclawNarrative,
                 source: 'openclaw',
-                model: `OpenClaw: ${NPC_TO_AGENT[req.npcName]}`,
+                model: `OpenClaw: ${NPC_TO_AGENT[baseName]}`,
                 prompt: fullPrompt,
                 usage: { total_tokens: Math.ceil((fullPrompt.length + openclawNarrative.length)/2) }
             };
@@ -104,7 +105,9 @@ class DivineOrchestrator {
   }
 
   private async generateViaOpenClaw(npcName: string, prompt: string): Promise<string | null> {
-    const agentName = NPC_TO_AGENT[npcName];
+    // Extract base god name if it's a Herald
+    const baseName = npcName.replace('ผู้ส่งสารของ', '').replace(' (Herald)', '').trim();
+    const agentName = NPC_TO_AGENT[baseName];
     if (!agentName) return null;
     try {
       const client = getGameClient();
@@ -115,26 +118,34 @@ class DivineOrchestrator {
   }
 
   private async handleCouncilSimulation(req: OrchestratorRequest): Promise<OrchestratorResponse> {
-    // 1. Get Leo's opinion
-    const res1 = await this.callOpenRouter('google/gemini-2.0-flash-001', {
-      ...req,
-      action: 'talk',
-      npcName: 'เลโอ',
-      userMessage: req.userMessage || 'ข้าขอคำปรึกษาจากสภาเทพ'
-    });
+    const req1 = { ...req, action: 'talk', npcName: 'เลโอ', userMessage: req.userMessage || 'ข้าขอคำปรึกษาจากสภาเทพ' };
+    let res1Text = '';
+    
+    if (!this.USE_OPENROUTER_FOR_GODS) {
+        const p1 = this.buildFullPrompt(req1 as any);
+        res1Text = await this.generateViaOpenClaw('เลโอ', p1) || '';
+    }
+    if (!res1Text) {
+        const res1 = await this.callOpenRouter('google/gemini-2.0-flash-001', req1 as any);
+        res1Text = res1.narrative;
+    }
 
-    // 2. Get Arena's judgment
-    const res2 = await this.callOpenRouter('google/gemini-2.0-flash-001', {
-      ...req,
-      action: 'talk',
-      npcName: 'อารีน่า',
-      userMessage: `เลโอเพิ่งกล่าวว่า: "${res1.narrative}". ในฐานะราชินี ท่านมีความเห็นอย่างไรต่อคำพูดของเขาและผู้เล่น ${req.playerName}?`
-    });
+    const req2 = { ...req, action: 'talk', npcName: 'อารีน่า', userMessage: `เลโอเพิ่งกล่าวว่า: "${res1Text}". ในฐานะราชินี ท่านมีความเห็นอย่างไรต่อคำพูดของเขาและผู้เล่น ${req.playerName}?` };
+    let res2Text = '';
+
+    if (!this.USE_OPENROUTER_FOR_GODS) {
+        const p2 = this.buildFullPrompt(req2 as any);
+        res2Text = await this.generateViaOpenClaw('อารีน่า', p2) || '';
+    }
+    if (!res2Text) {
+        const res2 = await this.callOpenRouter('google/gemini-2.0-flash-001', req2 as any);
+        res2Text = res2.narrative;
+    }
 
     return {
-      narrative: `[เลโอ]: ${res1.narrative}\n\n[อารีน่า]: ${res2.narrative}`,
+      narrative: `[เลโอ]: ${res1Text}\n\n[อารีน่า]: ${res2Text}`,
       source: 'council_simulation',
-      model: 'multi-agent-chain'
+      model: this.USE_OPENROUTER_FOR_GODS ? 'multi-agent-chain (openrouter)' : 'multi-agent-chain (openclaw)'
     };
   }
 
