@@ -14,6 +14,8 @@ This directory contains the detailed development logs for the Gods' Arena projec
 7.  **[Combat Visuals](./07-combat-visuals.md)**: God manifestation effects in battle.
 8.  **[Surgical Save System](./08-surgical-save-system.md)**: Debounced, change-triggered auto-saves.
 9.  **[Debug & UI Improvements](./09-debug-ui-improvements.md)**: Visible debug controls and project sanitization.
+10. **[Final Testing & Balancing](./10-final-balancing.md)**: E2E simulation and economy calibration.
+11. **[Audio Integration](./11-audio-integration.md)**: Centralized sound management system.
 
 ---
 *Last Updated: March 23, 2026*
