@@ -45,8 +45,8 @@ export default function Arena() {
     spawnWaveEnemy(baseEnemy, 1);
     
     // Fix: Sync with actual Kane stats
-    setPlayerHp(kaneStats.hp);
-    setPlayerMaxHp(kaneStats.maxHp);
+    setPlayerHp(kaneStats?.hp || 100);
+    setPlayerMaxHp(kaneStats?.maxHp || 100);
     
     setIsFighting(true);
     setTurn(1);
@@ -123,7 +123,7 @@ export default function Arena() {
     EventBus.emit('play-sfx', 'attack');
 
     // Improved: Use actual Kane stats
-    const pDmg = Math.max(2, kaneStats.atk - enemy.def);
+    const pDmg = Math.max(2, (kaneStats?.atk || 15) - enemy.def);
     const newEnemyHp = Math.max(0, enemy.hp - pDmg);
     setEnemy({ ...enemy, hp: newEnemyHp });
     EventBus.emit('arena-attack', { target: 'enemy' });
@@ -137,7 +137,7 @@ export default function Arena() {
     setTimeout(() => {
       if (!isFighting) return;
       // Improved: Use actual Kane defense
-      const eDmg = Math.max(1, enemy.atk - kaneStats.def);
+      const eDmg = Math.max(1, enemy.atk - (kaneStats?.def || 10));
       const newPlayerHp = Math.max(0, playerHp - eDmg);
       setPlayerHp(newPlayerHp);
       EventBus.emit('arena-attack', { target: 'player' });
@@ -205,8 +205,18 @@ export default function Arena() {
               <div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${(playerHp/playerMaxHp)*100}%` }} /></div>
             </div>
             <div className="bg-black/40 p-3 rounded-xl border border-red-500/20">
-              <div className="flex justify-between items-center mb-1 font-serif"><span className="text-[10px] font-black text-red-400 uppercase">{enemy.name}</span><span className="text-[10px] font-bold text-slate-500 font-sans">{enemy.hp}/{enemy.maxHp}</span></div>
-              <div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${(enemy.hp/enemy.maxHp)*100}%` }} /></div>
+              <div className="flex justify-between items-center mb-1 font-serif">
+                <span className="text-[10px] font-black text-red-400 uppercase">{enemy?.name || 'Enemy'}</span>
+                <span className="text-[10px] font-bold text-slate-500 font-sans">
+                  {enemy ? `${enemy.hp}/${enemy.maxHp}` : '0/0'}
+                </span>
+              </div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-red-500 transition-all duration-500" 
+                  style={{ width: `${enemy ? (enemy.hp / enemy.maxHp) * 100 : 0}%` }} 
+                />
+              </div>
             </div>
           </div>
           <div className="bg-slate-800/30 p-3 rounded-xl border border-white/5 font-serif">
@@ -214,10 +224,10 @@ export default function Arena() {
             <div className="grid grid-cols-3 gap-2">
               {gods.map(god => (
                 <div key={god.id} className="space-y-1">
-                  {god.unlockedSkills.slice(0, 1).map((skill, idx) => (
+                  {(god.unlockedSkills || []).slice(0, 1).map((skill, idx) => (
                     <button key={idx} onClick={() => handleDivineIntervention(god.id, skill)} disabled={interventionPoints < 2} className="w-full py-1.5 bg-purple-900/20 hover:bg-purple-800/40 border border-purple-500/30 rounded-lg text-[8px] font-black text-purple-300 uppercase transition-all disabled:opacity-30 flex flex-col items-center"><SparklesIcon size={10} className="mb-0.5" />{skill.name}</button>
                   ))}
-                  {god.unlockedSkills.length === 0 && <div className="h-full bg-slate-900/50 rounded-lg border border-dashed border-slate-700 flex items-center justify-center"><span className="text-[7px] text-slate-600 uppercase">ล็อค</span></div>}
+                  {(!god.unlockedSkills || god.unlockedSkills.length === 0) && <div className="h-full bg-slate-900/50 rounded-lg border border-dashed border-slate-700 flex items-center justify-center"><span className="text-[7px] text-slate-600 uppercase">ล็อค</span></div>}
                 </div>
               ))}
             </div>

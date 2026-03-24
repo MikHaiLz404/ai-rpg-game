@@ -331,11 +331,23 @@ export default function Relationship() {
       {selectedCompanion && metadata ? (
         <div className="flex-1 flex flex-col min-h-0 space-y-4">
           <div className="bg-slate-800/30 p-4 rounded-2xl border border-white/5 flex items-center gap-4 relative overflow-hidden shrink-0">
-            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0 overflow-hidden">{metadata.facial ? <img src={metadata.facial} alt={selectedCompanion.name} className="w-full h-full object-cover image-pixelated" /> : <span className="text-2xl">{metadata.emoji}</span>}</div>
+            <div className="w-16 h-16 bg-slate-900 rounded-full flex items-center justify-center border-2 border-pink-500/20 shadow-xl relative z-10 shrink-0 overflow-hidden">
+              {metadata && metadata.facial ? (
+                <img src={metadata.facial} alt={selectedCompanion.name} className="w-full h-full object-cover image-pixelated" />
+              ) : (
+                <span className="text-2xl">{metadata?.emoji || '👤'}</span>
+              )}
+            </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-black text-white uppercase tracking-tight truncate font-serif">{selectedCompanion.name}</h3>
               <div className="flex items-center gap-2"><div className="flex-1 min-w-0"><div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">{(() => { const next = getNextThreshold(selectedCompanion); const thresholds = getSkillThresholds(selectedCompanion.id); const prev = thresholds.filter(t => t <= selectedCompanion.bond).pop() || 0; const progress = next ? ((selectedCompanion.bond - prev) / (next - prev)) * 100 : 100; return <div className="h-full bg-gradient-to-r from-pink-600 to-rose-400 transition-all duration-1000" style={{ width: `${progress}%` }} />; })()}</div><div className="flex justify-between mt-0.5"><span className="text-[8px] md:text-[10px] text-slate-500 font-sans">ค่าความสนิท: {selectedCompanion.bond}</span>{getNextThreshold(selectedCompanion) && <span className="text-[8px] md:text-[10px] text-amber-500/70 font-sans">สกิลถัดไป: {getNextThreshold(selectedCompanion)}</span>}</div></div><span className="text-[10px] md:text-xs font-black text-pink-500 shrink-0 font-sans uppercase">LVL {selectedCompanion.level}</span></div>
             </div>
+            {/* Feature: Divine Training */}
+            {GOD_BOND_RATE[selectedCompanion.id] !== undefined && (
+              <button type="button" onClick={handleTrain} disabled={choicesLeft <= 0 || conversationEnded} className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-3 py-2 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg shadow-amber-500/20 shrink-0 ml-2">
+                ฝึกฝน Kane<br/>({50 + (day-1)*10}g)
+              </button>
+            )}
           </div>
           {isGeneratingSkill && <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse shrink-0"><span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest font-serif">กำลังรวบรวมพลังเทพ...</span></div>}
           <div ref={scrollRef} className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 min-h-0">{chatLog.length === 0 && <div className="text-center text-slate-600 italic text-xs md:text-sm py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>}{chatLog.map((msg, i) => <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${msg.sender === 'player' ? 'bg-pink-600 text-white rounded-tr-none' : msg.sender === 'npc' ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5' : 'bg-amber-500/10 text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'}`}>{msg.text}</div></div>)}{isTalking && <div className="flex justify-start"><div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs md:text-sm font-sans">กำลังคิด...</div></div>}</div>
@@ -362,9 +374,10 @@ export default function Relationship() {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 flex-1 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 pb-4">
-          {companions.map((comp) => {
+          {(companions || []).map((comp) => {
             const meta = NPC_CONFIGS[comp.id];
-            const nextThreshold = getSkillThresholds(comp.id).find(t => comp.bond < t);
+            const thresholds = getSkillThresholds(comp.id);
+            const nextThreshold = (thresholds || []).find(t => comp.bond < t);
             return (comp.id !== 'kane' && (
               <button key={comp.id} onClick={() => { 
                 if (choicesLeft <= 0) {
@@ -374,8 +387,14 @@ export default function Relationship() {
                 setSelectedId(comp.id); EventBus.emit('village-walk-to-npc', { npcId: comp.id }); const onArrival = () => { EventBus.off('village-walk-complete', onArrival); handleTalk(comp.id); }; EventBus.on('village-walk-complete', onArrival); 
               }} className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden h-48">
                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity font-serif"><span className="text-4xl font-black">{comp.level}</span></div>
-                <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">{meta?.facial ? <img src={meta.facial} alt={comp.name} className="w-full h-full object-cover image-pixelated" /> : <span className="text-4xl">{meta?.emoji || '👤'}</span>}</div>
-                <div className="text-center"><div className="font-black text-white uppercase tracking-tight font-serif">{comp.name}</div><div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1 font-sans">ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}</div>{comp.unlockedSkills.length > 0 && <div className="flex flex-wrap gap-1 justify-center mt-2">{comp.unlockedSkills.map((skill, i) => <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20 font-serif" title={`x${skill.multiplier}`}>🔥 {skill.name}</span>)}</div>}</div>
+                <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">
+                  {meta && meta.facial ? (
+                    <img src={meta.facial} alt={comp.name} className="w-full h-full object-cover image-pixelated" />
+                  ) : (
+                    <span className="text-4xl">{meta?.emoji || '👤'}</span>
+                  )}
+                </div>
+                <div className="text-center"><div className="font-black text-white uppercase tracking-tight font-serif">{comp.name}</div><div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1 font-sans">ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}</div>{(comp.unlockedSkills || []).length > 0 && <div className="flex flex-wrap gap-1 justify-center mt-2">{(comp.unlockedSkills || []).map((skill, i) => <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20 font-serif" title={`x${skill.multiplier}`}>🔥 {skill.name}</span>)}</div>}</div>
               </button>
             ));
           })}

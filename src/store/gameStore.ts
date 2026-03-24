@@ -343,7 +343,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   addAILog: (log) => set((state) => {
     const newLog: AILog = {
       ...log,
-      id: crypto.randomUUID(),
+      id: `ai-log-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       timestamp: Date.now(),
     };
     return {
