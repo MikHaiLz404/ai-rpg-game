@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
+import { broadcastAISource } from './AIStatusBadge';
 import { GoldIcon, PackageIcon } from './Icons';
 
 const ITEM_SPRITES: Record<string, { src: string, fw: number, fh: number, sw: number, sh: number }> = {
@@ -138,6 +139,8 @@ export default function Shop() {
         });
         const data = await res.json();
         
+        broadcastAISource(data.source || 'fallback');
+
         addAILog({
           action: 'shop_talk',
           model: data.model || 'AI Model',

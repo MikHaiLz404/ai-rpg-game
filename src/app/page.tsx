@@ -5,6 +5,7 @@ import { useGameStore, MAX_TURNS, MAX_CHOICES_PER_DAY } from '@/store/gameStore'
 import { useSaveStore } from '@/store/saveStore';
 import { useState, useEffect } from 'react';
 import { EventBus } from '@/game/EventBus';
+import { broadcastAISource } from '@/components/AIStatusBadge';
 
 // Components
 import Shop from '@/components/Shop';
@@ -69,6 +70,8 @@ export default function GamePage() {
       });
       const data = await res.json();
       
+      broadcastAISource(data.source || 'fallback');
+
       addAILog({
         action: 'divine_council',
         model: data.model || 'AI Model',

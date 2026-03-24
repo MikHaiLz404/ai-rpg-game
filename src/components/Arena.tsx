@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
+import { broadcastAISource } from './AIStatusBadge';
 import { GoldIcon, HPIcon, SwordIcon, ShieldIcon, IPIcon, SparklesIcon } from './Icons';
 
 const BASE_ENEMIES = [
@@ -102,6 +103,7 @@ export default function Arena() {
           body: JSON.stringify({ action: 'divine_intervention', playerName: 'Kane', npcName: skill.name, enemyName: enemy.name, damage: finalDmg })
         });
         const data = await res.json();
+        broadcastAISource(data.source || 'fallback');
         addAILog({ 
           action: 'arena_intervention', 
           model: data.model || 'AI Model', 

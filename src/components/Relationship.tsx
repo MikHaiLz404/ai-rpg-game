@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
+import { broadcastAISource } from './AIStatusBadge';
 import { NPC_CONFIGS, getSkillThresholds, GOD_BOND_RATE, GOD_CHAT_LIMIT } from '@/data/npcConfig';
 
 const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
@@ -127,6 +128,7 @@ export default function Relationship() {
         })
       });
       const data = await res.json();
+      broadcastAISource(data.source || 'fallback');
       
       addAILog({
         action: 'generate_skill',
@@ -206,6 +208,7 @@ export default function Relationship() {
         })
       });
       const data = await res.json();
+      broadcastAISource(data.source || 'fallback');
       
       addAILog({
         action: 'talk',
@@ -274,6 +277,7 @@ export default function Relationship() {
         body: JSON.stringify({ action: 'gift', playerName: 'Minju', npcName: companion.name, wantedItem: itemInfo?.name || itemId, bondLevel: companion.level })
       });
       const data = await res.json();
+      broadcastAISource(data.source || 'fallback');
       addAILog({ action: 'gift', model: data.model || 'AI Model', source: data.source as any || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0 });
       if (data.narrative) { setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]); setDialogue({ speaker: companion.name, text: data.narrative }); }
     } catch (err) {}
