@@ -53,11 +53,11 @@ export class OpenClawGameClient {
         const isNgrok = wsUrl.host.includes('ngrok');
         const headers: Record<string, string> = {
           'User-Agent': 'OpenClaw-Game-Client',
+          'Origin': 'http://127.0.0.1:18789', // Force local origin to bypass gateway security check
         };
         if (isNgrok) {
           headers['ngrok-skip-browser-warning'] = 'true';
           headers['Host'] = wsUrl.host;
-          headers['Origin'] = wsUrl.origin;
         }
         this.log(`[INFO] Connecting to ${wsUrl.host}${isNgrok ? ' (ngrok tunnel)' : ' (local)'}...`);
         this.ws = new WS(wsUrl.toString(), {
