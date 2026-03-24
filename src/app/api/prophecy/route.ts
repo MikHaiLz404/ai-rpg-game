@@ -69,8 +69,9 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
   const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL;
   const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN;
   if (!gatewayUrl || !gatewayToken) return null;
+  
+  const client = getGameClient();
   try {
-    const client = getGameClient();
     if (!client.isConnected()) await client.connect();
     const results = await Promise.allSettled(Object.entries(GOD_TO_AGENT).map(async ([godId, agentName]) => {
       const prompt = buildPromptForGod(godId, gameState);
@@ -78,10 +79,16 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
       try {
         const result = await client.sendChatAndWait(sessionKey, prompt, 25000);
         return { godId, text: result.response, prompt, usage: { total_tokens: Math.ceil((prompt.length + result.response.length) / 2) }, logs: result.logs };
-      } catch { return { godId, text: getFallback(godId), usage: { total_tokens: 0 }, prompt: '', logs: [] }; }
+      } catch (err) {
+        client.log(`[PROPHECY] OpenClaw generated error: ${err instanceof Error ? err.message : String(err)}`);
+        return { godId, text: getFallback(godId), usage: { total_tokens: 0 }, prompt: '', logs: client.getLogs() }; 
+      }
     }));
-    return results.map(r => r.status === 'fulfilled' ? r.value : { godId: 'unknown', text: '"..."', usage: { total_tokens: 0 }, prompt: '', logs: [] });
-  } catch { return null; }
+    return results.map(r => r.status === 'fulfilled' ? r.value : { godId: 'unknown', text: '"..."', usage: { total_tokens: 0 }, prompt: '', logs: client.getLogs() });
+  } catch (err) {
+    client.log(`[PROPHECY] OpenClaw connection error: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
 }
 
 async function generateAIDailyEvent(gameState: GameState, apiKey: string): Promise<{ event: any; usage: any; prompt: string }> {

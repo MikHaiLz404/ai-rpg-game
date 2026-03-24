@@ -75,7 +75,7 @@ class DivineOrchestrator {
     if (NPC_TO_AGENT[baseName] && !this.USE_OPENROUTER_FOR_GODS) {
         const fullPrompt = this.buildFullPrompt(req);
         const openclawResult = await this.generateViaOpenClaw(req.npcName, fullPrompt);
-        if (openclawResult) {
+        if (openclawResult.success && openclawResult.response) {
             return {
                 narrative: openclawResult.response,
                 source: 'openclaw',
@@ -84,6 +84,11 @@ class DivineOrchestrator {
                 usage: { total_tokens: Math.ceil((fullPrompt.length + openclawResult.response.length)/2) },
                 gatewayLogs: openclawResult.logs
             };
+        } else {
+            // Failed, fallback but append logs
+            const fallbackRes = await this.callOpenRouter(rules.model, req);
+            fallbackRes.gatewayLogs = openclawResult.logs;
+            return fallbackRes;
         }
     }
 
@@ -106,17 +111,21 @@ class DivineOrchestrator {
     return { model };
   }
 
-  private async generateViaOpenClaw(npcName: string, prompt: string): Promise<{ response: string; logs: string[] } | null> {
+  private async generateViaOpenClaw(npcName: string, prompt: string): Promise<{ success: boolean; response?: string; logs: string[] }> {
     // Extract base god name if it's a Herald
     const baseName = npcName.replace('ผู้ส่งสารของ', '').replace(' (Herald)', '').trim();
     const agentName = NPC_TO_AGENT[baseName];
-    if (!agentName) return null;
+    if (!agentName) return { success: false, logs: [] };
+    const client = getGameClient();
     try {
-      const client = getGameClient();
       if (!client.isConnected()) await client.connect();
       const sessionKey = `agent:main:mission-control-${agentName}`;
-      return await client.sendChatAndWait(sessionKey, prompt, 20000);
-    } catch (err) { return null; }
+      const result = await client.sendChatAndWait(sessionKey, prompt, 20000);
+      return { success: true, response: result.response, logs: result.logs };
+    } catch (err) { 
+      client.log(`[ORCHESTRATOR] OpenClaw generated error: ${err instanceof Error ? err.message : String(err)}`);
+      return { success: false, logs: client.getLogs() }; 
+    }
   }
 
   private async handleCouncilSimulation(req: OrchestratorRequest): Promise<OrchestratorResponse> {
@@ -127,10 +136,10 @@ class DivineOrchestrator {
     if (!this.USE_OPENROUTER_FOR_GODS) {
         const p1 = this.buildFullPrompt(req1 as any);
         const r1 = await this.generateViaOpenClaw('เลโอ', p1);
-        if (r1) {
+        if (r1.success && r1.response) {
             res1Text = r1.response;
-            councilLogs.push(...r1.logs);
         }
+        councilLogs.push(...r1.logs);
     }
     if (!res1Text) {
         const res1 = await this.callOpenRouter('google/gemini-2.0-flash-001', req1 as any);
@@ -143,10 +152,10 @@ class DivineOrchestrator {
     if (!this.USE_OPENROUTER_FOR_GODS) {
         const p2 = this.buildFullPrompt(req2 as any);
         const r2 = await this.generateViaOpenClaw('อารีน่า', p2);
-        if (r2) {
+        if (r2.success && r2.response) {
             res2Text = r2.response;
-            councilLogs.push(...r2.logs);
         }
+        councilLogs.push(...r2.logs);
     }
     if (!res2Text) {
         const res2 = await this.callOpenRouter('google/gemini-2.0-flash-001', req2 as any);

@@ -29,7 +29,7 @@ export class OpenClawGameClient {
     }
   }
 
-  private log(message: string) {
+  public log(message: string) {
     console.log(message);
     this.logs.push(`[${new Date().toISOString()}] ${message}`);
   }
