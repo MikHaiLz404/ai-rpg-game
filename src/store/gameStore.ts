@@ -219,8 +219,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const companion = get().companions.find(c => c.id === id);
     if (!companion) return { atk: 0, def: 0 };
     return {
-      atk: Math.floor(companion.bond / 2),
-      def: Math.floor(companion.bond / 3)
+      atk: Math.floor(companion.bond * 1.5),
+      def: Math.floor(companion.bond * 1.0)
     };
   },
 
@@ -367,7 +367,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     companions: INITIAL_COMPANIONS.map(c => ({ ...c, unlockedSkills: [], claimedThresholds: [] })),
     day: 1,
     choicesLeft: MAX_CHOICES_PER_DAY,
-    interventionPoints: 10,
+    interventionPoints: 20,
     arenaWins: 0,
     lastDailyEvent: null,
     currentDailyEventEffect: null,

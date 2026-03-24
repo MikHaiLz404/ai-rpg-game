@@ -84,7 +84,7 @@ export default function Relationship() {
   const { 
     companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, 
     choicesLeft, consumeChoice, setIsBusy, items, removeItem, addAILog,
-    gold, day, arenaWins
+    gold, day, arenaWins, spendGold, updateKaneStats, kaneStats
   } = useGameStore();
   
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -280,6 +280,44 @@ export default function Relationship() {
     setTimeout(() => checkAutoSkillUnlock(selectedId), 100);
   };
 
+  const handleTrain = () => {
+    if (!selectedId || !selectedCompanion) return;
+    if (choicesLeft <= 0) {
+      setDialogue({ speaker: 'Minju', text: 'วันนี้เหนื่อยมากแล้วค่ะ พักผ่อนก่อนเถอะนะ', portrait: 'work' });
+      return;
+    }
+
+    const cost = 50 + (day - 1) * 10;
+    if (gold < cost) {
+      setDialogue({ speaker: 'Minju', text: `เราต้องมีอย่างน้อย ${cost} ทองเพื่อขอรับการฝึกฝนค่ะ`, portrait: 'shock' });
+      return;
+    }
+
+    if (spendGold(cost)) {
+      consumeChoice();
+      const r = Math.random();
+      let statMsg = "";
+      if (r < 0.4) {
+        updateKaneStats({ maxHp: kaneStats.maxHp + 15, hp: Math.min(kaneStats.maxHp + 15, kaneStats.hp + 15) });
+        statMsg = "Max HP +15";
+      } else if (r < 0.7) {
+        updateKaneStats({ atk: kaneStats.atk + 4 });
+        statMsg = "ATK +4";
+      } else {
+        updateKaneStats({ def: kaneStats.def + 2 });
+        statMsg = "DEF +2";
+      }
+
+      setChatLog(prev => [
+        ...prev, 
+        { sender: 'player', text: `(ขอรับการฝึกฝนจาก ${selectedCompanion.name} - ${cost} Gold)` },
+        { sender: 'system', text: `✨ Kane แข็งแกร่งขึ้น! (${statMsg})` }
+      ]);
+      
+      EventBus.emit('spawn-floating-text', { text: `Kane Upgraded!`, color: '#f59e0b' });
+    }
+  };
+
   const selectedCompanion = companions.find(c => c.id === selectedId);
   const metadata = selectedId ? NPC_CONFIGS[selectedId] : null;
   const getNextThreshold = (c: any) => getSkillThresholds(c.id).find(t => c.bond < t);
@@ -306,7 +344,11 @@ export default function Relationship() {
             {selectedId && !conversationEnded && <div className="flex items-center justify-between px-1 mb-1"><span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest font-sans">โอกาสพูดคุย</span><div className="flex items-center gap-1">{Array.from({ length: GOD_CHAT_LIMIT[selectedId] ?? 3 }).map((_, i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < turnsUsed ? 'bg-slate-700' : 'bg-pink-500'}`} />)}<span className="text-[8px] md:text-[10px] text-slate-500 ml-1 font-sans">{Math.max(0, (GOD_CHAT_LIMIT[selectedId] ?? 3) - turnsUsed)}/{GOD_CHAT_LIMIT[selectedId] ?? 3}</span></div></div>}
             {conversationEnded && <div className="bg-slate-800/50 border border-pink-500/20 rounded-xl px-4 py-3 text-center"><div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest font-sans">บทสนทนาวันนี้จบลงแล้ว</div><div className="text-[9px] md:text-[11px] text-slate-600 mt-1 font-sans">ยังมอบของขวัญได้ หรือกลับไปเลือกเทพองค์อื่น</div></div>}
             <form onSubmit={(e) => { e.preventDefault(); if (userInput.trim() && !conversationEnded) handleTalk(selectedCompanion.id, userInput); }} className="flex gap-2 relative">
-              <button type="button" onClick={() => setShowGiftModal(!showGiftModal)} disabled={choicesLeft <= 0 || conversationEnded} className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50">🎁</button>
+              <button type="button" onClick={() => setShowGiftModal(!showGiftModal)} disabled={choicesLeft <= 0 || conversationEnded} className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50" title="Give Gift">🎁</button>
+              
+              {/* Feature: Divine Training */}
+              <button type="button" onClick={handleTrain} disabled={choicesLeft <= 0 || conversationEnded} className="bg-slate-800 hover:bg-slate-700 text-amber-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50" title={`Train Kane (${100 + (day-1)*20}g)`}>⚔️</button>
+
               {showGiftModal && (
                 <div className="absolute bottom-full left-0 w-64 bg-slate-900 border-2 border-pink-500/30 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2">
                   <div className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between"><span>เลือกของขวัญ</span><button onClick={() => setShowGiftModal(false)}>✕</button></div>

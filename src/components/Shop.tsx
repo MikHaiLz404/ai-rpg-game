@@ -75,7 +75,7 @@ function pickWeightedItem(day: number, isGod: boolean): typeof ITEMS[number] {
 
 function calcOfferedGold(price: number, day: number, isGod: boolean): number {
   let min: number, max: number;
-  if (isGod) { min = 1.0; max = 1.5; } else { min = 0.6; max = 1.0; }
+  if (isGod) { min = 1.5; max = 2.0; } else { min = 0.6; max = 1.0; }
   if (day >= 15) { min += 0.2; max += 0.3; }
   return Math.floor(price * (min + Math.random() * (max - min)));
 }
@@ -194,6 +194,7 @@ export default function Shop() {
 
   const handleSell = () => {
     if (!currentCustomer) return;
+    EventBus.emit('play-sfx', 'click');
     
     // Check if player has all items in the bundle
     const inventory = [...items];

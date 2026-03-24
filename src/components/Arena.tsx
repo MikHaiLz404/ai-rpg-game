@@ -5,9 +5,9 @@ import { EventBus } from '@/game/EventBus';
 import { GoldIcon, HPIcon, SwordIcon, ShieldIcon, IPIcon, SparklesIcon } from './Icons';
 
 const BASE_ENEMIES = [
-  { id: 'slime', name: 'Slime', emoji: '💧', baseHp: 50, baseAtk: 8, baseDef: 2, gold: 30, xp: 5 },
-  { id: 'skeleton', name: 'Skeleton', emoji: '💀', baseHp: 80, baseAtk: 12, baseDef: 5, gold: 60, xp: 12 },
-  { id: 'demon', name: 'Demon', emoji: '😈', baseHp: 150, baseAtk: 20, baseDef: 10, gold: 150, xp: 30 },
+  { id: 'slime', name: 'Slime', emoji: '💧', baseHp: 50, baseAtk: 8, baseDef: 1, gold: 30, xp: 5 },
+  { id: 'skeleton', name: 'Skeleton', emoji: '💀', baseHp: 80, baseAtk: 12, baseDef: 3, gold: 60, xp: 12 },
+  { id: 'boss', name: 'Vampire Lord', emoji: '🧛', baseHp: 250, baseAtk: 35, baseDef: 8, gold: 500, xp: 100 },
 ];
 
 export default function Arena() {
@@ -54,7 +54,7 @@ export default function Arena() {
   };
 
   const spawnWaveEnemy = (baseEnemy: any, currentWave: number) => {
-    const scale = (1 + (day - 1) * 0.05) * (1 + (currentWave - 1) * 0.2); // Each wave is 20% stronger
+    const scale = (1 + (day - 1) * 0.03) * (1 + (currentWave - 1) * 0.1); // Each wave is 10% stronger
     const scaledEnemy = {
       ...baseEnemy,
       hp: Math.floor(baseEnemy.baseHp * scale),
@@ -76,6 +76,7 @@ export default function Arena() {
     
     if (useIP(2)) {
       logAction(`✨ ${skill.name} ถูกเปิดใช้งานโดยพรแห่งเทพ!`);
+      EventBus.emit('play-sfx', 'divine_skill');
       
       // Feature: Use skill increases bond
       const { addBond } = useGameStore.getState();
@@ -119,6 +120,7 @@ export default function Arena() {
 
   const executeTurn = () => {
     if (!isFighting || !enemy) return;
+    EventBus.emit('play-sfx', 'attack');
 
     // Improved: Use actual Kane stats
     const pDmg = Math.max(2, kaneStats.atk - enemy.def);
@@ -153,6 +155,12 @@ export default function Arena() {
 
     if (wave < totalWaves) {
       logAction(`✨ Wave ${wave} สำเร็จ! กำลังรอศัตรูถัดไป...`);
+      // Feature: Divine Recovery (Heal 20% between waves)
+      const healAmount = Math.floor(playerMaxHp * 0.2);
+      const newHp = Math.min(playerMaxHp, playerHp + healAmount);
+      setPlayerHp(newHp);
+      logAction(`💖 พรแห่งเทพฟื้นฟู Kane ${healAmount} HP!`);
+
       setTimeout(() => {
         setWave(prev => prev + 1);
         spawnWaveEnemy(baseEnemyPool, wave + 1);
@@ -162,8 +170,9 @@ export default function Arena() {
       const finalGold = pendingGold + waveGold;
       logAction(`🏆 ชัยชนะครั้งยิ่งใหญ่! ได้รับรวม ${finalGold} ทอง`);
       addGold(finalGold);
-      const { incrementArenaWins } = useGameStore.getState();
+      const { incrementArenaWins, addIP } = useGameStore.getState();
       incrementArenaWins();
+      addIP(3 * totalWaves); // Buff: 3 IP per wave
       EventBus.emit('spawn-floating-text', { text: `+${finalGold} Gold`, color: '#ffd700' });
       setIsFighting(false);
       consumeChoice();
@@ -226,8 +235,8 @@ export default function Arena() {
               <div className="flex-1 text-left">
                 <div className="font-black text-white uppercase tracking-tight font-serif">{be.name}</div>
                 <div className="flex gap-3 mt-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1 font-sans"><HPIcon size={10} /> {Math.floor(be.baseHp * (1 + (day - 1) * 0.05))}</span>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1 font-sans"><SwordIcon size={10} /> {Math.floor(be.baseAtk * (1 + (day - 1) * 0.05))}</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1 font-sans"><HPIcon size={10} /> {Math.floor(be.baseHp * (1 + (day - 1) * 0.03))}</span>
+                  <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1 font-sans"><SwordIcon size={10} /> {Math.floor(be.baseAtk * (1 + (day - 1) * 0.03))}</span>
                   <span className="text-[9px] font-bold text-amber-500 flex items-center gap-1 font-sans"><GoldIcon size={10} /> {be.gold}</span>
                 </div>
               </div>

@@ -1,4 +1,5 @@
 import { EventBus } from '../EventBus';
+import { AudioController } from '../AudioController';
 
 interface RoomConfig {
     name: string;
@@ -47,6 +48,7 @@ export class MainScene extends Phaser.Scene {
     currentRoom = 'shop';
     bgSprite: Phaser.GameObjects.Image | null = null;
     roomText!: Phaser.GameObjects.Text;
+    audio!: AudioController;
 
     customerNPC: Phaser.GameObjects.Sprite | null = null;
 
@@ -240,6 +242,9 @@ export class MainScene extends Phaser.Scene {
         this.createAnimIfNeeded('enemy_hit_effect', 'enemy_attack_effect', 0, 10, 20, 0, true);
 
         this.roomText = this.add.text(192, 20, '', { fontSize: '18px', color: '#fff', stroke: '#000', strokeThickness: 3, fontFamily: 'Arial' }).setOrigin(0.5).setDepth(100);
+        this.audio = new AudioController(this);
+        this.audio.preload();
+        
         this.player = this.physics.add.sprite(195, 143, 'player');
         this.player.setScale(1.5).setDepth(50);
         this.player.anims.play('player-down', true);
@@ -290,6 +295,7 @@ export class MainScene extends Phaser.Scene {
 
         // Cleanup on Shutdown
         this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.audio.cleanup();
             EventBus.off('toggle-debug', toggleDebugListener);
             EventBus.off('clear-customer', clearCustomerListener);
             EventBus.off('change-room', changeRoomListener);

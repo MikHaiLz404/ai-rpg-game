@@ -93,7 +93,11 @@ export default function GamePage() {
   // Clear dialogue when phase changes
   useEffect(() => {
     setDialogue(null);
-  }, [phase, setDialogue]);
+    // Feature: Audio Integration (Trigger BGM change)
+    if (mounted) {
+      EventBus.emit('play-bgm', phase + '_bgm');
+    }
+  }, [phase, setDialogue, mounted]);
 
   useEffect(() => {
     setLoading(true);
