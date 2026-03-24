@@ -111,7 +111,8 @@ export default function Arena() {
           prompt: data.prompt || '', 
           response: data.narrative || '', 
           tokensInput: data.usage?.prompt_tokens || 0, 
-          tokensOutput: data.usage?.completion_tokens || 0 
+          tokensOutput: data.usage?.completion_tokens || 0,
+          gatewayLogs: data.gatewayLogs
         });
         if (data.narrative) setDialogue({ speaker: 'Narrator', text: data.narrative });
       } catch (e) {}

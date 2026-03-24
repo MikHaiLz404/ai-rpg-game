@@ -46,6 +46,7 @@ export interface AILog {
   response: string;
   tokensInput: number;
   tokensOutput: number;
+  gatewayLogs?: string[];
 }
 
 export interface DailyEventEffect {

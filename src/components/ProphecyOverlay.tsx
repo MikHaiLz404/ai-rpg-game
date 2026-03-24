@@ -72,7 +72,8 @@ export default function ProphecyOverlay() {
               prompt: p.prompt || 'Sequential context',
               response: p.text,
               tokensInput: p.usage?.prompt_tokens || 0,
-              tokensOutput: p.usage?.completion_tokens || 0
+              tokensOutput: p.usage?.completion_tokens || 0,
+              gatewayLogs: data.gatewayLogs
             });
           });
         }

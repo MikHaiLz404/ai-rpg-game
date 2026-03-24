@@ -137,7 +137,8 @@ export default function Relationship() {
         prompt: data.prompt || '',
         response: typeof data.narrative === 'string' ? data.narrative : JSON.stringify(data.narrative),
         tokensInput: data.usage?.prompt_tokens || 0,
-        tokensOutput: data.usage?.completion_tokens || 0
+        tokensOutput: data.usage?.completion_tokens || 0,
+        gatewayLogs: data.gatewayLogs
       });
 
       const skillData = parseSkillResponse(data.narrative, id, freshCompanion.level);
@@ -217,7 +218,8 @@ export default function Relationship() {
         prompt: data.prompt || '',
         response: data.narrative || '',
         tokensInput: data.usage?.prompt_tokens || 0,
-        tokensOutput: data.usage?.completion_tokens || 0
+        tokensOutput: data.usage?.completion_tokens || 0,
+        gatewayLogs: data.gatewayLogs
       });
 
       if (data.narrative) {
@@ -278,7 +280,7 @@ export default function Relationship() {
       });
       const data = await res.json();
       broadcastAISource(data.source || 'fallback');
-      addAILog({ action: 'gift', model: data.model || 'AI Model', source: data.source as any || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0 });
+      addAILog({ action: 'gift', model: data.model || 'AI Model', source: data.source as any || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0, gatewayLogs: data.gatewayLogs });
       if (data.narrative) { setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]); setDialogue({ speaker: companion.name, text: data.narrative }); }
     } catch (err) {}
     setTimeout(() => checkAutoSkillUnlock(selectedId), 100);

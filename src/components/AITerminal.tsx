@@ -183,6 +183,19 @@ export default function AITerminal() {
                   </div>
                 </section>
 
+                {selectedLog.gatewayLogs && selectedLog.gatewayLogs.length > 0 && (
+                  <section>
+                    <div className="text-[11px] font-black text-emerald-600 uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-emerald-600" /> Gateway Logs
+                    </div>
+                    <div className="bg-slate-950/80 p-4.5 rounded-xl border border-emerald-500/20 text-[12px] text-emerald-400/80 leading-relaxed whitespace-pre-wrap font-mono shadow-inner max-h-48 overflow-y-auto">
+                      {selectedLog.gatewayLogs.map((log, i) => (
+                        <div key={i}>{log}</div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                 <section>
                   <div className="text-[11px] font-black text-slate-600 uppercase tracking-[0.3em] mb-3 flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" /> Agent Response

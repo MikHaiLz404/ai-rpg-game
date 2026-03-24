@@ -38,6 +38,7 @@ export interface OrchestratorResponse {
   model: string;
   usage?: any;
   prompt?: string;
+  gatewayLogs?: string[];
 }
 
 const NPC_TO_AGENT: Record<string, string> = {
@@ -73,14 +74,15 @@ class DivineOrchestrator {
     const baseName = req.npcName.replace('ผู้ส่งสารของ', '').replace(' (Herald)', '').trim();
     if (NPC_TO_AGENT[baseName] && !this.USE_OPENROUTER_FOR_GODS) {
         const fullPrompt = this.buildFullPrompt(req);
-        const openclawNarrative = await this.generateViaOpenClaw(req.npcName, fullPrompt);
-        if (openclawNarrative) {
+        const openclawResult = await this.generateViaOpenClaw(req.npcName, fullPrompt);
+        if (openclawResult) {
             return {
-                narrative: openclawNarrative,
+                narrative: openclawResult.response,
                 source: 'openclaw',
                 model: `OpenClaw: ${NPC_TO_AGENT[baseName]}`,
                 prompt: fullPrompt,
-                usage: { total_tokens: Math.ceil((fullPrompt.length + openclawNarrative.length)/2) }
+                usage: { total_tokens: Math.ceil((fullPrompt.length + openclawResult.response.length)/2) },
+                gatewayLogs: openclawResult.logs
             };
         }
     }
@@ -104,7 +106,7 @@ class DivineOrchestrator {
     return { model };
   }
 
-  private async generateViaOpenClaw(npcName: string, prompt: string): Promise<string | null> {
+  private async generateViaOpenClaw(npcName: string, prompt: string): Promise<{ response: string; logs: string[] } | null> {
     // Extract base god name if it's a Herald
     const baseName = npcName.replace('ผู้ส่งสารของ', '').replace(' (Herald)', '').trim();
     const agentName = NPC_TO_AGENT[baseName];
@@ -120,10 +122,15 @@ class DivineOrchestrator {
   private async handleCouncilSimulation(req: OrchestratorRequest): Promise<OrchestratorResponse> {
     const req1 = { ...req, action: 'talk', npcName: 'เลโอ', userMessage: req.userMessage || 'ข้าขอคำปรึกษาจากสภาเทพ' };
     let res1Text = '';
+    let councilLogs: string[] = [];
     
     if (!this.USE_OPENROUTER_FOR_GODS) {
         const p1 = this.buildFullPrompt(req1 as any);
-        res1Text = await this.generateViaOpenClaw('เลโอ', p1) || '';
+        const r1 = await this.generateViaOpenClaw('เลโอ', p1);
+        if (r1) {
+            res1Text = r1.response;
+            councilLogs.push(...r1.logs);
+        }
     }
     if (!res1Text) {
         const res1 = await this.callOpenRouter('google/gemini-2.0-flash-001', req1 as any);
@@ -135,7 +142,11 @@ class DivineOrchestrator {
 
     if (!this.USE_OPENROUTER_FOR_GODS) {
         const p2 = this.buildFullPrompt(req2 as any);
-        res2Text = await this.generateViaOpenClaw('อารีน่า', p2) || '';
+        const r2 = await this.generateViaOpenClaw('อารีน่า', p2);
+        if (r2) {
+            res2Text = r2.response;
+            councilLogs.push(...r2.logs);
+        }
     }
     if (!res2Text) {
         const res2 = await this.callOpenRouter('google/gemini-2.0-flash-001', req2 as any);
@@ -145,7 +156,8 @@ class DivineOrchestrator {
     return {
       narrative: `[เลโอ]: ${res1Text}\n\n[อารีน่า]: ${res2Text}`,
       source: 'council_simulation',
-      model: this.USE_OPENROUTER_FOR_GODS ? 'multi-agent-chain (openrouter)' : 'multi-agent-chain (openclaw)'
+      model: this.USE_OPENROUTER_FOR_GODS ? 'multi-agent-chain (openrouter)' : 'multi-agent-chain (openclaw)',
+      gatewayLogs: councilLogs.length > 0 ? councilLogs : undefined
     };
   }
 

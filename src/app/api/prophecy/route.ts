@@ -65,7 +65,7 @@ const DAILY_EVENT_TEMPLATES = [
   { title: 'วันหยุดพักผ่อนของเหล่าเทพ', description: 'เหล่าเทพออกไปพักผ่อน... วันนี้การเพิ่ม Bond จากการคุยจะยากขึ้น', emoji: '💤', effect: { type: 'bond_penalty', value: 0.5 } },
 ];
 
-async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: string; text: string; usage: any; prompt: string }[] | null> {
+async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: string; text: string; usage: any; prompt: string; logs: string[] }[] | null> {
   const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL;
   const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN;
   if (!gatewayUrl || !gatewayToken) return null;
@@ -76,11 +76,11 @@ async function generateViaOpenClaw(gameState: GameState): Promise<{ godId: strin
       const prompt = buildPromptForGod(godId, gameState);
       const sessionKey = `agent:main:mission-control-${agentName}`;
       try {
-        const response = await client.sendChatAndWait(sessionKey, prompt, 25000);
-        return { godId, text: response, prompt, usage: { total_tokens: Math.ceil((prompt.length + response.length) / 2) } };
-      } catch { return { godId, text: getFallback(godId), usage: { total_tokens: 0 }, prompt: '' }; }
+        const result = await client.sendChatAndWait(sessionKey, prompt, 25000);
+        return { godId, text: result.response, prompt, usage: { total_tokens: Math.ceil((prompt.length + result.response.length) / 2) }, logs: result.logs };
+      } catch { return { godId, text: getFallback(godId), usage: { total_tokens: 0 }, prompt: '', logs: [] }; }
     }));
-    return results.map(r => r.status === 'fulfilled' ? r.value : { godId: 'unknown', text: '"..."', usage: { total_tokens: 0 }, prompt: '' });
+    return results.map(r => r.status === 'fulfilled' ? r.value : { godId: 'unknown', text: '"..."', usage: { total_tokens: 0 }, prompt: '', logs: [] });
   } catch { return null; }
 }
 
@@ -122,7 +122,8 @@ export async function POST(request: NextRequest) {
         prophecies: openclawResult.map(r => ({ godId: r.godId, godName: GOD_PROMPTS[r.godId]?.name, text: r.text, usage: r.usage, prompt: r.prompt })),
         dailyEvent: dailyEventData.event,
         eventUsage: dailyEventData.usage,
-        eventPrompt: dailyEventData.prompt
+        eventPrompt: dailyEventData.prompt,
+        gatewayLogs: openclawResult.flatMap(r => r.logs || [])
       });
     }
 

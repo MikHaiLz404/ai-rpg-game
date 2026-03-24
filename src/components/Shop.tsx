@@ -148,7 +148,8 @@ export default function Shop() {
           prompt: data.prompt || '',
           response: data.narrative || '',
           tokensInput: data.usage?.prompt_tokens || 0,
-          tokensOutput: data.usage?.completion_tokens || 0
+          tokensOutput: data.usage?.completion_tokens || 0,
+          gatewayLogs: data.gatewayLogs
         });
 
         setCustomer({

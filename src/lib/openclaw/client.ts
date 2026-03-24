@@ -19,16 +19,31 @@ export class OpenClawGameClient {
   private pendingRequests = new Map<string, PendingRequest>();
   private connected = false;
   private deviceIdentity: { deviceId: string; publicKeyPem: string; privateKeyPem: string } | null = null;
+  private logs: string[] = [];
 
   constructor(private url: string = GATEWAY_URL, private token: string = GATEWAY_TOKEN) {
     try {
       this.deviceIdentity = loadOrCreateDeviceIdentity();
     } catch {
-      console.warn('[OpenClaw-Game] No device identity available');
+      this.log('[WARN] No device identity available');
     }
   }
 
+  private log(message: string) {
+    console.log(message);
+    this.logs.push(`[${new Date().toISOString()}] ${message}`);
+  }
+
+  getLogs() {
+    return [...this.logs];
+  }
+
+  clearLogs() {
+    this.logs = [];
+  }
+
   async connect(): Promise<void> {
+    this.clearLogs();
     if (this.connected && (this.ws?.readyState === 1 || (WS.OPEN && this.ws?.readyState === WS.OPEN))) return;
 
     return new Promise((resolve, reject) => {
@@ -44,7 +59,7 @@ export class OpenClawGameClient {
           headers['Host'] = wsUrl.host;
           headers['Origin'] = wsUrl.origin;
         }
-        console.log(`[OpenClaw-Game] Connecting to ${wsUrl.host}${isNgrok ? ' (ngrok tunnel)' : ' (local)'}...`);
+        this.log(`[INFO] Connecting to ${wsUrl.host}${isNgrok ? ' (ngrok tunnel)' : ' (local)'}...`);
         this.ws = new WS(wsUrl.toString(), {
           headers,
           handshakeTimeout: 15000,
@@ -56,17 +71,18 @@ export class OpenClawGameClient {
 
       const timeout = setTimeout(() => {
         if (typeof this.ws?.close === 'function') this.ws.close();
+        this.log('[ERROR] Connection timeout (15s)');
         reject(new Error('Connection timeout (15s)'));
       }, 15000);
 
       const onOpen = () => {
-        console.log('[OpenClaw-Game] Connected, waiting for challenge...');
+        this.log('[INFO] Connected, waiting for challenge...');
       };
 
       const onError = (err: any) => {
         clearTimeout(timeout);
         const errMsg = err?.message || String(err);
-        console.error('[OpenClaw-Game] WS Error:', errMsg);
+        this.log(`[ERROR] WS Error: ${errMsg}`);
         
         if (errMsg.includes('404')) {
           reject(new Error('OpenClaw Gateway offline or URL invalid (404). Check if Ngrok tunnel is running.'));
@@ -80,6 +96,7 @@ export class OpenClawGameClient {
       const onClose = () => {
         clearTimeout(timeout);
         this.connected = false;
+        this.log('[INFO] Connection closed.');
       };
 
       const onMessage = (event: any) => {
@@ -89,6 +106,7 @@ export class OpenClawGameClient {
 
           // Handle challenge-response
           if (data.type === 'event' && data.event === 'connect.challenge') {
+            this.log('[INFO] Received connect.challenge. Authenticating...');
             const nonce = data.payload?.nonce;
             const requestId = crypto.randomUUID();
             const signedAtMs = Date.now();
@@ -113,11 +131,12 @@ export class OpenClawGameClient {
               resolve: () => {
                 clearTimeout(timeout);
                 this.connected = true;
-                console.log('[OpenClaw-Game] Authenticated');
+                this.log('[INFO] Authenticated successfully');
                 resolve();
               },
               reject: (err) => {
                 clearTimeout(timeout);
+                this.log(`[ERROR] Authentication failed: ${err.message}`);
                 reject(err);
               }
             });
@@ -149,7 +168,7 @@ export class OpenClawGameClient {
             }
           }
         } catch (err) {
-          console.error('[OpenClaw-Game] Parse error:', err);
+          this.log(`[WARN] Parse error: ${err}`);
         }
       };
 
@@ -183,7 +202,8 @@ export class OpenClawGameClient {
     });
   }
 
-  async sendChatAndWait(agentSessionKey: string, message: string, maxWaitMs: number = 25000): Promise<string> {
+  async sendChatAndWait(agentSessionKey: string, message: string, maxWaitMs: number = 25000): Promise<{ response: string; logs: string[] }> {
+    this.log(`[INFO] Sending chat message to session: ${agentSessionKey}`);
     // Send message
     await this.call('chat.send', {
       sessionKey: agentSessionKey,
@@ -199,7 +219,7 @@ export class OpenClawGameClient {
       await new Promise(r => setTimeout(r, pollInterval));
 
       try {
-        console.log(`[OpenClaw-Game] Polling history for session: ${agentSessionKey}...`);
+        this.log(`[INFO] Polling history for session: ${agentSessionKey}...`);
         const history = await this.call<any[]>('sessions.history', {
           sessionKey: agentSessionKey,
         });
@@ -210,16 +230,17 @@ export class OpenClawGameClient {
             (m: any) => m.role === 'assistant' && m.content
           );
           if (lastAssistant) {
-            console.log(`[OpenClaw-Game] Received response for ${agentSessionKey}`);
-            return lastAssistant.content;
+            this.log(`[INFO] Received response for ${agentSessionKey}`);
+            return { response: lastAssistant.content, logs: this.getLogs() };
           }
         }
       } catch (err) {
-        console.warn(`[OpenClaw-Game] History poll failed:`, err instanceof Error ? err.message : err);
+        this.log(`[WARN] History poll failed: ${err instanceof Error ? err.message : err}`);
         // Keep polling
       }
     }
 
+    this.log(`[ERROR] Agent response timeout`);
     throw new Error('Agent response timeout');
   }
 
