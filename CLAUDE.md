@@ -19,6 +19,8 @@ Bilingual project: Thai for narrative content (`novel/`), English for code and t
 
 **Recent Activity:**
 - 2026-03-25: Priority fixes completed - Herald, Bond math, Economy, Vampire Lord removed
+- 2026-03-25: Shop customer wait time reduced (3-4.5s early, 2-3.5s mid, 1.5-3s late) + visible countdown + shift progress bar
+- 2026-03-25: Per-god difficulty fully implemented (thresholds, bond rates, chat limits)
 
 ---
 
@@ -116,7 +118,12 @@ OpenClaw Gateway (AI agents) → fallback: OpenRouter API
 
 ### Game Loop
 
-Each day: Prophecy → 3 actions (Shop/Arena/Exploration/Relationship) → End Day. Win by defeating vampire within 20 days. Bond thresholds at `[3, 5, 8, 12, 17]` unlock AI-generated skills.
+Each day: Prophecy → 3 actions (Shop/Arena/Exploration/Relationship) → End Day. Win by defeating Hydra within 20 days.
+
+**Per-god difficulty:** Each god has unique bond rates, skill thresholds, and chat limits:
+- **Draco** (🐉): Bond rate 2.0x, Thresholds [2,3,5,8,12], Chat limit 4 turns — wise elder, quick to bond
+- **Leo** (⚔️): Bond rate 1.5x, Thresholds [3,5,8,12,16], Chat limit 3 turns — direct warrior
+- **Arena** (👑): Bond rate 1.2x, Thresholds [4,7,11,15,20], Chat limit 2 turns — queen, earns trust slowly
 
 ### World Structure (MainScene)
 
@@ -154,3 +161,18 @@ Full documentation of AI agent architecture, personalities, and integration logi
 ## Game Design
 
 Design docs in `game-design/turn-based-rpg/GAME_DESIGN.md`. Narrative lore and Thai-language novel chapters in `novel/`.
+
+## Roadmap (Remaining Work)
+
+### High Priority
+- **Full 20-day balance test** — calibrate gold economy, enemy scaling, and win rate
+- **Surgical Save stress test** — verify save integrity under rapid state changes
+
+### Medium Priority
+- **Audio integration** — BGM per phase (Shop, Arena, Exploration, Village) + SFX for UI clicks, combat hits, loot reveals
+- **Asset polish** — Replace remaining emoji icons with pixel art; finalize character portraits
+
+### Lower Priority
+- **WebSocket singleton fix** — browser/device identity limitation documented in code
+- **Request deduplication** — prevent rapid-fire API calls
+- **Multi-target combat** — expand from 1v1 waves to multi-enemy selection

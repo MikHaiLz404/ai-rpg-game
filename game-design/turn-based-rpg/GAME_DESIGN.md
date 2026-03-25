@@ -160,9 +160,9 @@ damage = max(1, attacker.ATK - defender.DEF / 2)
 
 | God | Emoji | Theme | Bond Rate | Skill Thresholds |
 |-----|-------|-------|-----------|-----------------|
-| **Leo** | ⚔️ | War God — ดุดัน ตรงไปตรงมา | 1.0 (medium) | [3, 6, 10, 14, 18] |
-| **Arena** | 👑 | Queen — สง่างาม อ่อนโยน | 0.7 (hard) | [5, 9, 13, 17, 22] |
-| **Draco** | 🐉 | Ancient Dragon — เฒ่าแก่ ปราดเปรื่อง | 1.3 (easy) | [2, 4, 7, 10, 14] |
+| **Leo** | ⚔️ | War God — ดุดัน ตรงไปตรงมา | 1.5 (medium) | [3, 5, 8, 12, 16] |
+| **Arena** | 👑 | Queen — สง่างาม อ่อนโยน | 1.2 (hard) | [4, 7, 11, 15, 20] |
+| **Draco** | 🐉 | Ancient Dragon — เฒ่าแก่ ปราดเปรื่อง | 2.0 (easy) | [2, 3, 5, 8, 12] |
 
 ### 5.2 Bond System
 

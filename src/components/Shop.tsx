@@ -92,6 +92,7 @@ export default function Shop() {
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [incomingProgress, setIncomingProgress] = useState(0);
+  const [incomingRemaining, setIncomingRemaining] = useState(0);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
 
   const shiftTarget = Math.min(7, 3 + Math.floor((day - 1) / 4));
@@ -178,12 +179,15 @@ export default function Shop() {
     const onIncoming = ({ delay }: { delay: number }) => {
       if (!isShiftActive || currentCustomer || isGenerating) return;
       setIncomingProgress(0);
+      setIncomingRemaining(Math.ceil(delay / 1000));
       if (progressInterval.current) clearInterval(progressInterval.current);
       const startTime = Date.now();
       progressInterval.current = setInterval(() => {
         const elapsed = Date.now() - startTime;
         const progress = Math.min(100, (elapsed / delay) * 100);
+        const remaining = Math.max(0, Math.ceil((delay - elapsed) / 1000));
         setIncomingProgress(progress);
+        setIncomingRemaining(remaining);
         if (progress >= 100 && progressInterval.current) clearInterval(progressInterval.current);
       }, 50);
     };
@@ -302,14 +306,42 @@ export default function Shop() {
         </div>
       )}
       {isShiftActive && (
-        <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 shadow-xl flex items-center justify-between gap-4">
-           <div className="flex-1">
-             <div className="flex justify-between items-center mb-1.5">
-               <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif">{currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Waiting for Customer'}</span>
+        <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-4 shadow-xl space-y-3">
+           {/* Customer wait row */}
+           <div className="flex items-center justify-between gap-4">
+             <div className="flex-1">
+               <div className="flex justify-between items-center mb-1.5">
+                 <span className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest font-serif">{currentCustomer ? 'Interacting' : isGenerating ? 'Preparing...' : 'Next in ~' + incomingRemaining + 's'}</span>
+                 <span className="text-[10px] md:text-xs font-bold text-slate-400 font-serif">
+                   {currentCustomer ? (
+                     <span className="text-amber-500">●</span>
+                   ) : isGenerating ? (
+                     <span className="text-blue-400 animate-pulse">●</span>
+                   ) : (
+                     <span className="inline-flex gap-0.5">
+                       {[...Array(Math.min(3, Math.ceil(incomingRemaining / 2)))].map((_, i) => (
+                         <span key={i} className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-pulse" style={{ animationDelay: i * 200 + 'ms' }} />
+                       ))}
+                     </span>
+                   )}
+                 </span>
+               </div>
+               <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                 <div className={`h-full transition-all duration-300 rounded-full ${currentCustomer ? 'bg-amber-500 w-full' : isGenerating ? 'bg-blue-500 w-1/2 animate-pulse' : 'bg-amber-500/60'}`} style={{ width: !currentCustomer && !isGenerating ? `${incomingProgress}%` : undefined }} />
+               </div>
+             </div>
+           </div>
+           {/* Shift progress row */}
+           <div>
+             <div className="flex justify-between items-center mb-1">
+               <span className="text-[9px] md:text-[10px] font-black text-slate-600 uppercase tracking-widest font-serif">Shift Progress</span>
                <span className="text-[10px] md:text-xs font-bold text-amber-500 font-serif">{customersServed} / {shiftTarget} Served</span>
              </div>
-             <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-               <div className={`h-full transition-all duration-300 rounded-full ${currentCustomer ? 'bg-amber-500 w-full' : isGenerating ? 'bg-blue-500 w-1/2 animate-pulse' : 'bg-amber-500/40'}`} style={{ width: !currentCustomer && !isGenerating ? `${incomingProgress}%` : undefined }} />
+             <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+               <div
+                 className="h-full bg-gradient-to-r from-amber-600 to-amber-400 transition-all duration-500 rounded-full"
+                 style={{ width: `${Math.min(100, (customersServed / shiftTarget) * 100)}%` }}
+               />
              </div>
            </div>
         </div>

@@ -463,7 +463,7 @@ export class MainScene extends Phaser.Scene {
         const store = (this.game as any).store;
         if (!store) return;
         const { day } = store.getState() || { day: 1 };
-        const delay = (day <= 5 ? 6000 : day <= 14 ? 4000 : 3000) + Math.random() * 4000;
+        const delay = (day <= 5 ? 3000 : day <= 14 ? 2000 : 1500) + Math.random() * 1500;
         EventBus.emit('customer-incoming', { delay });
         this.time.delayedCall(delay, () => { this.trySpawnCustomer(); this.scheduleNextCustomer(); });
     }
