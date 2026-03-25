@@ -15,6 +15,7 @@ import {
   DialogueChoice,
   SaveData,
   Player,
+  PlayerState,
   GOD_STATS,
   ITEM_STATS,
   SAVE_STATS,
@@ -623,7 +624,7 @@ export function validateNPC(npc: NPC): ValidationResult {
  * ตรวจสอบความถูกต้องของ Player
  * @param player - Player ที่ต้องการตรวจสอบ
  */
-export function validatePlayer(player: Player): ValidationResult {
+export function validatePlayer(player: Player | PlayerState): ValidationResult {
   const result = createValidResult();
 
   // ตรวจสอบ gold
@@ -631,8 +632,8 @@ export function validatePlayer(player: Player): ValidationResult {
     return addError(result, 'Gold ต้องเป็นตัวเลขและไม่ต่ำกว่า 0', 'gold', player.gold);
   }
 
-  // ตรวจสอบ items (optional)
-  if (player.items !== undefined) {
+  // ตรวจสอบ items (optional — only exists on Player, not PlayerState)
+  if ('items' in player && player.items !== undefined) {
     if (!Array.isArray(player.items)) {
       return addError(result, 'Items ต้องเป็น array', 'items', player.items);
     }
@@ -644,20 +645,23 @@ export function validatePlayer(player: Player): ValidationResult {
     }
   }
 
-  // ตรวจสอบ god (optional)
+  // ตรวจสอบ god (optional — type differs: God vs GodData)
   if (player.god !== null && player.god !== undefined) {
-    const godResult = validateGod(player.god);
-    if (!godResult.valid) return godResult;
-    result.warnings.push(...godResult.warnings);
+    if ('nameTH' in player.god) {
+      // GodData from PlayerState — skip detailed validation
+    } else {
+      const godResult = validateGod(player.god as God);
+      if (!godResult.valid) return godResult;
+      result.warnings.push(...godResult.warnings);
+    }
   }
 
-  // ตรวจสอบ relationships (optional)
-  if (player.relationships !== undefined) {
+  // ตรวจสอบ relationships (optional — only exists on Player, not PlayerState)
+  if ('relationships' in player && player.relationships !== undefined) {
     if (typeof player.relationships !== 'object') {
       return addError(result, 'Relationships ต้องเป็น object', 'relationships', player.relationships);
     }
 
-    // ตรวจสอบค่า relationship
     for (const [npcId, value] of Object.entries(player.relationships)) {
       if (typeof value !== 'number') {
         return addError(
@@ -713,40 +717,6 @@ export function validateSaveData(data: SaveData): ValidationResult {
   if (!playerResult.valid) return playerResult;
   result.warnings.push(...playerResult.warnings);
 
-  // ตรวจสอบ phase
-  const validPhases = ['start', 'shop', 'arena', 'combat', 'relationship', 'exploration', 'victory', 'defeat'];
-  if (!validPhases.includes(data.phase)) {
-    return addError(result, `Phase ไม่ถูกต้อง: ${data.phase}`, 'phase', data.phase);
-  }
-
-  // ตรวจสอบ playCount
-  if (typeof data.playCount !== 'number' || data.playCount < 0) {
-    return addError(result, 'playCount ต้องเป็นตัวเลขบวก', 'playCount', data.playCount);
-  }
-
-  if (data.playCount > SAVE_STATS.MAX_PLAY_COUNT) {
-    return addWarning(result, `playCount สูงเกินปกติ`);
-  }
-
-  // ตรวจสอบ winCount
-  if (typeof data.winCount !== 'number' || data.winCount < 0) {
-    return addError(result, 'winCount ต้องเป็นตัวเลขบวก', 'winCount', data.winCount);
-  }
-
-  // ตรวจสอบ loseCount
-  if (typeof data.loseCount !== 'number' || data.loseCount < 0) {
-    return addError(result, 'loseCount ต้องเป็นตัวเลขบวก', 'loseCount', data.loseCount);
-  }
-
-  // ตรวจสอบ totalPlayTime
-  if (typeof data.totalPlayTime !== 'number' || data.totalPlayTime < 0) {
-    return addError(result, 'totalPlayTime ต้องเป็นตัวเลขบวก', 'totalPlayTime', data.totalPlayTime);
-  }
-
-  if (data.totalPlayTime > SAVE_STATS.MAX_PLAY_TIME) {
-    return addWarning(result, 'totalPlayTime เกิน 1 ปี (ตรวจสอบการบันทึก)');
-  }
-
   return result;
 }
 
@@ -759,15 +729,14 @@ export function createDefaultSaveData(): SaveData {
     timestamp: Date.now(),
     player: {
       gold: 500,
-      items: [],
       god: null,
-      relationships: {},
+      level: 1,
+      exp: 0,
     },
-    phase: 'start',
-    playCount: 0,
-    winCount: 0,
-    loseCount: 0,
-    totalPlayTime: 0,
+    inventory: [],
+    relationships: {},
+    arenaWins: 0,
+    stats: { totalBattles: 0, totalWins: 0, totalLosses: 0, goldEarned: 0, goldSpent: 0, itemsPurchased: 0, playTime: 0, lastSavedAt: 0 },
   };
 }
 
