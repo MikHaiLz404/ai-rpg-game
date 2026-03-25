@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Replace all focus:outline-none with accessible focus-visible styles */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Button base: ensure visible focus for all interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
 :root {
   --background: #020617;
   --foreground: #f8fafc;

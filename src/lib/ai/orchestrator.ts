@@ -30,6 +30,8 @@ export interface OrchestratorRequest {
   foundItem?: string;
   enemyName?: string;
   damage?: number;
+  // First meeting tracking - if true for a godId, they speak directly (no Herald)
+  firstMeeting?: Record<string, boolean>;
 }
 
 export interface OrchestratorResponse {
@@ -55,11 +57,19 @@ class DivineOrchestrator {
    * Main entry point for generating AI narratives
    */
   async generate(req: OrchestratorRequest): Promise<OrchestratorResponse> {
-    // Apply Herald Logic: If bond is too low, God sends a Herald instead
+    // Apply Herald Logic: If firstMeeting[godId] is false/undefined, God sends a Herald instead
     const isTalkAction = ['talk', 'shop_talk', 'gift'].includes(req.action);
-    const bond = req.bondLevel || req.level || 1;
-    
-    if (isTalkAction && bond < 5 && !req.npcName.includes('Herald')) {
+    // Map Thai god names to IDs
+    const GOD_NAME_TO_ID: Record<string, string> = {
+      'เลโอ': 'leo',
+      'อารีน่า': 'arena',
+      'ดราโก้': 'draco',
+    };
+    const baseNameForHerald = req.npcName.replace('ผู้ส่งสารของ', '').replace(' (Herald)', '').trim();
+    const godId = GOD_NAME_TO_ID[baseNameForHerald];
+    const hasMet = godId ? (req.firstMeeting?.[godId] === true) : true;
+
+    if (isTalkAction && !hasMet && !req.npcName.includes('Herald')) {
       req.npcName = `ผู้ส่งสารของ${req.npcName} (Herald)`;
     }
 

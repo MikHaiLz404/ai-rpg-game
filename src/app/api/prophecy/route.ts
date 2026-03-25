@@ -50,7 +50,7 @@ function buildPromptForGod(godId: string, gameState: GameState): string {
 
 function getFallback(godId: string): string {
   const fallbacks: Record<string, string> = {
-    leo: '"เจ้าต้องฝึกให้หนักกว่านี้ ถ้าอยากรอดจากเงื้อมมือ Vampire Lord"',
+    leo: '"เจ้าต้องฝึกให้หนักกว่านี้ ถ้าอยากรอดจากเงื้อมมือ Hydra"',
     arena: '"หัวใจที่ว่างเปล่าไม่อาจสัมผัสถึงพลังที่แท้จริง จงสร้างสายสัมพันธ์เถิด"',
     draco: '"เวลาคือทรัพยากรที่แพงที่สุด บริหารมันให้ดีก่อนที่จะสายเกินไป"',
   };
@@ -119,6 +119,14 @@ export async function POST(request: NextRequest) {
   const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
   try {
     const gameState: GameState = await request.json();
+
+    // Basic request validation
+    if (!gameState || typeof gameState !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+    if (typeof gameState.day !== 'number' || typeof gameState.gold !== 'number') {
+      return NextResponse.json({ error: 'Missing required fields: day and gold' }, { status: 400 });
+    }
     const openclawResult = await generateViaOpenClaw(gameState);
     
     const dailyEventData = await generateAIDailyEvent(gameState, OPENROUTER_API_KEY);

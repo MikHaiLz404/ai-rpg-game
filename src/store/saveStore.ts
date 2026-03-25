@@ -34,8 +34,9 @@ interface SaveStore {
   saveError: string | null;
   hasUnsavedChanges: boolean;
   autoSaveEnabled: boolean;
-  autoSaveInterval: number; 
+  autoSaveInterval: number;
   sessionStartTime: number;
+  autoSaveTimeoutId: ReturnType<typeof setTimeout> | null;
   
   initializeSave: () => Promise<void>;
   setAutoSaveEnabled: (enabled: boolean) => void;
@@ -62,8 +63,9 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
   saveError: null,
   hasUnsavedChanges: false,
   autoSaveEnabled: true,
-  autoSaveInterval: 60000, 
+  autoSaveInterval: 60000,
   sessionStartTime: Date.now(),
+  autoSaveTimeoutId: null,
   
   initializeSave: async () => {
     set({ isLoading: true, saveError: null });
@@ -216,17 +218,15 @@ export const useSaveStore = create<SaveStore>((set, get) => ({
   },
   resetSaveData: () => set({ currentSaveData: createEmptySaveData(), lastSaveTime: null, hasUnsavedChanges: false, sessionStartTime: Date.now() }),
   requestAutoSave: (playerGold, playerGod, inventory, relationships, arenaWins, kaneStats) => {
-    const { saveGame, autoSaveEnabled } = get();
+    const { saveGame, autoSaveEnabled, autoSaveTimeoutId } = get();
     if (!autoSaveEnabled) return;
 
-    if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
+    if (autoSaveTimeoutId) clearTimeout(autoSaveTimeoutId);
+    const timeoutId = setTimeout(() => {
       saveGame(playerGold, playerGod, inventory, relationships, arenaWins, kaneStats);
+      set({ autoSaveTimeoutId: null });
       console.log('SaveStore: Surgical auto-save triggered');
     }, 2000); // 2 second debounce
+    set({ autoSaveTimeoutId: timeoutId });
   },
 }));
-
-let autoSaveTimeout: NodeJS.Timeout | null = null;
-
-export default useSaveStore;

@@ -8,6 +8,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Bilingual project: Thai for narrative content (`novel/`), English for code and technical specs.
 
+## Project Status
+
+| Aspect | Status | Notes |
+|--------|--------|-------|
+| **Overall** | Active Development | 20-day roguelite campaign with AI-driven content |
+| **UX** | ✅ Improved | Fixed language consistency, accessibility, error feedback |
+| **Architecture** | ✅ Improved | Added validation, error boundaries, type unification |
+| **Game Design** | ✅ Synced | GAME_DESIGN.md rewritten to match actual codebase |
+
+**Recent Activity:**
+- 2026-03-25: Priority fixes completed - Herald, Bond math, Economy, Vampire Lord removed
+
+---
+
+## Review Findings (2026-03-25)
+
+### ✅ Addressed in Quick Wins
+
+**UX Fixes (2026-03-25):**
+- ✅ Language consistency: All UI labels standardized to English; Thai only for narrative
+- ✅ Accessibility: ARIA labels, keyboard navigation, visible focus indicators added
+- ✅ Error feedback: Empty catch blocks now log errors; loading states added to async buttons
+- ✅ Action economy: Action costs shown before entering phases via tooltips
+
+**Architecture Fixes (2026-03-25):**
+- ✅ Data validation: `loadSaveData` now typed and validated; SaveData unified across files
+- ✅ Error boundaries: `ErrorBoundary.tsx` created with `GameOverlayErrorBoundary` and `PhaserErrorBoundary`
+- ✅ API validation: `/api/narrate` and `/api/prophecy` now validate requests
+- ✅ Module state: `autoSaveTimeout` moved into Zustand store state
+
+**Design Sync (2026-03-25):**
+- ✅ GAME_DESIGN.md rewritten to accurately describe actual codebase (5 items, 2 enemies, 3 gods)
+
+### ⚠️ Remaining Issues (Lower Priority)
+
+**Devil's Advocate Root Causes (Addressed or Mitigated):**
+- ✅ **Bond math**: Rates doubled (draco 2.0, leo 1.5, arena 1.2), thresholds lowered
+- ✅ **Herald system**: First meeting conversation skips herald prefix
+- ✅ **Vampire Lord**: Removed - Hydra is now final boss
+- ✅ **Economy death spiral**: Restock capped at 1.3x, gold debt system, passive +10/day
+
+**Architecture (Lower Priority - Not Addressed):**
+- WebSocket singleton limitation documented but not fixed (browser/device identity issue)
+- Request deduplication not implemented (rapid-fire API calls still possible)
+- OpenRouter API key check trivially bypassed (security through obscurity)
+
+---
+
+## Review Team
+
+3 independent reviewers completed comprehensive codebase analysis:
+- **UX Review**: UI patterns, accessibility, bilingual issues, friction points
+- **Architecture Review**: State management, React/Phaser bridge, AI integration, security
+- **Devil's Advocate**: Game balance, AI reliability, failure modes, design/code mismatches
+
 ## Commands
 
 ```bash

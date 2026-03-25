@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { GamePhase, Player } from '@/types';
+import { GamePhase, SaveData } from '@/types';
 
 export const MAX_TURNS = 20;
 export const MAX_CHOICES_PER_DAY = 3;
@@ -72,6 +72,10 @@ interface GameStore {
   currentCustomer: Customer | null;
   setCustomer: (customer: Customer | null) => void;
 
+  // First meeting tracking for Herald system - true means player has met this god
+  firstMeeting: Record<string, boolean>;
+  setFirstMeeting: (godId: string) => void;
+
   day: number;
   choicesLeft: number;
   interventionPoints: number;
@@ -95,11 +99,12 @@ interface GameStore {
 
   gameOver: 'win' | 'lose' | null;
   gameOverReason: 'time' | 'bankruptcy' | null;
-  vampireDefeated: boolean;
-  defeatVampire: () => void;
+  hydraDefeated: boolean;
+  defeatHydra: () => void;
   setGameOver: (result: 'win' | 'lose' | null) => void;
 
   restockCostMultiplier: number;
+  goldDebt: number;
 
   showProphecy: boolean;
   setShowProphecy: (show: boolean) => void;
@@ -133,7 +138,7 @@ interface GameStore {
   hasNewLog: boolean;
   setHasNewLog: (hasNew: boolean) => void;
 
-  loadSaveData: (data: any) => void;
+  loadSaveData: (data: SaveData) => void;
   resetGame: () => void;
 }
 
@@ -147,6 +152,11 @@ const INITIAL_COMPANIONS: Companion[] = [
 export const useGameStore = create<GameStore>((set, get) => ({
   phase: 'shop',
   setPhase: (phase) => set({ phase }),
+
+  firstMeeting: { leo: false, arena: false, draco: false },
+  setFirstMeeting: (godId) => set((state) => ({
+    firstMeeting: { ...state.firstMeeting, [godId]: true }
+  })),
 
   gold: 500,
   addGold: (amount) => set((state) => ({
@@ -258,19 +268,41 @@ export const useGameStore = create<GameStore>((set, get) => ({
   
   endDay: () => set((state) => {
     const newDay = state.day + 1;
-    if (newDay > MAX_TURNS && !state.vampireDefeated) {
+    if (newDay > MAX_TURNS && !state.hydraDefeated) {
       return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'time' as const, isBusy: false };
     }
-    if (state.gold <= 0 && state.items.length === 0) {
-      return { choicesLeft: 0, day: newDay, gameOver: 'lose' as const, gameOverReason: 'bankruptcy' as const, isBusy: false };
+
+    // Calculate restock cost multiplier (capped at 1.3)
+    const restockCostMultiplier = Math.min(1.0 + (newDay - 1) * 0.03, 1.3);
+
+    // Handle gold debt system
+    let newGold = state.gold;
+    let newGoldDebt = state.goldDebt;
+    if (newGold < 0) {
+      // Record the debt and reset gold to 0
+      newGoldDebt = state.goldDebt + (-newGold);
+      newGold = 0;
     }
-    const restockCostMultiplier = 1.0 + (newDay - 1) * 0.03;
-    return { 
-      choicesLeft: MAX_CHOICES_PER_DAY, 
-      day: newDay, 
-      restockCostMultiplier, 
-      showProphecy: true, 
-      isBusy: false, 
+
+    // Passive income: +10 gold per day (first reduces any outstanding debt)
+    const passiveIncome = 10;
+    if (newGoldDebt > 0) {
+      const debtRepaid = Math.min(newGoldDebt, passiveIncome);
+      newGoldDebt -= debtRepaid;
+      newGold += (passiveIncome - debtRepaid);
+    } else {
+      newGold += passiveIncome;
+    }
+
+    // Remove bankruptcy check - debt system handles negative gold
+    return {
+      choicesLeft: MAX_CHOICES_PER_DAY,
+      day: newDay,
+      gold: newGold,
+      goldDebt: newGoldDebt,
+      restockCostMultiplier,
+      showProphecy: true,
+      isBusy: false,
       lastDailyEvent: null,
       currentDailyEventEffect: null,
       isExploringRoom: false,
@@ -297,11 +329,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   gameOver: null,
   gameOverReason: null,
-  vampireDefeated: false,
-  defeatVampire: () => set({ vampireDefeated: true, gameOver: 'win' }),
+  hydraDefeated: false,
+  defeatHydra: () => set({ hydraDefeated: true, gameOver: 'win' }),
   setGameOver: (result) => set({ gameOver: result }),
 
   restockCostMultiplier: 1.0,
+  goldDebt: 0,
 
   showProphecy: false,
   setShowProphecy: (show) => set({ showProphecy: show }),
@@ -380,9 +413,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     phase: 'shop' as GamePhase,
     gameOver: null,
     gameOverReason: null,
-    vampireDefeated: false,
+    hydraDefeated: false,
     showProphecy: false,
     restockCostMultiplier: 1.0,
+    goldDebt: 0,
     explorationLog: [],
     explorationEnergy: 0,
     isExploringRoom: false,
@@ -392,29 +426,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
     totalTokensOutput: 0,
     showAITerminal: false,
     hasNewLog: false,
+    firstMeeting: { leo: false, arena: false, draco: false },
   }),
 
   loadSaveData: (data) => {
-    if (!data) return;
+    if (!data || typeof data !== 'object') return;
+
+    // Validate required fields
+    if (!data.player || typeof data.player.gold !== 'number') {
+      console.warn('loadSaveData: Invalid save data - missing or invalid player.gold');
+      return;
+    }
+    if (!Array.isArray(data.inventory)) {
+      console.warn('loadSaveData: Invalid save data - inventory is not an array');
+      return;
+    }
+    if (!data.relationships || typeof data.relationships !== 'object') {
+      console.warn('loadSaveData: Invalid save data - missing relationships');
+      return;
+    }
+
     set({
       gold: data.player.gold,
-      items: data.inventory.map((i: any) => i.id || i),
+      items: data.inventory.map((i) => i.id || (i as any)),
       companions: get().companions.map(c => ({
         ...c,
-        bond: data.relationships[c.id] || c.bond,
-        level: Math.floor((data.relationships[c.id] || c.bond) / 10) + 1,
-        unlockedSkills: data.unlockedSkills?.[c.id] || [],
-        claimedThresholds: data.claimedThresholds?.[c.id] || []
+        bond: data.relationships[c.id] ?? c.bond,
+        level: Math.floor((data.relationships[c.id] ?? c.bond) / 10) + 1,
+        unlockedSkills: (data as any).unlockedSkills?.[c.id] || [],
+        claimedThresholds: (data as any).claimedThresholds?.[c.id] || []
       })),
-      day: data.day || 1,
-      arenaWins: data.arenaWins || 0,
-      choicesLeft: data.choicesLeft !== undefined ? data.choicesLeft : MAX_CHOICES_PER_DAY,
-      interventionPoints: data.interventionPoints || 10,
-      vampireDefeated: data.vampireDefeated || false,
-      gameOver: data.gameOver || null,
-      explorationLog: data.explorationLog || [],
+      day: (data as any).day || 1,
+      arenaWins: data.arenaWins ?? 0,
+      choicesLeft: (data as any).choicesLeft ?? MAX_CHOICES_PER_DAY,
+      interventionPoints: (data as any).interventionPoints ?? 10,
+      hydraDefeated: (data as any).hydraDefeated ?? false,
+      gameOver: (data as any).gameOver ?? null,
+      explorationLog: (data as any).explorationLog || [],
       kaneStats: data.kaneStats || get().kaneStats,
       isBusy: false,
+      firstMeeting: (data as any).firstMeeting ?? { leo: false, arena: false, draco: false },
+      goldDebt: (data as any).goldDebt ?? 0,
     });
   },
 }));

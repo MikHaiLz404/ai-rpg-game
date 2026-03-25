@@ -8,14 +8,14 @@ import { GoldIcon, HPIcon, SwordIcon, ShieldIcon, IPIcon, SparklesIcon } from '.
 const BASE_ENEMIES = [
   { id: 'slime', name: 'Slime', emoji: '💧', baseHp: 50, baseAtk: 8, baseDef: 1, gold: 30, xp: 5 },
   { id: 'skeleton', name: 'Skeleton', emoji: '💀', baseHp: 80, baseAtk: 12, baseDef: 3, gold: 60, xp: 12 },
-  { id: 'boss', name: 'Vampire Lord', emoji: '🧛', baseHp: 250, baseAtk: 35, baseDef: 8, gold: 500, xp: 100 },
+  { id: 'hydra', name: 'Hydra', emoji: '🐍', baseHp: 250, baseAtk: 35, baseDef: 8, gold: 500, xp: 100 },
 ];
 
 export default function Arena() {
   const { 
-    choicesLeft, consumeChoice, gold, addGold, day, companions, 
+    choicesLeft, consumeChoice, gold, addGold, day, companions,
     interventionPoints, useIP, addAILog, setDialogue,
-    kaneStats 
+    kaneStats, defeatHydra
   } = useGameStore();
   
   const [combatLog, setCombatLog] = useState<string[]>([]);
@@ -115,7 +115,9 @@ export default function Arena() {
           gatewayLogs: data.gatewayLogs
         });
         if (data.narrative) setDialogue({ speaker: 'Narrator', text: data.narrative });
-      } catch (e) {}
+      } catch (e) {
+        console.error('Divine intervention narration failed:', e);
+      }
 
       if (newEnemyHp <= 0) winCombat();
     }
@@ -177,6 +179,11 @@ export default function Arena() {
       incrementArenaWins();
       addIP(3 * totalWaves); // Buff: 3 IP per wave
       EventBus.emit('spawn-floating-text', { text: `+${finalGold} Gold`, color: '#ffd700' });
+      // Check if Hydra was defeated (win condition)
+      if (baseEnemyPool?.id === 'hydra') {
+        defeatHydra();
+        logAction(`🐍 ดวงตาของไฮดรามอดลง... เทพแห่งวิหารปลดปล่อยพลังได้สำเร็จ!`);
+      }
       setIsFighting(false);
       consumeChoice();
       setTimeout(() => { setEnemy(null); EventBus.emit('arena-combat-end'); }, 2000);
@@ -193,7 +200,7 @@ export default function Arena() {
   return (
     <div className="p-4 bg-slate-900/95 rounded-xl border border-red-500/20 shadow-2xl space-y-4 h-[600px] flex flex-col font-sans">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-black text-red-500 uppercase tracking-tighter italic font-serif">โคลอสเซียมแห่งเกียรติยศ</h2>
+        <h2 className="text-2xl font-black text-red-500 uppercase tracking-tighter italic font-serif">Arena of Glory</h2>
         {isFighting && (
           <div className="bg-red-900/30 border border-red-500/30 px-3 py-1 rounded-full">
             <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">Wave {wave}/{totalWaves}</span>
@@ -223,14 +230,14 @@ export default function Arena() {
             </div>
           </div>
           <div className="bg-slate-800/30 p-3 rounded-xl border border-white/5 font-serif">
-            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 flex justify-between"><span>พลังแห่งทวยเทพ</span><span className="text-purple-400 flex items-center gap-1 font-sans"><IPIcon size={10} /> {interventionPoints} IP</span></div>
+            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 flex justify-between"><span>Divine Power</span><span className="text-purple-400 flex items-center gap-1 font-sans"><IPIcon size={10} /> {interventionPoints} IP</span></div>
             <div className="grid grid-cols-3 gap-2">
               {gods.map(god => (
                 <div key={god.id} className="space-y-1">
                   {(god.unlockedSkills || []).slice(0, 1).map((skill, idx) => (
-                    <button key={idx} onClick={() => handleDivineIntervention(god.id, skill)} disabled={interventionPoints < 2} className="w-full py-1.5 bg-purple-900/20 hover:bg-purple-800/40 border border-purple-500/30 rounded-lg text-[8px] font-black text-purple-300 uppercase transition-all disabled:opacity-30 flex flex-col items-center"><SparklesIcon size={10} className="mb-0.5" />{skill.name}</button>
+                    <button key={idx} onClick={() => handleDivineIntervention(god.id, skill)} disabled={interventionPoints < 2} aria-label={`Use ${skill.name} from ${god.name} (costs 2 IP)`} className="w-full py-1.5 bg-purple-900/20 hover:bg-purple-800/40 border border-purple-500/30 rounded-lg text-[8px] font-black text-purple-300 uppercase transition-all disabled:opacity-30 flex flex-col items-center focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-500"><SparklesIcon size={10} className="mb-0.5" />{skill.name}</button>
                   ))}
-                  {(!god.unlockedSkills || god.unlockedSkills.length === 0) && <div className="h-full bg-slate-900/50 rounded-lg border border-dashed border-slate-700 flex items-center justify-center"><span className="text-[7px] text-slate-600 uppercase">ล็อค</span></div>}
+                  {(!god.unlockedSkills || god.unlockedSkills.length === 0) && <div className="h-full bg-slate-900/50 rounded-lg border border-dashed border-slate-700 flex items-center justify-center"><span className="text-[7px] text-slate-600 uppercase">Locked</span></div>}
                 </div>
               ))}
             </div>
@@ -238,12 +245,12 @@ export default function Arena() {
           <div className="flex-1 bg-black/60 rounded-xl p-3 font-mono text-[11px] overflow-y-auto border border-white/5 space-y-1 custom-scrollbar">
             {combatLog.map((log, i) => (<div key={i} className={i === 0 ? "text-white font-bold" : "text-slate-500"}>{log}</div>))}
           </div>
-          <button onClick={executeTurn} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl shadow-lg shadow-red-900/20 uppercase tracking-[0.2em] transition-all active:scale-95 font-serif">ดำเนินการต่อ (เทิร์น {turn})</button>
+          <button onClick={executeTurn} aria-label={`Execute turn ${turn}`} className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl shadow-lg shadow-red-900/20 uppercase tracking-[0.2em] transition-all active:scale-95 font-serif">Attack (Turn {turn})</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 overflow-y-auto pr-1 font-serif">
           {BASE_ENEMIES.map(be => (
-            <button key={be.id} onClick={() => startCombat(be)} disabled={choicesLeft <= 0} className="group p-4 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-red-500/30 rounded-2xl transition-all flex items-center gap-4 relative overflow-hidden">
+            <button key={be.id} onClick={() => startCombat(be)} disabled={choicesLeft <= 0} aria-label={`Fight ${be.name}, costs 1 action`} aria-disabled={choicesLeft <= 0} onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && choicesLeft > 0) { e.preventDefault(); startCombat(be); } }} className="group p-4 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-red-500/30 rounded-2xl transition-all flex items-center gap-4 relative overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500">
               <div className="text-4xl group-hover:scale-110 transition-transform">{be.emoji}</div>
               <div className="flex-1 text-left">
                 <div className="font-black text-white uppercase tracking-tight font-serif">{be.name}</div>
@@ -253,7 +260,7 @@ export default function Arena() {
                   <span className="text-[9px] font-bold text-amber-500 flex items-center gap-1 font-sans"><GoldIcon size={10} /> {be.gold}</span>
                 </div>
               </div>
-              <div className="text-xs font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity font-serif">{choicesLeft > 0 ? 'สู้ ⚔️' : 'แต้มหมด'}</div>
+              <div className="text-xs font-black text-red-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity font-serif">{choicesLeft > 0 ? 'Fight ⚔️' : 'No actions'}</div>
             </button>
           ))}
         </div>

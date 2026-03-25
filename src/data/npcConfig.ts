@@ -3,16 +3,16 @@
 // Leo: medium (war god, respects persistence)
 // Arena: hard (queen, must truly earn her trust)
 export const GOD_SKILL_THRESHOLDS: Record<string, number[]> = {
-  draco: [2, 4, 7, 10, 14],
-  leo:   [3, 6, 10, 14, 18],
-  arena: [5, 9, 13, 17, 22],
+  draco: [2, 3, 5, 8, 12],
+  leo:   [3, 5, 8, 12, 16],
+  arena: [4, 7, 11, 15, 20],
 };
 
 // Bond gain rate multiplier per god (higher = easier to gain bond)
 export const GOD_BOND_RATE: Record<string, number> = {
-  draco: 1.3,
-  leo:   1.0,
-  arena: 0.7,
+  draco: 2.0,
+  leo:   1.5,
+  arena: 1.2,
 };
 
 // Max conversation turns per visit per god

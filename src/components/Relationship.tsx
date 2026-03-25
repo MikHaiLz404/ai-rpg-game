@@ -82,10 +82,11 @@ interface ChatMessage {
 }
 
 export default function Relationship() {
-  const { 
-    companions, addBond, unlockSkill, markThresholdClaimed, setDialogue, 
+  const {
+    companions, addBond, unlockSkill, markThresholdClaimed, setDialogue,
     choicesLeft, consumeChoice, setIsBusy, items, removeItem, addAILog,
-    gold, day, arenaWins, spendGold, updateKaneStats, kaneStats
+    gold, day, arenaWins, spendGold, updateKaneStats, kaneStats,
+    firstMeeting, setFirstMeeting
   } = useGameStore();
   
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -94,6 +95,7 @@ export default function Relationship() {
   const [isTalking, setIsTalking] = useState(false);
   const [isGeneratingSkill, setIsGeneratingSkill] = useState(false);
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const [isGiving, setIsGiving] = useState(false);
   const [turnsUsed, setTurnsUsed] = useState(0);
   const [conversationEnded, setConversationEnded] = useState(false);
 
@@ -114,7 +116,7 @@ export default function Relationship() {
     if (!unclaimedThreshold) return;
 
     setIsGeneratingSkill(true);
-    setChatLog(prev => [...prev, { sender: 'system', text: `🌟 บรรลุระดับความสนิท ${unclaimedThreshold} แต้ม! ${freshCompanion.name} กำลังมอบสกิลใหม่ให้...` }]);
+    setChatLog(prev => [...prev, { sender: 'system', text: `🌟 Reached bond level ${unclaimedThreshold}! ${freshCompanion.name} is granting a new skill...` }]);
 
     try {
       const res = await fetch('/api/narrate', {
@@ -144,7 +146,9 @@ export default function Relationship() {
       const skillData = parseSkillResponse(data.narrative, id, freshCompanion.level);
       unlockSkill(id, { ...skillData, godId: id });
       markThresholdClaimed(id, unclaimedThreshold);
-      setChatLog(prev => [...prev, { sender: 'system', text: `✨ สกิลใหม่: ${skillData.name}! (พลังโจมตี x${skillData.multiplier})` }]);
+      // Prominent skill unlock notification
+      EventBus.emit('spawn-floating-text', { text: `🌟 New Skill Unlocked!`, color: '#fbbf24' });
+      setChatLog(prev => [...prev, { sender: 'system', text: `🌟 SKILL UNLOCKED: ${skillData.name}! (x${skillData.multiplier} power)` }]);
     } catch (err) {
       const fallback = getDeterministicSkill(id, freshCompanion.level);
       unlockSkill(id, { ...fallback, godId: id });
@@ -195,6 +199,8 @@ export default function Relationship() {
           npcSpeechStyle: config?.speechStyle,
           bondLevel: companion.level,
           userMessage: message,
+          // Inject firstMeeting for Herald system
+          firstMeeting,
           // Inject context for Divine Council awareness
           playerContext: {
             gold,
@@ -226,17 +232,21 @@ export default function Relationship() {
         setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]);
         setDialogue({ speaker: companion.name, text: data.narrative });
         if (message) {
-          const godRate = GOD_BOND_RATE[id] ?? 1.0;
-          const bondChance = Math.max(0.10, (0.4 - companion.bond * 0.02) * godRate);
-          if (Math.random() < bondChance) {
-            addBond(id, 1);
-            
-            // Visual feedback in Phaser
-            EventBus.emit('spawn-floating-text', { text: `💗 +1 Bond`, color: '#f472b6' });
-            
-            setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +1` }]);
-            setTimeout(() => checkAutoSkillUnlock(id), 100);
+          // Set firstMeeting flag after successful first conversation
+          if (!firstMeeting[id]) {
+            setFirstMeeting(id);
           }
+          const godRate = GOD_BOND_RATE[id] ?? 1.0;
+          // Rebalanced: +1-2 bond guaranteed per conversation turn (scaled by god rate)
+          const bondGain = Math.random() < 0.5 ? 1 : 2;
+          const scaledGain = Math.max(1, Math.round(bondGain * godRate));
+          addBond(id, scaledGain);
+
+          // Visual feedback in Phaser
+          EventBus.emit('spawn-floating-text', { text: `💗 +${scaledGain} Bond`, color: '#f472b6' });
+
+          setChatLog(prev => [...prev, { sender: 'system', text: `💗 Bond +${scaledGain}` }]);
+          setTimeout(() => checkAutoSkillUnlock(id), 100);
         }
       }
     } catch (err) {
@@ -249,7 +259,7 @@ export default function Relationship() {
 
     if (message && turnsUsed + 1 >= chatLimit) {
       setConversationEnded(true);
-      setChatLog(prev => [...prev, { sender: 'system', text: `💬 บทสนทนาวันนี้จบลงแล้ว` }]);
+      setChatLog(prev => [...prev, { sender: 'system', text: `💬 Today's conversation has ended` }]);
     }
   };
 
@@ -258,7 +268,7 @@ export default function Relationship() {
     if (choicesLeft <= 0) {
       setDialogue({
         speaker: 'Minju',
-        text: 'แต้มการกระทำหมดแล้วค่ะ! ไว้พรุ่งนี้ค่อยเอามาให้นะคะ',
+        text: 'No actions remaining! Come back tomorrow.',
         portrait: 'shock'
       });
       return;
@@ -269,9 +279,13 @@ export default function Relationship() {
     const itemInfo = ITEMS_MAP[itemId];
     setChatLog(prev => [...prev, { sender: 'player', text: `(มอบของขวัญ: ${itemInfo?.emoji || ''} ${itemInfo?.name || itemId})` }]);
     const isFavorite = FAVORITE_GIFTS[selectedId]?.includes(itemId);
-    const bondGain = (itemId.includes('potion') ? 3 : 5) + (isFavorite ? 3 : 0);
+    const godRate = GOD_BOND_RATE[selectedId] ?? 1.0;
+    const bondGain = Math.round(((itemId.includes('potion') ? 3 : 5) + (isFavorite ? 3 : 0)) * godRate);
     addBond(selectedId, bondGain);
-    setChatLog(prev => [...prev, { sender: 'system', text: `💗 ความสัมพันธ์ +${bondGain}${isFavorite ? ' ⭐' : ''}` }]);
+    // Visual feedback in Phaser
+    EventBus.emit('spawn-floating-text', { text: `💗 +${bondGain} Bond`, color: '#f472b6' });
+    setChatLog(prev => [...prev, { sender: 'system', text: `💗 Bond +${bondGain}${isFavorite ? ' ⭐' : ''}` }]);
+    setIsGiving(true);
     try {
       const res = await fetch('/api/narrate', {
         method: 'POST',
@@ -282,7 +296,11 @@ export default function Relationship() {
       broadcastAISource(data.source || 'fallback');
       addAILog({ action: 'gift', model: data.model || 'AI Model', source: data.source as any || 'unknown', prompt: data.prompt || '', response: data.narrative || '', tokensInput: data.usage?.prompt_tokens || 0, tokensOutput: data.usage?.completion_tokens || 0, gatewayLogs: data.gatewayLogs });
       if (data.narrative) { setChatLog(prev => [...prev, { sender: 'npc', text: data.narrative }]); setDialogue({ speaker: companion.name, text: data.narrative }); }
-    } catch (err) {}
+    } catch (err) {
+      console.error('Gift narration failed:', err);
+    } finally {
+      setIsGiving(false);
+    }
     setTimeout(() => checkAutoSkillUnlock(selectedId), 100);
   };
 
@@ -295,7 +313,7 @@ export default function Relationship() {
 
     const cost = 50 + (day - 1) * 10;
     if (gold < cost) {
-      setDialogue({ speaker: 'Minju', text: `เราต้องมีอย่างน้อย ${cost} ทองเพื่อขอรับการฝึกฝนค่ะ`, portrait: 'shock' });
+      setDialogue({ speaker: 'Minju', text: `You need at least ${cost} gold for training`, portrait: 'shock' });
       return;
     }
 
@@ -316,8 +334,8 @@ export default function Relationship() {
 
       setChatLog(prev => [
         ...prev, 
-        { sender: 'player', text: `(ขอรับการฝึกฝนจาก ${selectedCompanion.name} - ${cost} Gold)` },
-        { sender: 'system', text: `✨ Kane แข็งแกร่งขึ้น! (${statMsg})` }
+        { sender: 'player', text: `(Received training from ${selectedCompanion.name} - ${cost} Gold)` },
+        { sender: 'system', text: `✨ Kane grew stronger! (${statMsg})` }
       ]);
       
       EventBus.emit('spawn-floating-text', { text: `Kane Upgraded!`, color: '#f59e0b' });
@@ -331,8 +349,8 @@ export default function Relationship() {
   return (
     <div className="p-4 bg-slate-900/95 rounded-xl shadow-2xl border border-pink-500/20 flex flex-col flex-1 min-h-[500px] h-0">
       <div className="flex justify-between items-center mb-4 shrink-0">
-        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic font-serif">สายสัมพันธ์แห่งเทพ</h2>
-        {selectedId && <button onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}} className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors font-serif">← กลับ</button>}
+        <h2 className="text-2xl font-black text-pink-500 uppercase tracking-tighter italic font-serif">Divine Bonds</h2>
+        {selectedId && <button onClick={() => {setSelectedId(null); setChatLog([]); setIsBusy(false); setTurnsUsed(0); setConversationEnded(false);}} aria-label="Go back to god selection" className="text-slate-500 hover:text-white text-[10px] md:text-xs font-black uppercase tracking-widest transition-colors font-serif">← Back</button>}
       </div>
       {selectedCompanion && metadata ? (
         <div className="flex-1 flex flex-col min-h-0 space-y-4">
@@ -346,35 +364,36 @@ export default function Relationship() {
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="text-lg font-black text-white uppercase tracking-tight truncate font-serif">{selectedCompanion.name}</h3>
-              <div className="flex items-center gap-2"><div className="flex-1 min-w-0"><div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">{(() => { const next = getNextThreshold(selectedCompanion); const thresholds = getSkillThresholds(selectedCompanion.id); const prev = thresholds.filter(t => t <= selectedCompanion.bond).pop() || 0; const progress = next ? ((selectedCompanion.bond - prev) / (next - prev)) * 100 : 100; return <div className="h-full bg-gradient-to-r from-pink-600 to-rose-400 transition-all duration-1000" style={{ width: `${progress}%` }} />; })()}</div><div className="flex justify-between mt-0.5"><span className="text-[8px] md:text-[10px] text-slate-500 font-sans">ค่าความสนิท: {selectedCompanion.bond}</span>{getNextThreshold(selectedCompanion) && <span className="text-[8px] md:text-[10px] text-amber-500/70 font-sans">สกิลถัดไป: {getNextThreshold(selectedCompanion)}</span>}</div></div><span className="text-[10px] md:text-xs font-black text-pink-500 shrink-0 font-sans uppercase">LVL {selectedCompanion.level}</span></div>
+              <div className="flex items-center gap-2"><div className="flex-1 min-w-0"><div className="flex-1 h-1.5 bg-slate-900 rounded-full overflow-hidden border border-white/5">{(() => { const next = getNextThreshold(selectedCompanion); const thresholds = getSkillThresholds(selectedCompanion.id); const prev = thresholds.filter(t => t <= selectedCompanion.bond).pop() || 0; const progress = next ? ((selectedCompanion.bond - prev) / (next - prev)) * 100 : 100; return <div className="h-full bg-gradient-to-r from-pink-600 to-rose-400 transition-all duration-1000" style={{ width: `${progress}%` }} />; })()}</div><div className="flex justify-between mt-0.5">{getNextThreshold(selectedCompanion) ? <span className="text-[8px] md:text-[10px] text-slate-500 font-sans">Bond: {selectedCompanion.bond}/{getNextThreshold(selectedCompanion)} to next skill</span> : <span className="text-[8px] md:text-[10px] text-pink-500 font-sans font-bold">MAX BOND</span>}</div></div><span className="text-[10px] md:text-xs font-black text-pink-500 shrink-0 font-sans uppercase">LVL {selectedCompanion.level}</span></div>
             </div>
             {/* Feature: Divine Training */}
             {GOD_BOND_RATE[selectedCompanion.id] !== undefined && (
-              <button type="button" onClick={handleTrain} disabled={choicesLeft <= 0 || conversationEnded} className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-3 py-2 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg shadow-amber-500/20 shrink-0 ml-2">
-                ฝึกฝน Kane<br/>({50 + (day-1)*10}g)
+              <button type="button" onClick={handleTrain} disabled={choicesLeft <= 0 || conversationEnded} aria-label={`Train Kane for ${50 + (day-1)*10} gold`} className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-3 py-2 rounded-xl font-black text-[9px] uppercase transition-all shadow-lg shadow-amber-500/20 shrink-0 ml-2">
+                Train Kane<br/>({50 + (day-1)*10}g)
               </button>
             )}
           </div>
-          {isGeneratingSkill && <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse shrink-0"><span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest font-serif">กำลังรวบรวมพลังเทพ...</span></div>}
-          <div ref={scrollRef} className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 min-h-0">{chatLog.length === 0 && <div className="text-center text-slate-600 italic text-xs md:text-sm py-8">ขอเข้าพบเพื่อเริ่มบทสนทนา...</div>}{chatLog.map((msg, i) => <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${msg.sender === 'player' ? 'bg-pink-600 text-white rounded-tr-none' : msg.sender === 'npc' ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5' : 'bg-amber-500/10 text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'}`}>{msg.text}</div></div>)}{isTalking && <div className="flex justify-start"><div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs md:text-sm font-sans">กำลังคิด...</div></div>}</div>
+          {isGeneratingSkill && <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-2 text-center animate-pulse shrink-0" role="status" aria-live="polite"><span className="text-amber-500 text-xs md:text-sm font-black uppercase tracking-widest font-serif">Gathering divine power...</span></div>}
+          <div ref={scrollRef} className="flex-1 bg-black/40 rounded-2xl p-4 overflow-y-auto border border-white/5 space-y-4 scrollbar-thin scrollbar-thumb-slate-800 min-h-0">{chatLog.length === 0 && <div className="text-center text-slate-600 italic text-xs md:text-sm py-8">Select a god to start a conversation...</div>}{chatLog.map((msg, i) => <div key={i} className={`flex ${msg.sender === 'player' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm ${msg.sender === 'player' ? 'bg-pink-600 text-white rounded-tr-none' : msg.sender === 'npc' ? 'bg-slate-800 text-slate-100 rounded-tl-none border border-white/5' : 'bg-amber-500/10 text-amber-500 text-[10px] md:text-xs font-bold uppercase tracking-widest border border-amber-500/20 mx-auto'}`}>{msg.text}</div></div>)}{isTalking && <div className="flex justify-start" role="status" aria-live="polite"><div className="bg-slate-800/50 px-4 py-2 rounded-2xl rounded-tl-none animate-pulse text-slate-400 text-xs md:text-sm font-sans">Thinking...</div></div>}</div>
           
           <div className="shrink-0 space-y-2 pb-2">
-            {selectedId && !conversationEnded && <div className="flex items-center justify-between px-1 mb-1"><span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest font-sans">โอกาสพูดคุย</span><div className="flex items-center gap-1">{Array.from({ length: GOD_CHAT_LIMIT[selectedId] ?? 3 }).map((_, i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < turnsUsed ? 'bg-slate-700' : 'bg-pink-500'}`} />)}<span className="text-[8px] md:text-[10px] text-slate-500 ml-1 font-sans">{Math.max(0, (GOD_CHAT_LIMIT[selectedId] ?? 3) - turnsUsed)}/{GOD_CHAT_LIMIT[selectedId] ?? 3}</span></div></div>}
-            {conversationEnded && <div className="bg-slate-800/50 border border-pink-500/20 rounded-xl px-4 py-3 text-center"><div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest font-sans">บทสนทนาวันนี้จบลงแล้ว</div><div className="text-[9px] md:text-[11px] text-slate-600 mt-1 font-sans">ยังมอบของขวัญได้ หรือกลับไปเลือกเทพองค์อื่น</div></div>}
+            {selectedId && !conversationEnded && <div className="flex items-center justify-between px-1 mb-1"><span className="text-[9px] md:text-[11px] text-slate-500 font-bold uppercase tracking-widest font-sans">Chat Opportunities</span><div className="flex items-center gap-1">{Array.from({ length: GOD_CHAT_LIMIT[selectedId] ?? 3 }).map((_, i) => <div key={i} className={`w-2 h-2 rounded-full transition-all ${i < turnsUsed ? 'bg-slate-700' : 'bg-pink-500'}`} />)}<span className="text-[8px] md:text-[10px] text-slate-500 ml-1 font-sans">{Math.max(0, (GOD_CHAT_LIMIT[selectedId] ?? 3) - turnsUsed)}/{GOD_CHAT_LIMIT[selectedId] ?? 3}</span></div></div>}
+            {conversationEnded && <div className="bg-slate-800/50 border border-pink-500/20 rounded-xl px-4 py-3 text-center"><div className="text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest font-sans">Today&apos;s conversation has ended</div><div className="text-[9px] md:text-[11px] text-slate-600 mt-1 font-sans">You can still give gifts, or go back and choose another god</div></div>}
             <form onSubmit={(e) => { e.preventDefault(); if (userInput.trim() && !conversationEnded) handleTalk(selectedCompanion.id, userInput); }} className="flex gap-2 relative">
-              <button type="button" onClick={() => setShowGiftModal(!showGiftModal)} disabled={choicesLeft <= 0 || conversationEnded} className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50" title="Give Gift">🎁</button>
+              <button type="button" onClick={() => setShowGiftModal(!showGiftModal)} disabled={choicesLeft <= 0 || conversationEnded || isGiving} aria-label="Give a gift" aria-expanded={showGiftModal} aria-disabled={choicesLeft <= 0 || conversationEnded || isGiving} className="bg-slate-800 hover:bg-slate-700 text-pink-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50" title="Give Gift">🎁</button>
               
               {/* Feature: Divine Training */}
               <button type="button" onClick={handleTrain} disabled={choicesLeft <= 0 || conversationEnded} className="bg-slate-800 hover:bg-slate-700 text-amber-500 p-3 rounded-xl border border-white/10 transition-all flex items-center justify-center shrink-0 disabled:opacity-50" title={`Train Kane (${100 + (day-1)*20}g)`}>⚔️</button>
 
               {showGiftModal && (
                 <div className="absolute bottom-full left-0 w-64 bg-slate-900 border-2 border-pink-500/30 rounded-2xl shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300 mb-2">
-                  <div className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between"><span>เลือกของขวัญ</span><button onClick={() => setShowGiftModal(false)}>✕</button></div>
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 font-sans">{Array.from(new Set(items)).map((itemId) => { const info = ITEMS_MAP[itemId]; const isFav = selectedId ? FAVORITE_GIFTS[selectedId]?.includes(itemId) : false; return <button key={itemId} onClick={() => handleGift(itemId)} className={`w-full text-left p-2 rounded-lg text-xs md:text-sm text-slate-200 border transition-all flex items-center justify-between ${isFav ? 'bg-pink-900/30 hover:bg-pink-800/40 border-pink-500/20' : 'bg-slate-800 hover:bg-slate-700 border-white/5'}`}><span>{info ? `${info.emoji} ${info.name}` : itemId}{isFav ? ' ⭐' : ''}</span><span className="text-[8px] md:text-[10px] text-pink-500/70 font-sans">x{items.filter(i => i === itemId).length}</span></button>; })} {items.length === 0 && <div className="text-[10px] md:text-xs text-slate-600 italic text-center py-4 font-sans">ไม่มีของในกระเป๋าเลย...</div>}</div>
+                  <div className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex justify-between"><span>Choose a Gift</span><button onClick={() => setShowGiftModal(false)} aria-label="Close gift modal">✕</button></div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800 font-sans">{Array.from(new Set(items)).map((itemId) => { const info = ITEMS_MAP[itemId]; const isFav = selectedId ? FAVORITE_GIFTS[selectedId]?.includes(itemId) : false; return <button key={itemId} onClick={() => handleGift(itemId)} disabled={isGiving} aria-disabled={isGiving} aria-label={`Give ${info?.name || itemId} as a gift`} className={`w-full text-left p-2 rounded-lg text-xs md:text-sm text-slate-200 border transition-all flex items-center justify-between focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 ${isFav ? 'bg-pink-900/30 hover:bg-pink-800/40 border-pink-500/20' : 'bg-slate-800 hover:bg-slate-700 border-white/5'} ${isGiving ? 'opacity-50 cursor-not-allowed' : ''}`}><span>{info ? `${info.emoji} ${info.name}` : itemId}{isFav ? ' ⭐' : ''}</span><span className="text-[8px] md:text-[10px] text-pink-500/70 font-sans">x{items.filter(i => i === itemId).length}</span></button>; })} {items.length === 0 && <div className="text-[10px] md:text-xs text-slate-600 italic text-center py-4 font-sans">Your inventory is empty...</div>}</div>
                 </div>
               )}
-              <input type="text" value={userInput} onChange={(e) => setUserMessage(e.target.value)} disabled={conversationEnded} placeholder={conversationEnded ? 'เทพกลับไปแล้ว...' : 'พิมพ์ข้อความคุยกับเทพ...'} className={`flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors ${conversationEnded ? 'opacity-50' : ''}`} />
-              <button type="submit" disabled={isTalking || !userInput.trim() || choicesLeft <= 0 || conversationEnded} className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest transition-all font-serif">{conversationEnded ? 'จบ' : choicesLeft > 0 ? 'ส่ง' : 'แต้มหมด'}</button>
+              <label htmlFor="chat-message-input" className="sr-only">Chat message</label>
+              <input id="chat-message-input" type="text" value={userInput} onChange={(e) => setUserMessage(e.target.value)} disabled={conversationEnded} placeholder={conversationEnded ? 'The god has departed...' : 'Type a message to chat with the god...'} aria-label="Chat message input" className={`flex-1 bg-slate-800 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-pink-500/50 transition-colors ${conversationEnded ? 'opacity-50' : ''}`} />
+              <button type="submit" disabled={isTalking || !userInput.trim() || choicesLeft <= 0 || conversationEnded} aria-label={conversationEnded ? 'Conversation ended' : choicesLeft > 0 ? 'Send message' : 'No actions remaining'} className="bg-pink-600 hover:bg-pink-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-black uppercase text-xs md:text-sm tracking-widest transition-all font-serif">{conversationEnded ? 'Done' : choicesLeft > 0 ? 'Send' : 'No Actions'}</button>
             </form>
           </div>
         </div>
@@ -385,12 +404,17 @@ export default function Relationship() {
             const thresholds = getSkillThresholds(comp.id);
             const nextThreshold = (thresholds || []).find(t => comp.bond < t);
             return (comp.id !== 'kane' && (
-              <button key={comp.id} onClick={() => { 
+              <button key={comp.id} onClick={() => {
                 if (choicesLeft <= 0) {
-                  setDialogue({ speaker: 'Minju', text: 'แต้มการกระทำหมดแล้วค่ะ กลับบ้านไปพักผ่อนเถอะนะ', portrait: 'work' });
+                  setDialogue({ speaker: 'Minju', text: 'No actions remaining. Go home and rest.', portrait: 'work' });
                   return;
                 }
-                setSelectedId(comp.id); EventBus.emit('village-walk-to-npc', { npcId: comp.id }); const onArrival = () => { EventBus.off('village-walk-complete', onArrival); handleTalk(comp.id); }; EventBus.on('village-walk-complete', onArrival); 
+                // First meeting: show intro dialogue (Herald shows if firstMeeting[comp.id] is false)
+                if (!firstMeeting[comp.id]) {
+                  const config = NPC_CONFIGS[comp.id];
+                  setDialogue({ speaker: comp.name, text: config?.greeting || `เจ้ามาถึงแล้ว... ข้ารอเจ้าอยู่` });
+                }
+                setSelectedId(comp.id); EventBus.emit('village-walk-to-npc', { npcId: comp.id }); const onArrival = () => { EventBus.off('village-walk-complete', onArrival); handleTalk(comp.id); }; EventBus.on('village-walk-complete', onArrival);
               }} className="p-6 bg-slate-800/40 hover:bg-slate-800 border border-white/5 hover:border-pink-500/30 rounded-3xl transition-all flex flex-col items-center gap-4 group relative overflow-hidden h-48">
                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity font-serif"><span className="text-4xl font-black">{comp.level}</span></div>
                 <div className="w-20 h-20 bg-slate-900 rounded-2xl flex items-center justify-center shadow-xl border border-white/5 group-hover:scale-110 transition-transform overflow-hidden">
@@ -400,7 +424,7 @@ export default function Relationship() {
                     <span className="text-4xl">{meta?.emoji || '👤'}</span>
                   )}
                 </div>
-                <div className="text-center"><div className="font-black text-white uppercase tracking-tight font-serif">{comp.name}</div><div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1 font-sans">ความสนิท {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' สูงสุด'}</div>{(comp.unlockedSkills || []).length > 0 && <div className="flex flex-wrap gap-1 justify-center mt-2">{(comp.unlockedSkills || []).map((skill, i) => <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20 font-serif" title={`x${skill.multiplier}`}>🔥 {skill.name}</span>)}</div>}</div>
+                <div className="text-center"><div className="font-black text-white uppercase tracking-tight font-serif">{comp.name}</div><div className="text-[9px] md:text-[11px] text-pink-500/70 font-black uppercase mt-1 font-sans">Bond {comp.bond}{nextThreshold ? ` / ${nextThreshold}` : ' (Max)'}</div>{(comp.unlockedSkills || []).length > 0 && <div className="flex flex-wrap gap-1 justify-center mt-2">{(comp.unlockedSkills || []).map((skill, i) => <span key={i} className="text-[8px] md:text-[10px] bg-amber-500/10 text-amber-400 px-1.5 py-0.5 rounded-full border border-amber-500/20 font-serif" title={`x${skill.multiplier}`}>🔥 {skill.name}</span>)}</div>}</div>
               </button>
             ));
           })}

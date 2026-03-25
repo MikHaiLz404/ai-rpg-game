@@ -351,20 +351,62 @@ export interface RelationshipEvent {
 
 // ==================== SAVE DATA TYPES ====================
 
-/** Save data interface */
+/** Player state for save data */
+export interface PlayerState {
+  gold: number;
+  god: GodData | null;
+  level: number;
+  exp: number;
+}
+
+/** God data for save data */
+export interface GodData {
+  id: string;
+  name: string;
+  nameTH: string;
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+}
+
+/** Item for save data */
+export interface SaveItem {
+  id: string;
+  name: string;
+  nameTH: string;
+  description: string;
+  price: number;
+  type: 'weapon' | 'armor' | 'consumable';
+  effect: {
+    hp?: number;
+    attack?: number;
+    defense?: number;
+  };
+}
+
+/** Game stats for save data */
+export interface GameStats {
+  totalBattles: number;
+  totalWins: number;
+  totalLosses: number;
+  goldEarned: number;
+  goldSpent: number;
+  itemsPurchased: number;
+  playTime: number;
+  lastSavedAt: number;
+}
+
+/** Save data interface - mirrors saveManager.ts SaveData */
 export interface SaveData {
   version: string;
   timestamp: number;
-  player: Player;
-  phase: GamePhase;
-  /** จำนวนครั้งที่เล่น */
-  playCount: number;
-  /** จำนวนชนะ */
-  winCount: number;
-  /** จำนวนแพ้ */
-  loseCount: number;
-  /** เวลาเล่นรวม (วินาที) */
-  totalPlayTime: number;
+  player: PlayerState;
+  inventory: SaveItem[];
+  relationships: Record<string, number>;
+  arenaWins: number;
+  kaneStats?: { hp: number; maxHp: number; atk: number; def: number };
+  stats: GameStats;
 }
 
 /** Save data version */

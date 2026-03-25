@@ -17,13 +17,14 @@ import ProphecyOverlay from '@/components/ProphecyOverlay';
 import DialogueOverlay from '@/components/DialogueOverlay';
 import AIStatusBadge from '@/components/AIStatusBadge';
 import AITerminal from '@/components/AITerminal';
+import { PhaserErrorBoundary, GameOverlayErrorBoundary } from '@/components/ErrorBoundary';
 
 const PhaserGame = dynamic(() => import('@/game/PhaserGame'), { ssr: false });
 
 export default function GamePage() {
   const { 
     phase, setPhase, gold, day, choicesLeft, gameOver, gameOverReason,
-    vampireDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
+    hydraDefeated, resetGame, loadSaveData, showProphecy, setShowProphecy,
     addExplorationLog, endDay, isBusy, setDialogue, addAILog, interventionPoints,
     arenaWins, items, companions, kaneStats
   } = useGameStore();
@@ -151,8 +152,12 @@ export default function GamePage() {
   return (
     <main className="min-h-screen lg:h-screen bg-[#020617] text-slate-200 flex flex-col font-sans selection:bg-amber-500/30 lg:overflow-hidden overflow-y-auto">
       {/* Global Overlays (Draggable/Top-level) */}
-      <ProphecyOverlay />
-      <AITerminal />
+      <GameOverlayErrorBoundary componentName="Prophecy Overlay">
+        <ProphecyOverlay />
+      </GameOverlayErrorBoundary>
+      <GameOverlayErrorBoundary componentName="AI Terminal">
+        <AITerminal />
+      </GameOverlayErrorBoundary>
 
       {/* Header Bar */}
       <header className="shrink-0 h-14 border-b border-white/5 bg-slate-950/80 backdrop-blur-md flex items-center px-4 md:px-8 justify-between z-50">
@@ -194,7 +199,9 @@ export default function GamePage() {
         {/* Game View Container (Center) */}
         <div className="flex-1 relative flex items-start justify-center p-2 lg:p-4 bg-[#05070a]">
           <div className="relative aspect-[4/3] w-full max-w-[1024px] shadow-2xl shadow-black/50 rounded-2xl overflow-hidden border border-white/10 bg-black mt-2">
-            <PhaserGame />
+            <PhaserErrorBoundary>
+              <PhaserGame />
+            </PhaserErrorBoundary>
             <DialogueOverlay />
             
             {/* Phase Overlay Badge */}
@@ -212,8 +219,8 @@ export default function GamePage() {
                   {gameOver === 'win' ? 'Ascension Complete' : 'Champion Fallen'}
                 </h2>
                 <p className="text-slate-400 max-w-md mb-8 leading-relaxed font-medium">
-                  {gameOver === 'win' 
-                    ? 'Kane has defeated the Vampire Lord and earned his place among the stars. Your guidance was divine.' 
+                  {gameOver === 'win'
+                    ? 'Hydra has been defeated! The gods celebrate your victory. Your guidance was divine.'
                     : gameOverReason === 'bankruptcy'
                       ? 'The treasury is empty and the shelves are bare. The shop has closed its doors forever.'
                       : 'The 20 days have passed. Darkness has claimed the arena.'}
@@ -236,22 +243,23 @@ export default function GamePage() {
             {/* End Day Button (Appears when 0 actions left) */}
             {choicesLeft <= 0 && !isBusy && !gameOver && (
               <div className="animate-in fade-in zoom-in duration-500">
-                <button 
+                <button
                   onClick={() => endDay()}
+                  aria-label="End the day and rest"
                   className="w-full py-4 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-500 hover:to-rose-500 text-white font-black rounded-2xl shadow-xl shadow-amber-900/20 uppercase tracking-[0.2em] transition-all active:scale-95 border-2 border-white/10"
                 >
-                  💤 สิ้นสุดวัน (พักผ่อน)
+                  💤 End Day &amp; Rest
                 </button>
-                <p className="text-[10px] text-center text-slate-500 mt-2 font-bold uppercase tracking-widest">คุณใช้แต้มการกระทำหมดแล้ว</p>
+                <p className="text-[10px] text-center text-slate-500 mt-2 font-bold uppercase tracking-widest">No actions remaining</p>
               </div>
             )}
 
             {/* Phase Tabs */}
-            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/50 rounded-xl border border-white/5">
-              <TabButton label="Shop" active={phase === 'shop'} onClick={() => setPhase('shop')} />
-              <TabButton label="Arena" active={phase === 'arena'} onClick={() => setPhase('arena')} />
-              <TabButton label="Exploration" active={phase === 'exploration'} onClick={() => setPhase('exploration')} />
-              <TabButton label="Relate" active={phase === 'relationship'} onClick={() => setPhase('relationship')} />
+            <div role="tablist" aria-label="Game phases" className="grid grid-cols-4 gap-1 p-1 bg-slate-900/50 rounded-xl border border-white/5">
+              <TabButton label="Shop" active={phase === 'shop'} onClick={() => setPhase('shop')} title="Shop: buy and sell items (costs 1 action)" />
+              <TabButton label="Arena" active={phase === 'arena'} onClick={() => setPhase('arena')} title="Arena: fight enemies (costs 1 action)" />
+              <TabButton label="Exploration" active={phase === 'exploration'} onClick={() => setPhase('exploration')} title="Exploration: discover events (costs 1 action)" />
+              <TabButton label="Relationship" active={phase === 'relationship'} onClick={() => setPhase('relationship')} title="Relationship: talk to gods (costs 1 action)" />
             </div>
 
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
@@ -278,14 +286,20 @@ function StatItem({ label, value, color }: { label: string, value: string, color
   );
 }
 
-function TabButton({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) {
+function TabButton({ label, active, onClick, title }: { label: string, active: boolean, onClick: () => void, title?: string }) {
   return (
     <button
+      role="tab"
+      aria-selected={active}
+      aria-label={`${label} phase${active ? ' (active)' : ''}${title ? `: ${title}` : ''}`}
+      title={title}
       onClick={onClick}
-      className={`py-2 px-1 text-[9px] font-black uppercase tracking-widest transition-all font-serif ${
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      tabIndex={active ? 0 : -1}
+      className={`py-2 px-1 text-[9px] font-black uppercase tracking-widest transition-all font-serif focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 rounded-lg ${
         active
-          ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20 rounded-lg'
-          : 'text-slate-500 hover:text-white'
+          ? 'bg-amber-500 text-slate-900 shadow-lg shadow-amber-500/20'
+          : 'text-slate-500 hover:text-white focus-visible:outline-amber-500/50'
       }`}
     >
       {label}

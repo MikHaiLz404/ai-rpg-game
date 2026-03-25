@@ -87,9 +87,9 @@ export default function Shop() {
     currentCustomer, setCustomer, companions, addBond,
     day, choicesLeft, customersServed, isShiftActive, startShift, endShift, incrementServed,
     setDialogue, restockCostMultiplier, addAILog,
-    currentDailyEventEffect
+    currentDailyEventEffect, goldDebt
   } = useGameStore();
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [incomingProgress, setIncomingProgress] = useState(0);
   const progressInterval = useRef<NodeJS.Timeout | null>(null);
@@ -161,6 +161,7 @@ export default function Shop() {
           isGod
         });
       } catch (err) {
+        console.error('Failed to generate customer narration:', err);
         setCustomer({
           id: npc.id,
           name: npc.name,
@@ -281,13 +282,23 @@ export default function Shop() {
           <div className="text-[10px] md:text-xs font-bold text-rose-500 uppercase tracking-widest flex items-center justify-center gap-2 font-serif">
             <div className="w-2 h-2 rounded-full animate-pulse bg-rose-500" /> Sanctum is Closed
           </div>
-          <button 
-            onClick={startShift} 
+          <button
+            onClick={startShift}
             disabled={choicesLeft <= 0}
-            className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest font-serif"
+            aria-label={choicesLeft > 0 ? 'Open shop for trading' : 'No actions remaining to open shop'}
+            aria-disabled={choicesLeft <= 0}
+            onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && choicesLeft > 0) { e.preventDefault(); startShift(); } }}
+            className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed text-slate-900 text-xs md:text-sm font-black rounded-xl transition-all shadow-lg shadow-amber-500/20 uppercase tracking-widest font-serif focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
           >
-            {choicesLeft > 0 ? 'Open Shop' : 'แต้มหมดแล้ว'}
+            {choicesLeft > 0 ? 'Open Shop' : 'No Actions Left'}
           </button>
+        </div>
+      )}
+      {goldDebt && goldDebt > 0 && (
+        <div className="bg-red-900/20 rounded-xl border border-red-500/30 p-3 text-center" role="status" aria-live="polite">
+          <span className="text-[10px] md:text-xs font-bold text-red-400 uppercase tracking-widest font-serif">
+            Recovering debt: -{goldDebt} gold from next income
+          </span>
         </div>
       )}
       {isShiftActive && (
@@ -348,16 +359,18 @@ export default function Shop() {
                 return false;
               });
               return (
-                <button 
-                  onClick={handleSell} 
-                  disabled={!canSellAll} 
-                  className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm font-serif flex items-center justify-center gap-2 ${canSellAll ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
+                <button
+                  onClick={handleSell}
+                  disabled={!canSellAll}
+                  aria-label={`Sell items for ${currentCustomer.offeredGold} gold`}
+                  aria-disabled={!canSellAll}
+                  className={`flex-1 py-3 rounded-xl font-black uppercase tracking-widest transition-all shadow-lg text-xs md:text-sm font-serif flex items-center justify-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${canSellAll ? 'bg-amber-500 hover:bg-amber-400 text-slate-900' : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'}`}
                 >
                   Sell ({currentCustomer.offeredGold} <GoldIcon size={14} className={canSellAll ? 'text-slate-900' : 'text-slate-500'} />)
                 </button>
               );
             })()}
-            <button onClick={handleDecline} className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest font-serif">Decline</button>
+            <button onClick={handleDecline} aria-label="Decline customer request" className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 transition-all uppercase text-[10px] md:text-xs tracking-widest font-serif focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">Decline</button>
           </div>
         </div>
       )}
@@ -372,9 +385,14 @@ export default function Shop() {
         </div>
       </div>
       <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
-        <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-4 font-serif">Stockroom & Restock</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-[10px] md:text-xs font-black text-slate-500 uppercase tracking-[0.2em] font-serif">Stockroom & Restock</h3>
+          <span className="text-[9px] md:text-[10px] font-bold text-amber-500/70 font-sans">
+            {restockCostMultiplier > 1.1 ? `Wholesale: ${restockCostMultiplier.toFixed(1)}x` : 'Wholesale: 1.0x'}
+          </span>
+        </div>
         <div className="grid grid-cols-2 gap-2 max-h-[280px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-800">
-          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2 || (currentDailyEventEffect?.type === 'restock_penalty'); return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 font-serif"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500 font-sans">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600 font-sans flex items-center justify-center gap-1">{wholesale} <GoldIcon size={10} className={gold >= wholesale ? 'text-amber-400' : 'text-slate-500'} /> {(isExpensive || currentDailyEventEffect?.type === 'restock_discount') && <span className={currentDailyEventEffect?.type === 'restock_discount' ? "text-emerald-400" : "text-red-400"}>{currentDailyEventEffect?.type === 'restock_discount' ? '↓' : '↑'}</span>}</button></div> ); })}
+          {ITEMS.map((item) => { const count = items.filter(id => id === item.id).length; const wholesale = getWholesalePrice(item); const isExpensive = restockCostMultiplier > 1.2 || (currentDailyEventEffect?.type === 'restock_penalty'); return ( <div key={item.id} className="bg-slate-800/30 p-2.5 rounded-xl border border-white/5 flex flex-col gap-2 font-serif"><div className="flex items-center gap-2"><ItemIcon item={item} size="sm" /><div className="min-w-0 flex-1"><div className="text-[9px] md:text-[11px] font-bold text-slate-200 uppercase leading-tight truncate">{item.name}</div><div className="text-[8px] md:text-[10px] text-slate-500 font-sans">(x{count})</div></div></div><button onClick={() => handleRestock(item)} disabled={gold < wholesale} aria-label={`Restock ${item.name} for ${wholesale} gold`} aria-disabled={gold < wholesale} className="w-full py-1.5 bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:grayscale text-slate-200 text-[8px] md:text-[10px] font-bold rounded-lg transition-all border border-slate-600 font-sans flex items-center justify-center gap-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">{wholesale} <GoldIcon size={10} className={gold >= wholesale ? 'text-amber-400' : 'text-slate-500'} /> {(isExpensive || currentDailyEventEffect?.type === 'restock_discount') && <span className={currentDailyEventEffect?.type === 'restock_discount' ? "text-emerald-400" : "text-red-400"}>{currentDailyEventEffect?.type === 'restock_discount' ? '↓' : '↑'}</span>}</button></div> ); })}
         </div>
       </div>
     </div>

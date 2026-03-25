@@ -5,7 +5,7 @@
 ---
 
 ## 🎮 Overview
-Players act as **Minju**, a merchant and coach supporting **Kane** (an archer champion) and three companion gods in a **20-day campaign** to defeat the Vampire Lord.
+Players act as **Minju**, a merchant and coach supporting **Kane** (an archer champion) and three companion gods in a **20-day campaign** to defeat the Hydra.
 
 ---
 
@@ -16,7 +16,7 @@ Each day follows a fixed cycle:
 1. **Morning Prophecy**: All 3 gods deliver AI strategic advice. Every 5 days, this triggers an autonomous **Divine Council** meeting.
 2. **3 Action Points**: Spend actions across the four phases below in any order.
 3. **End Day**: Triggers automatically when all actions are spent.
-4. **Victory**: Defeat the Vampire Lord in the Arena before Day 20 ends.
+4. **Victory**: Defeat the Hydra in the Arena before Day 20 ends.
 
 ---
 
