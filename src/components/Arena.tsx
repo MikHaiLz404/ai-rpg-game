@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore, DivineSkill } from '@/store/gameStore';
 import { EventBus } from '@/game/EventBus';
 import { broadcastAISource } from './AIStatusBadge';
@@ -29,6 +29,9 @@ export default function Arena() {
   const [pendingGold, setPendingGold] = useState(0);
   const [baseEnemyPool, setBaseEnemyPool] = useState<any>(null);
 
+  // Use ref to track accumulated gold across waves to avoid stale closure
+  const goldAccumulatorRef = useRef(0);
+
   const kane = companions.find(c => c.id === 'kane');
   const gods = companions.filter(c => c.id !== 'kane');
 
@@ -41,6 +44,7 @@ export default function Arena() {
     setWave(1);
     setTotalWaves(numWaves);
     setPendingGold(0);
+    goldAccumulatorRef.current = 0;
     setBaseEnemyPool(baseEnemy);
 
     spawnWaveEnemy(baseEnemy, 1);
@@ -87,7 +91,7 @@ export default function Arena() {
       EventBus.emit('arena-god-support', { godId, skillName: skill.name });
 
       // Improved: Use actual Kane stats for divine damage
-      const damage = Math.floor((kaneStats.atk * skill.multiplier) - enemy.def);
+      const damage = Math.floor(((kaneStats?.atk || 15) * skill.multiplier) - enemy.def);
       const finalDmg = Math.max(5, damage);
       
       const newEnemyHp = Math.max(0, enemy.hp - finalDmg);
@@ -156,6 +160,7 @@ export default function Arena() {
     // Collect gold for this wave
     const waveGold = enemy.gold;
     setPendingGold(prev => prev + waveGold);
+    goldAccumulatorRef.current += waveGold; // Update ref synchronously to avoid stale closure
     EventBus.emit('arena-enemy-death');
 
     if (wave < totalWaves) {
@@ -172,7 +177,8 @@ export default function Arena() {
         logAction(`⚔️ Wave ${wave + 1}/${totalWaves} เริ่มต้นขึ้น!`);
       }, 1500);
     } else {
-      const finalGold = pendingGold + waveGold;
+      // Use ref to get accurate total (avoid stale closure from async setState)
+      const finalGold = goldAccumulatorRef.current;
       logAction(`🏆 ชัยชนะครั้งยิ่งใหญ่! ได้รับรวม ${finalGold} ทอง`);
       addGold(finalGold);
       const { incrementArenaWins, addIP } = useGameStore.getState();

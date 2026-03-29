@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required field: action' }, { status: 400 });
     }
 
-    const validActions = ['shop_talk', 'talk', 'generate_skill', 'gift', 'exploration_event'];
+    const validActions = ['shop_talk', 'talk', 'generate_skill', 'gift', 'exploration_event', 'combat'];
     if (!validActions.includes(action)) {
       return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }

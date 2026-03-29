@@ -25,7 +25,7 @@ const ITEMS_MAP: Record<string, { name: string; emoji: string }> = {
 };
 
 export default function ChampionStatus() {
-  const { companions, getBondBonus, items, gold, day, interventionPoints, resetGame, loadSaveData, kaneStats } = useGameStore();
+  const { companions, getBondBonus, items, gold, day, interventionPoints, resetGame, loadSaveData, kaneStats, arenaWins } = useGameStore();
   const { saveGame, loadGame, deleteAllSaves, checkHasSave, exportGame, importGame } = useSaveStore();
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +47,7 @@ export default function ChampionStatus() {
   const buildSaveArgs = (): [number, null, any, Record<string, number>, number] => {
     const relationships = companions.reduce((acc, c) => ({ ...acc, [c.id]: c.bond }), {} as Record<string, number>);
     const saveItems = items.map(id => ({ id, name: id, price: 0, type: 'consumable' }));
-    return [gold, null, saveItems as any, relationships, 0];
+    return [gold, null, saveItems as any, relationships, arenaWins];
   };
 
   const flash = (msg: string) => {

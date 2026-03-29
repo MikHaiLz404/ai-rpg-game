@@ -257,7 +257,7 @@ export default function Relationship() {
       setTimeout(() => setIsBusy(false), 1000);
     }
 
-    if (message && turnsUsed + 1 >= chatLimit) {
+    if (message && turnsUsed >= chatLimit) {
       setConversationEnded(true);
       setChatLog(prev => [...prev, { sender: 'system', text: `💬 Today's conversation has ended` }]);
     }
@@ -304,6 +304,8 @@ export default function Relationship() {
     setTimeout(() => checkAutoSkillUnlock(selectedId), 100);
   };
 
+  const selectedCompanion = companions.find(c => c.id === selectedId);
+
   const handleTrain = () => {
     if (!selectedId || !selectedCompanion) return;
     if (choicesLeft <= 0) {
@@ -342,7 +344,6 @@ export default function Relationship() {
     }
   };
 
-  const selectedCompanion = companions.find(c => c.id === selectedId);
   const metadata = selectedId ? NPC_CONFIGS[selectedId] : null;
   const getNextThreshold = (c: any) => getSkillThresholds(c.id).find(t => c.bond < t);
 

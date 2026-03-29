@@ -46,7 +46,7 @@ export default function Exploration() {
           ...baseMonster,
           hp: Math.floor(baseMonster.hp * scale * (0.8 + Math.random() * 0.4)),
           atk: Math.floor(baseMonster.atk * scale * (0.8 + Math.random() * 0.4)),
-          def: Math.floor(baseMonster.atk * 0.5 * scale),
+          def: Math.floor(baseMonster.def * 0.5 * scale),
           reward: Math.floor(baseMonster.reward * scale)
         };
         setEncounter({ type: 'enemy', data: enemy, x: data.x, y: data.y });
@@ -138,10 +138,11 @@ export default function Exploration() {
   };
 
   const claimBlessing = (option: any) => {
+    const godName = blessing?.god.name || 'God'; // Capture before setting to null
     option.action();
     setBlessing(null);
     setDialogue({
-      speaker: blessing?.god.name || 'God',
+      speaker: godName,
       text: 'เจ้าทำได้ดีมาก จงรับพลังนี้ไปเสีย!',
       portrait: 'happy'
     });

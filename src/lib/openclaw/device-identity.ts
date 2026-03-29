@@ -55,7 +55,9 @@ export function loadOrCreateDeviceIdentity(filePath: string = IDENTITY_FILE): De
         };
       }
     }
-  } catch { /* generate new */ }
+  } catch (e) {
+    console.warn('[Device Identity] Failed to load existing identity, generating new:', e);
+  }
 
   const identity = generateIdentity();
   fs.mkdirSync(path.dirname(filePath), { recursive: true });

@@ -447,6 +447,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
 
     set({
+      phase: 'shop', // Reset phase to ensure UI consistency after load
       gold: data.player.gold,
       items: data.inventory.map((i) => i.id || (i as any)),
       companions: get().companions.map(c => ({

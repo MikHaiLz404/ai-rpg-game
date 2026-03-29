@@ -18,6 +18,7 @@ export class OpenClawGameClient {
   private ws: any = null;
   private pendingRequests = new Map<string, PendingRequest>();
   private connected = false;
+  private connecting = false; // Track if connection is in progress
   private deviceIdentity: { deviceId: string; publicKeyPem: string; privateKeyPem: string } | null = null;
   private logs: string[] = [];
 
@@ -44,7 +45,11 @@ export class OpenClawGameClient {
 
   async connect(): Promise<void> {
     this.clearLogs();
-    if (this.connected && (this.ws?.readyState === 1 || (WS.OPEN && this.ws?.readyState === WS.OPEN))) return;
+    // Return early if already connected or connection in progress
+    if (this.connected) return;
+    if (this.connecting && this.ws?.readyState === 1) return;
+
+    this.connecting = true;
 
     return new Promise((resolve, reject) => {
       const wsUrl = new URL(this.url);
@@ -71,6 +76,7 @@ export class OpenClawGameClient {
 
       const timeout = setTimeout(() => {
         if (typeof this.ws?.close === 'function') this.ws.close();
+        this.connecting = false;
         this.log('[ERROR] Connection timeout (15s)');
         reject(new Error('Connection timeout (15s)'));
       }, 15000);
@@ -96,6 +102,7 @@ export class OpenClawGameClient {
       const onClose = () => {
         clearTimeout(timeout);
         this.connected = false;
+        this.connecting = false;
         this.log('[INFO] Connection closed.');
       };
 
@@ -131,11 +138,13 @@ export class OpenClawGameClient {
               resolve: () => {
                 clearTimeout(timeout);
                 this.connected = true;
+                this.connecting = false;
                 this.log('[INFO] Authenticated successfully');
                 resolve();
               },
               reject: (err) => {
                 clearTimeout(timeout);
+                this.connecting = false;
                 this.log(`[ERROR] Authentication failed: ${err.message}`);
                 reject(err);
               }
