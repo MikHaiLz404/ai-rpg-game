@@ -25,10 +25,22 @@ export class AudioController {
     }
 
     public preload() {
-        // Placeholder for future assets
+        // UI SFX
         // this.scene.load.audio('click', 'audio/sfx/ui/click.mp3');
+        // this.scene.load.audio('purchase', 'audio/sfx/ui/purchase.mp3');
+
+        // Combat SFX
+        // this.scene.load.audio('attack', 'audio/sfx/combat/attack.mp3');
         // this.scene.load.audio('hit', 'audio/sfx/combat/hit.mp3');
+        // this.scene.load.audio('divine_skill', 'audio/sfx/combat/divine_skill.mp3');
+        // this.scene.load.audio('victory', 'audio/sfx/combat/victory.mp3');
+        // this.scene.load.audio('defeat', 'audio/sfx/combat/defeat.mp3');
+
+        // BGM per phase
         // this.scene.load.audio('shop_bgm', 'audio/bgm/shop/shop_theme.mp3');
+        // this.scene.load.audio('arena_bgm', 'audio/bgm/arena/arena_theme.mp3');
+        // this.scene.load.audio('exploration_bgm', 'audio/bgm/exploration/exploration_theme.mp3');
+        // this.scene.load.audio('menu_bgm', 'audio/bgm/menu/menu_theme.mp3');
     }
 
     public playSFX(key: string, volume: number = 0.5) {

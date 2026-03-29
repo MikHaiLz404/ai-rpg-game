@@ -323,6 +323,10 @@ Bond Level: ${req.bondLevel || 1} — ${bondDesc}
         return `คุณคือ ${req.npcName} บรรยายการสำรวจ ${req.location} พบ ${req.foundItem} สไตล์เทพ 1-2 ประโยค ภาษาไทย`;
     }
 
+    if (req.action === 'divine_intervention') {
+        return `คุณคือผู้บรรยายการต่อสู้ในเกม RPG "Gods' Arena" เมื่อเทพแสดงพลังเหนือธรรมชาติ ${req.npcName} บรรยาย 1-2 ประโยค ภาษาไทย ที่น่าตื่นตาตื่นใจ`;
+    }
+
     return `คุณเป็นผู้บรรยายการต่อสู้ในเกม RPG "Gods' Arena" 1-2 ประโยค ภาษาไทย`;
   }
 
@@ -348,6 +352,10 @@ Bond Level: ${req.level}
 
     if (req.action === 'exploration_event') {
         return `Kane และ Minju พบสิ่งนี้ บรรยายตามบุคลิกของคุณ`;
+    }
+
+    if (req.action === 'divine_intervention') {
+        return `เทพ ${req.npcName} ทำการโจมตีพิเศษต่อ ${req.enemyName} สร้างความเสียหาย ${req.damage} หน่วย บรรยายเหตุการณ์นี้ 1-2 ประโยค ภาษาไทย`;
     }
 
     const actionDescriptions: Record<string, string> = {

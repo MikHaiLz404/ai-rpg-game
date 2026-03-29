@@ -263,10 +263,18 @@ export default function GamePage() {
             </div>
 
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
-              {phase === 'shop' && <Shop />}
-              {phase === 'arena' && <Arena />}
-              {phase === 'exploration' && <Exploration />}
-              {phase === 'relationship' && <Relationship />}
+              <GameOverlayErrorBoundary componentName="Shop">
+                {phase === 'shop' && <Shop />}
+              </GameOverlayErrorBoundary>
+              <GameOverlayErrorBoundary componentName="Arena">
+                {phase === 'arena' && <Arena />}
+              </GameOverlayErrorBoundary>
+              <GameOverlayErrorBoundary componentName="Exploration">
+                {phase === 'exploration' && <Exploration />}
+              </GameOverlayErrorBoundary>
+              <GameOverlayErrorBoundary componentName="Relationship">
+                {phase === 'relationship' && <Relationship />}
+              </GameOverlayErrorBoundary>
             </div>
 
             <ChampionStatus />

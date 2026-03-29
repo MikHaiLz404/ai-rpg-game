@@ -1,5 +1,10 @@
 import { God } from '../types';
 
+/**
+ * @deprecated Legacy Greek gods data - NOT used in current game
+ * Current game uses Leo, Arena, Draco from npcConfig.ts
+ * This data was from an earlier version and is kept for reference
+ */
 export const gods: God[] = [
   {
     id: 'zeus',
