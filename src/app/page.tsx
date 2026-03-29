@@ -258,8 +258,8 @@ export default function GamePage() {
             <div role="tablist" aria-label="Game phases" className="grid grid-cols-4 gap-1 p-1 bg-slate-900/50 rounded-xl border border-white/5">
               <TabButton label="Shop" active={phase === 'shop'} onClick={() => setPhase('shop')} title="Shop: buy and sell items (costs 1 action)" />
               <TabButton label="Arena" active={phase === 'arena'} onClick={() => setPhase('arena')} title="Arena: fight enemies (costs 1 action)" />
-              <TabButton label="Exploration" active={phase === 'exploration'} onClick={() => setPhase('exploration')} title="Exploration: discover events (costs 1 action)" />
-              <TabButton label="Relationship" active={phase === 'relationship'} onClick={() => setPhase('relationship')} title="Relationship: talk to gods (costs 1 action)" />
+              <TabButton label="Explore" active={phase === 'exploration'} onClick={() => setPhase('exploration')} title="Explore: discover events (costs 1 action)" />
+              <TabButton label="Bond" active={phase === 'relationship'} onClick={() => setPhase('relationship')} title="Bond: talk to gods (costs 1 action)" />
             </div>
 
             <div className="animate-in fade-in slide-in-from-right-4 duration-500">
