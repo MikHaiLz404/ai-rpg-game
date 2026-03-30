@@ -147,7 +147,8 @@ export class AudioController {
     public setBGMVolume(volume: number) {
         this.bgmVolume = Math.max(0, Math.min(1, volume));
         if (this.bgm && this.bgm.isPlaying) {
-            (this.bgm as Phaser.Sound.Sound).setVolume(this.bgmVolume);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this.bgm as any).setVolume(this.bgmVolume);
         }
     }
 
