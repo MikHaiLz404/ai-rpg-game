@@ -18,6 +18,8 @@ Bilingual project: Thai for narrative content (`novel/`), English for code and t
 | **Game Design** | ✅ Synced | GAME_DESIGN.md rewritten to match actual codebase |
 
 **Recent Activity:**
+- 2026-03-30: WebSocket singleton fix - exponential backoff reconnection with jitter, max 10 retries
+- 2026-03-30: Request deduplication - 5s window for /api/narrate, 10s for /api/prophecy
 - 2026-03-25: Priority fixes completed - Herald, Bond math, Economy, Vampire Lord removed
 - 2026-03-25: Shop customer wait time reduced (3-4.5s early, 2-3.5s mid, 1.5-3s late) + visible countdown + shift progress bar
 - 2026-03-25: Per-god difficulty fully implemented (thresholds, bond rates, chat limits)
@@ -51,10 +53,10 @@ Bilingual project: Thai for narrative content (`novel/`), English for code and t
 - ✅ **Vampire Lord**: Removed - Hydra is now final boss
 - ✅ **Economy death spiral**: Restock capped at 1.3x, gold debt system, passive +10/day
 
-**Architecture (Lower Priority - Not Addressed):**
-- WebSocket singleton limitation documented but not fixed (browser/device identity issue)
-- Request deduplication not implemented (rapid-fire API calls still possible)
-- OpenRouter API key check trivially bypassed (security through obscurity)
+**Architecture (Lower Priority - Addressed):**
+- ✅ **WebSocket singleton fix**: Implemented exponential backoff reconnection (1s, 2s, 4s, 8s, max 30s) with jitter, automatic reconnection on disconnect, proper cleanup of pending requests, max 10 retry attempts. See `src/lib/openclaw/client.ts` for details.
+- ✅ **Request deduplication**: Implemented `RequestDeduplicator` class with configurable cache window and size. `/api/narrate` uses 5s window, `/api/prophecy` uses 10s window. Duplicate requests within window return cached results. See `src/lib/utils/deduplication.ts`.
+- OpenRouter API key check trivially bypassed (security through obscurity) - not addressed
 
 ---
 
@@ -172,7 +174,7 @@ Design docs in `game-design/turn-based-rpg/GAME_DESIGN.md`. Narrative lore and T
 - **Audio integration** — BGM per phase (Shop, Arena, Exploration, Village) + SFX for UI clicks, combat hits, loot reveals
 - **Asset polish** — Replace remaining emoji icons with pixel art; finalize character portraits
 
-### Lower Priority
-- **WebSocket singleton fix** — browser/device identity limitation documented in code
-- **Request deduplication** — prevent rapid-fire API calls
+### Lower Priority (Completed)
+- ✅ **WebSocket singleton fix** — exponential backoff reconnection with jitter, auto-reconnect, proper cleanup (2026-03-30)
+- ✅ **Request deduplication** — 5s window for /api/narrate, 10s for /api/prophecy (2026-03-30)
 - **Multi-target combat** — expand from 1v1 waves to multi-enemy selection

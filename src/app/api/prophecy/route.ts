@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getGameClient } from '@/lib/openclaw/client';
+import { prophecyDeduplicator } from '@/lib/utils/deduplication';
 
 interface GameState {
   day: number;
@@ -127,41 +128,65 @@ export async function POST(request: NextRequest) {
     if (typeof gameState.day !== 'number' || typeof gameState.gold !== 'number') {
       return NextResponse.json({ error: 'Missing required fields: day and gold' }, { status: 400 });
     }
-    const openclawResult = await generateViaOpenClaw(gameState);
-    
-    const dailyEventData = await generateAIDailyEvent(gameState, OPENROUTER_API_KEY);
 
-    if (openclawResult) {
-      return NextResponse.json({
-        source: 'openclaw',
-        prophecies: openclawResult.map(r => ({ godId: r.godId, godName: GOD_PROMPTS[r.godId]?.name, text: r.text, usage: r.usage, prompt: r.prompt })),
-        dailyEvent: dailyEventData.event,
-        eventUsage: dailyEventData.usage,
-        eventPrompt: dailyEventData.prompt,
-        gatewayLogs: openclawResult.flatMap(r => r.logs || [])
-      });
-    }
+    // REQUEST DEDUPLICATION:
+    // Generate a deduplication key from game state parameters.
+    // Duplicate requests (same day + gold + bonds + skills) within 10 seconds will return
+    // the same response instead of making new API calls.
+    const dedupeKey = prophecyDeduplicator.generateKey('prophecy', {
+      day: gameState.day,
+      gold: gameState.gold,
+      bonds: gameState.bonds,
+      skills: gameState.skills,
+    });
 
-    const results: any[] = [];
-    for (const godId of ['leo', 'arena', 'draco']) {
-        const prompt = buildPromptForGod(godId, gameState);
-        try {
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ model: 'google/gemini-2.0-flash-001', messages: [{role:'system', content:prompt}], max_tokens: 100 })
-            });
-            const data = await response.json();
-            results.push({ godId, text: data.choices?.[0]?.message?.content || getFallback(godId), usage: data.usage });
-        } catch { results.push({ godId, text: getFallback(godId), usage: { total_tokens: 0 } }); }
-    }
+    const response = await prophecyDeduplicator.deduplicate(dedupeKey, async () => {
+      return await generateProphecyResponse(gameState, OPENROUTER_API_KEY);
+    });
 
-    return NextResponse.json({
-      source: 'openrouter',
-      prophecies: results,
+    return NextResponse.json(response);
+  } catch { return NextResponse.json({ source: 'fallback', prophecies: [] }); }
+}
+
+/**
+ * Internal function to generate prophecy response.
+ * This is wrapped by deduplication in the POST handler.
+ */
+async function generateProphecyResponse(gameState: GameState, OPENROUTER_API_KEY: string) {
+  const openclawResult = await generateViaOpenClaw(gameState);
+
+  const dailyEventData = await generateAIDailyEvent(gameState, OPENROUTER_API_KEY);
+
+  if (openclawResult) {
+    return {
+      source: 'openclaw',
+      prophecies: openclawResult.map(r => ({ godId: r.godId, godName: GOD_PROMPTS[r.godId]?.name, text: r.text, usage: r.usage, prompt: r.prompt })),
       dailyEvent: dailyEventData.event,
       eventUsage: dailyEventData.usage,
-      eventPrompt: dailyEventData.prompt
-    });
-  } catch { return NextResponse.json({ source: 'fallback', prophecies: [] }); }
+      eventPrompt: dailyEventData.prompt,
+      gatewayLogs: openclawResult.flatMap(r => r.logs || [])
+    };
+  }
+
+  const results: any[] = [];
+  for (const godId of ['leo', 'arena', 'draco']) {
+      const prompt = buildPromptForGod(godId, gameState);
+      try {
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${OPENROUTER_API_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model: 'google/gemini-2.0-flash-001', messages: [{role:'system', content:prompt}], max_tokens: 100 })
+          });
+          const data = await response.json();
+          results.push({ godId, text: data.choices?.[0]?.message?.content || getFallback(godId), usage: data.usage });
+      } catch { results.push({ godId, text: getFallback(godId), usage: { total_tokens: 0 } }); }
+  }
+
+  return {
+    source: 'openrouter',
+    prophecies: results,
+    dailyEvent: dailyEventData.event,
+    eventUsage: dailyEventData.usage,
+    eventPrompt: dailyEventData.prompt
+  };
 }

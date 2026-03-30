@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { orchestrator } from '@/lib/ai/orchestrator';
+import { narrativeDeduplicator } from '@/lib/utils/deduplication';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,8 +22,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Invalid action: ${action}` }, { status: 400 });
     }
 
-    // Delegate all narrative logic to the Divine Orchestrator
-    const response = await orchestrator.generate(body);
+    // REQUEST DEDUPLICATION:
+    // Generate a deduplication key from action and relevant parameters.
+    // Duplicate requests (same action + params) within 5 seconds will return
+    // the same response instead of making a new API call.
+    const dedupeKey = narrativeDeduplicator.generateKey(action, {
+      npcName: body.npcName,
+      playerName: body.playerName,
+      userMessage: body.userMessage,
+      npcMood: body.npcMood,
+      godTheme: body.godTheme,
+      bondLevel: body.bondLevel,
+      level: body.level,
+      location: body.location,
+      firstMeeting: body.firstMeeting,
+    });
+
+    const response = await narrativeDeduplicator.deduplicate(dedupeKey, async () => {
+      // Delegate all narrative logic to the Divine Orchestrator
+      return await orchestrator.generate(body);
+    });
 
     return NextResponse.json(response);
   } catch (error) {

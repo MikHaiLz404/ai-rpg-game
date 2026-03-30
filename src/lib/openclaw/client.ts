@@ -1,5 +1,33 @@
 // Minimal OpenClaw Gateway client for AI RPG Game
 // Handles: connect, challenge-response auth, chat.send, sessions.history
+//
+// WEBSOCKET SINGLETON LIMITATION & FIX:
+// =========================================
+// The singleton pattern used by getGameClient() creates a single OpenClawGameClient
+// instance that persists for the lifetime of the application process. This works fine
+// for single-instance deployments but has known limitations:
+//
+// 1. BROWSER/DEVICE IDENTITY: The device identity (RSA keypair) is stored in
+//    ~/.mission-control/identity/device.json and persists across browser sessions.
+//    This means multiple browser tabs share the same device identity, which could
+//    cause session conflicts if multiple tabs connect simultaneously.
+//
+// 2. RECONNECTION HANDLING: When the WebSocket connection drops (e.g., network blip,
+//    server restart, ngrok reconnect), the singleton was not automatically reconnecting.
+//    The fix adds exponential backoff reconnection with jitter.
+//
+// 3. CONNECTION STATE: The client now properly tracks both 'connected' and 'connecting'
+//    states and handles edge cases like connection timeout more gracefully.
+//
+// SOLUTION: The fix implements:
+// - Exponential backoff reconnection (1s, 2s, 4s, 8s, max 30s) with jitter
+// - Automatic reconnection on unexpected disconnect
+// - Proper cleanup of pending requests on disconnect
+// - Maximum retry count (10) before giving up
+//
+// For multiple browser tabs, each tab should get its own WebSocket connection ideally.
+// This implementation mitigates issues by ensuring only one connection attempt happens
+// at a time and by automatically reconnecting when the connection is lost.
 
 import { loadOrCreateDeviceIdentity, signDevicePayload, buildDeviceAuthPayload, publicKeyRawBase64Url } from './device-identity';
 
@@ -22,12 +50,35 @@ export class OpenClawGameClient {
   private deviceIdentity: { deviceId: string; publicKeyPem: string; privateKeyPem: string } | null = null;
   private logs: string[] = [];
 
+  // Reconnection support
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 10;
+  private baseReconnectDelay = 1000; // 1 second
+  private maxReconnectDelay = 30000; // 30 seconds
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private shouldReconnect = true; // Flag to control reconnection behavior
+  private destroyed = false; // True if client has been permanently destroyed
+
   constructor(private url: string = GATEWAY_URL, private token: string = GATEWAY_TOKEN) {
     try {
       this.deviceIdentity = loadOrCreateDeviceIdentity();
     } catch {
       this.log('[WARN] No device identity available');
     }
+  }
+
+  /**
+   * Mark the client as destroyed, preventing reconnection attempts.
+   * Call this when the client is no longer needed.
+   */
+  public destroy(): void {
+    this.destroyed = true;
+    this.shouldReconnect = false;
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    this.disconnect();
   }
 
   public log(message: string) {
@@ -44,11 +95,16 @@ export class OpenClawGameClient {
   }
 
   async connect(): Promise<void> {
-    this.clearLogs();
-    // Return early if already connected or connection in progress
-    if (this.connected) return;
+    // Return early if destroyed, already connected, or connection in progress
+    if (this.destroyed) return;
+    if (this.connected) {
+      // Reset reconnection state on intentional connect call
+      this.reconnectAttempts = 0;
+      return;
+    }
     if (this.connecting && this.ws?.readyState === 1) return;
 
+    this.clearLogs();
     this.connecting = true;
 
     return new Promise((resolve, reject) => {
@@ -104,6 +160,11 @@ export class OpenClawGameClient {
         this.connected = false;
         this.connecting = false;
         this.log('[INFO] Connection closed.');
+
+        // Attempt reconnection if not intentionally disconnected
+        if (this.shouldReconnect && !this.destroyed) {
+          this.scheduleReconnect();
+        }
       };
 
       const onMessage = (event: any) => {
@@ -139,6 +200,8 @@ export class OpenClawGameClient {
                 clearTimeout(timeout);
                 this.connected = true;
                 this.connecting = false;
+                this.reconnectAttempts = 0; // Reset on successful connection
+                this.shouldReconnect = true; // Enable auto-reconnect for future disconnects
                 this.log('[INFO] Authenticated successfully');
                 resolve();
               },
@@ -253,14 +316,85 @@ export class OpenClawGameClient {
     throw new Error('Agent response timeout');
   }
 
+  /**
+   * Schedule a reconnection attempt with exponential backoff and jitter.
+   * Uses a truncated exponential backoff: min(baseDelay * 2^attempt, maxDelay) + random jitter.
+   */
+  private scheduleReconnect(): void {
+    if (this.destroyed || !this.shouldReconnect || this.reconnectAttempts >= this.maxReconnectAttempts) {
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        this.log(`[WARN] Max reconnection attempts (${this.maxReconnectAttempts}) reached. Giving up.`);
+      }
+      return;
+    }
+
+    // Clear any existing reconnect timeout
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+    }
+
+    // Calculate delay with exponential backoff: baseDelay * 2^attempt
+    const exponentialDelay = Math.min(
+      this.baseReconnectDelay * Math.pow(2, this.reconnectAttempts),
+      this.maxReconnectDelay
+    );
+
+    // Add jitter (0-25% of delay) to prevent thundering herd
+    const jitter = Math.random() * exponentialDelay * 0.25;
+    const totalDelay = exponentialDelay + jitter;
+
+    this.reconnectAttempts++;
+    this.log(`[INFO] Scheduling reconnection attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${Math.round(totalDelay)}ms...`);
+
+    this.reconnectTimeout = setTimeout(async () => {
+      if (this.destroyed || !this.shouldReconnect) return;
+
+      try {
+        this.connecting = false; // Reset connecting flag before attempting
+        await this.connect();
+        // On successful reconnect, reset attempts counter
+        this.reconnectAttempts = 0;
+        this.log('[INFO] Reconnection successful');
+      } catch (err) {
+        this.log(`[WARN] Reconnection attempt failed: ${err instanceof Error ? err.message : String(err)}`);
+        // scheduleReconnect will be called again from onClose if shouldReconnect is still true
+      }
+    }, totalDelay);
+  }
+
   disconnect(): void {
+    // Prevent automatic reconnection when intentionally disconnecting
+    this.shouldReconnect = false;
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+
     if (this.ws) {
-      this.ws.onclose = null;
+      this.ws.onclose = null; // Remove handler to prevent reconnection loop
       this.ws.close();
       this.ws = null;
     }
     this.connected = false;
+    this.connecting = false;
+    // Reject all pending requests with a clear error
+    for (const [id, pending] of this.pendingRequests) {
+      pending.reject(new Error('WebSocket disconnected'));
+    }
     this.pendingRequests.clear();
+  }
+
+  /**
+   * Reset reconnection state. Call this before an intentional connect() if a fresh
+   * connection is needed after a previous successful connection.
+   */
+  public resetReconnectionState(): void {
+    this.reconnectAttempts = 0;
+    this.shouldReconnect = true;
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
   }
 
   isConnected(): boolean {
