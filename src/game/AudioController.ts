@@ -147,7 +147,7 @@ export class AudioController {
     public setBGMVolume(volume: number) {
         this.bgmVolume = Math.max(0, Math.min(1, volume));
         if (this.bgm && this.bgm.isPlaying) {
-            this.bgm.setVolume(this.bgmVolume);
+            (this.bgm as Phaser.Sound.Sound).setVolume(this.bgmVolume);
         }
     }
 
