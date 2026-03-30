@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useAudio, initAudioSettings, BGM_KEYS } from '@/game/AudioManager';
+import { useAudio, initAudioSettings } from '@/game/AudioManager';
 
 /**
  * AudioControls - Sound on/off toggle button for the UI header
